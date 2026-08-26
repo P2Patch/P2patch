@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2016-10092",
+  "note": "libtiff tools/tiffcrop.c, readContigStripsIntoBuffer(): the function allocates its output buffer sized for `nstrips * stripsize` bytes and copies each strip in with `bytes_read = TIFFReadEncodedStrip(in, strip, bufp, -1); ... bufp += bytes_read;` (tools/tiffcrop.c:3673-3705). In tiffcrop's `-i` (ignore-errors) mode a malformed/truncated strip can legitimately decode fewer bytes than `stripsize` without being fatal, so `bufp` is advanced by less than the codec actually wrote for that strip -- yet every strip codec (the raw/uncompressed copy path through `_TIFFmemcpy`, `NeXTDecode`, etc.) always writes exactly `stripsize` bytes starting at whatever `bufp` it is handed next. Because `bufp` sits earlier than it should, that next strip's write runs past `buf`'s allocated end on the final strip -- a heap-buffer-overflow WRITE. For a crafted image with raw/uncompressed strips, this manifests inside `libtiff/tif_unix.c:340`'s `_TIFFmemcpy` -> `memcpy(d, s, (size_t) c)` wrapper.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "bufp += bytes_read; -- advances the strip output pointer by the per-strip READ COUNT rather than the fixed stripsize; in -i (ignore-errors) mode a short/malformed strip under-advances bufp",
+            "uri": "tools/tiffcrop.c",
+            "line": 3701
+          },
+          {
+            "message": "memcpy(d, s, (size_t) c); -- _TIFFmemcpy's generic write wrapper, invoked by the next strip's raw/uncompressed copy with a stripsize-sized write starting at the under-advanced bufp, running past the buffer's allocated end on the final strip",
+            "uri": "libtiff/tif_unix.c",
+            "line": 340
+          }
+        ]
+      ]
+    }
+  ]
+}

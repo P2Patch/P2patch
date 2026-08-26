@@ -1,0 +1,12 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_042714_finding-eff26c0d176b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-eff26c0d176b:2be5285b1e2a bash -lc cd /workspace/repo && mvn -q -B -pl one-java-agent-plugin -am -DskipTests compile && mkdir -p /tmp/pov-out && javac -cp one-java-agent-plugin/target/classes -d /tmp/pov-out .security-pipeline/pov/ZipSlipPoV.java && java -cp one-java-agent-plugin/target/classes:/tmp/pov-out ZipSlipPoV
+exit_code=0
+timed_out=false
+
+--- stdout ---
+extractDir=/tmp/zipslip-pov1472375919209399638/extract
+outsideMarker=/tmp/zipslip-pov1472375919209399638/pov_zipslip_proof.txt
+escaped=true
+VULNERABLE: zip entry escaped destination directory (CWE-22 zip slip)
+
+--- stderr ---
+

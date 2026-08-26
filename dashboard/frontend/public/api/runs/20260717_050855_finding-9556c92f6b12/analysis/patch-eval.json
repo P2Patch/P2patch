@@ -1,0 +1,107 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:17.214643+00:00",
+    "finished_at": "2026-07-17T15:41:50.846021+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalizes the resolved entry and rejects anything not under the dest dir, closing the whole Zip Slip class, not just the observed payload.",
+        "evidence": "Expand.java: canonicalEntryPath.startsWith(dir.getCanonicalPath()+File.separator) guard; pov_after_still_reproduces=false",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Check sits at the extraction sink right after FileUtils.resolveFile, neutralizing the flaw at the trust boundary for every downstream use of f.",
+        "evidence": "Guard inserted immediately after 'File f = FileUtils.resolveFile( dir, entryName )', same method as official fix",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "f is derived once and validated before any use, so all three sinks (file write, parent mkdir, directory-entry mkdirs) are covered; separator suffix defeats sibling-prefix bypass.",
+        "evidence": "canonicalDestDirPath = dir.getCanonicalPath()+File.separator prevents /dest-evil matching /dest",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive location and containment strategy as official fix, but uses canonical paths (resolves ../ and symlinks) making it a strict superset.",
+        "evidence": "Official: f.getAbsolutePath().startsWith(dir.getAbsolutePath()); Ours: getCanonicalPath()+separator check",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Benign nested entries still extract; regressions pass and added test asserts sub/dir/file.txt extraction works.",
+        "evidence": "regressions_passed=true; testExpandAllowsBenignNestedEntry asserts content",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses canonicalization (safe primitive), IOException propagates through existing throws; no ReDoS/TOCTOU introduced since symlinks are resolved.",
+        "evidence": "getCanonicalPath resolves symlinks; throw new IOException within method already declaring throws",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Production change is a tight ~8-line guard at the correct sink; remainder is a new regression test, no unrelated edits.",
+        "evidence": "Single hunk in Expand.java extractFile plus ExpandTest.java",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Implements the CWE-022 defense-of-record: canonicalize to real path then verify containment in the base dir, stronger than official absolute-path check.",
+        "evidence": "getCanonicalPath() + File.separator startsWith containment check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [],
+    "root_cause": "Untrusted zip entry names are resolved against the destination directory without verifying the result stays inside it, letting ../ sequences escape the target directory during extraction.",
+    "summary": "Our patch adds a canonical-path containment check at the exact extraction sink (extractFile, right after FileUtils.resolveFile), rejecting any entry whose real path is not the dest dir or under dest+separator. This is the CWE-022 defense-of-record and is strictly stronger than the official fix, which uses non-canonical getAbsolutePath and lacks a separator boundary (vulnerable to unresolved ../, symlinks, and sibling-prefix names like /dest-evil). POV no longer reproduces, regressions pass, and benign nested extraction is preserved.",
+    "overall": {
+      "mean": 5.0,
+      "score": 100,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Expand.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/Expand.java"
+      ],
+      "commits": [
+        "33a2853df8185b4519b1b8bfae284f03392618ef"
+      ]
+    }
+  }
+}

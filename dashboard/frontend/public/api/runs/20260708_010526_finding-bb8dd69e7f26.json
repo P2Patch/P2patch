@@ -1,0 +1,629 @@
+{
+  "run_id": "20260708_010526_finding-bb8dd69e7f26",
+  "finding_id": "finding-bb8dd69e7f26",
+  "timestamp": "2026-07-08T01:05:26",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260708_010526_finding-bb8dd69e7f26",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-bb8dd69e7f26",
+    "cve_id": "CVE-2016-9177",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "perwendel__spark_CVE-2016-9177_2.5.1",
+    "alert_file": "PERWENDEL_CVE_2016_9177.json",
+    "github_url": "https://github.com/perwendel/spark",
+    "repo": "perwendel/spark",
+    "github_tag": "2.5.1",
+    "advisory_id": "GHSA-89gc-6cw6-4vch",
+    "buggy_commit_id": "ce57dfb949ed183405f75dee8cf3262b45c9b3b5",
+    "fix_commit_ids": [
+      "efcb46c710e3f56805b9257a63d1306882f4faf9"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "class": "ClassPathResourceHandler",
+        "class_start": "31.0",
+        "class_end": "60.0",
+        "method": "getResource",
+        "method_start": "60.0",
+        "method_end": "87.0",
+        "signature": "AbstractFileResolvingResource getResource(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "class": "ExternalResourceHandler",
+        "class_start": "31.0",
+        "class_end": "59.0",
+        "method": "getResource",
+        "method_start": "59.0",
+        "method_end": "86.0",
+        "signature": "AbstractFileResolvingResource getResource(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "consumeWithFileResourceHandlers",
+        "method_start": "85.0",
+        "method_end": "106.0",
+        "signature": "boolean consumeWithFileResourceHandlers(HttpServletRequest,HttpServletResponse)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "configure",
+        "method_start": "155.0",
+        "method_end": "180.0",
+        "signature": "void configure(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "setExpireTimeSeconds",
+        "method_start": "239.0",
+        "method_end": "241.0",
+        "signature": "void setExpireTimeSeconds(long)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "configureJarCase",
+        "method_start": "185.0",
+        "method_end": "203.0",
+        "signature": "boolean configureJarCase(String,ClassPathResource)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/utils/StringUtils.java",
+        "class": "StringUtils",
+        "class_start": "45.0",
+        "class_end": "376.0",
+        "method": "toString",
+        "method_start": "376.0",
+        "method_end": "390.0",
+        "signature": "String toString(byte,String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/test/java/spark/StaticFilesTest.java",
+        "class": "StaticFilesTest",
+        "class_start": "42.0",
+        "class_end": "166.0",
+        "method": "testCustomMimeType",
+        "method_start": "107.0",
+        "method_end": "109.0",
+        "signature": "void testCustomMimeType()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/spark/resource/ClassPathResourceHandler.java",
+      "src/main/java/spark/resource/ExternalResourceHandler.java",
+      "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+      "src/main/java/spark/utils/StringUtils.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2016-9177",
+      "advisory": "https://github.com/advisories/GHSA-89gc-6cw6-4vch",
+      "repo": "https://github.com/perwendel/spark",
+      "buggy_commit": "https://github.com/perwendel/spark/commit/ce57dfb949ed183405f75dee8cf3262b45c9b3b5"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 326,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 338,
+              "message": "location : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "location : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "new URI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "toURI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "toURI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "getSchemeSpecificPart(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 46,
+              "message": "getFile(...) : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 71,
+              "message": "getFile(...)",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            }
+          ],
+          [
+            {
+              "line": 326,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 338,
+              "message": "location : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "location : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 146,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 146,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 146,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 148,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 148,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 339,
+              "message": "new URI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 327,
+              "message": "toURI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "toURI(...) : URI",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "getSchemeSpecificPart(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 219,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 46,
+              "message": "getFile(...) : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 71,
+              "message": "getFile(...)",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-bb8dd69e7f26",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_010526_finding-bb8dd69e7f26/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B -Dtest=ExternalResourceHandlerTest,UriPathTest test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/perwendel__spark_[redacted]_2.5.1/3/Dockerfile",
+        "-t",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/perwendel__spark_[redacted]_2.5.1/3"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_010526_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_010526_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_010526_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -B -Dtest=ExternalResourceHandlerTest,UriPathTest test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 452602,
+        "duration_api_ms": 443651,
+        "num_turns": 39,
+        "cost_usd": 2.2455545,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 4697,
+          "output": 29981,
+          "cache_read": 1737957,
+          "cache_creation": 60070
+        }
+      },
+      "parsed_output": {
+        "evidence": "Unpatched run output: \"resolved file : /tmp/pov-ext-...-root/secret.txt\", \"bytes served : TOP-SECRET-DO-NOT-SERVE-8f3a1c2b\", \"VULNERABLE ...\", EXIT=0. Confirmed regression by temporarily changing ExternalResourceHandler to `UriPath.canonical(path.replace('\\\\','/'))`: getResource() returned null and the same command exited 1; patch then reverted (product source clean). Root cause: UriPath.canonical only recognizes '/' as separator (verified: canonical(\"/..\\\\secret.txt\") returns the string unchanged) while ExternalResource -> StringUtils.cleanPath converts '\\' to '/' and collapses '..'.",
+        "expected_vulnerable_behavior": "On unpatched code the POV drives the real spark.resource.ExternalResourceHandler.getResource(String) with base=<tmp>/public and attacker path \"/..\\secret.txt\". The handler returns a non-null ExternalResource that resolves to <tmp>/secret.txt (outside base), and reading resource.getInputStream() returns the secret file's bytes. The runner prints \"VULNERABLE\" and exits 0. A correct patch (normalize/reject backslash traversal, or validate the resolved path stays within base) makes getResource() return null, so the POV prints \"traversal blocked\" and exits 1.",
+        "notes": "POV exercises real project classes directly (ExternalResourceHandler.getResource, ExternalResource.getPath/getInputStream) via a trivial subclass needed only to reach the protected getResource(String); no product code or normal tests were modified. run_pov.sh compiles the project (mvn -DskipTests compile if target/classes is missing), locates slf4j-api and javax.servlet-api from ~/.m2, compiles the POV into .security-pipeline/pov/out, and runs it. The temp layout (base dir + secret sibling) is created by the POV itself, so it is self-contained and deterministic. Command runs inside /workspace/repo in the project container.",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/PovExternalTraversal.java",
+        "regression_hint": "After a correct fix, `bash .security-pipeline/pov/run_pov.sh` must exit non-zero (getResource returns null / resource stays within base). The fix should either normalize backslashes to forward slashes before UriPath.canonical(), have canonical treat '\\' as a separator, or verify the final resolved file's canonical path is contained within the configured base directory. Any of these blocks the \"/..\\secret.txt\" traversal and flips the POV to exit 1.",
+        "status": "pov_created",
+        "summary": "ExternalResourceHandler's only traversal defense, UriPath.canonical(), treats only '/' as a path separator, so a request path using backslashes (\"/..\\secret.txt\") passes through unchanged. ExternalResource's constructor then runs the combined path through StringUtils.cleanPath(), which converts '\\' to '/' and normalizes the resulting '..' segments, escaping the configured base directory. The handler returns a live resource whose InputStream leaks a file located outside the served root — a CWE-022 path traversal."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 93679,
+        "duration_api_ms": 87746,
+        "num_turns": 14,
+        "cost_usd": 0.611253,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 4460,
+          "output": 5768,
+          "cache_read": 382296,
+          "cache_creation": 24945
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/spark/resource/ExternalResourceHandler.java",
+          "src/test/java/spark/resource/ExternalResourceHandlerTest.java"
+        ],
+        "patch_notes": "In ExternalResourceHandler.getResource(String), changed `path = UriPath.canonical(path)` to `path = UriPath.canonical(path.replace('\\\\', '/'))` and added a `if (path == null) return null;` guard. Normalizing backslashes to forward slashes before canonicalization ensures backslash traversal segments ('..\\\\') are seen and collapsed/rejected by canonical(), which returns null when the path escapes above root. Added regression test testGetResource_whenPathUsesBackslashTraversal_thenReturnNull asserting getResource(\"/..\\\\secret.txt\") returns null. Verified: POV now exits 1 (\"traversal blocked\"); existing ExternalResourceHandlerTest (7) and UriPathTest (5) all pass.",
+        "regression_commands": [
+          "mvn -B -Dtest=ExternalResourceHandlerTest,UriPathTest test"
+        ],
+        "risk_notes": "Low risk. The change only affects request paths containing backslashes or that resolve above the base root — both of which are invalid for legitimate URL-based static file serving. Forward-slash paths are unaffected (path.replace is a no-op for them), and legitimate '.'/'..' handling within the base is unchanged since canonical() already handled it. No API, dependency, or behavioral changes for valid requests. Note: sibling handlers (e.g. ClassPathResourceHandler) were not modified as they were out of scope for this alert; if they share the same UriPath usage they may warrant a similar review.",
+        "status": "patched",
+        "summary": "Fixed CWE-022 path traversal in ExternalResourceHandler.getResource(). Backslash-based traversal paths (e.g. \"/..\\secret.txt\") bypassed the only defense — UriPath.canonical() — which treats only '/' as a separator, and were later collapsed by StringUtils.cleanPath() (which converts '\\'→'/' and resolves '..'), escaping the served base directory. The fix normalizes backslashes to forward slashes before canonicalization and rejects paths that canonicalize above root (canonical() returns null), so the handler now returns null instead of serving an out-of-base file."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 60915,
+        "duration_api_ms": 58481,
+        "num_turns": 10,
+        "cost_usd": 0.442385,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 4304,
+          "output": 4155,
+          "cache_read": 145446,
+          "cache_creation": 23756
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "bash .security-pipeline/pov/run_pov.sh",
+          "mvn -B -Dtest=ExternalResourceHandlerTest,UriPathTest test"
+        ],
+        "diff_review": "Product change is confined to ExternalResourceHandler.getResource(): `path = UriPath.canonical(path.replace('\\\\','/'))` plus a `if (path == null) return null;` guard. Root cause verified in source: UriPath.canonical() only treats '/' as a separator (leaving '/..\\\\secret.txt' unchanged), while ExternalResource->StringUtils.cleanPath() converts '\\\\'->'/' and collapses '..', escaping the base dir. Normalizing '\\\\'->'/' before canonical() turns the attack into '/../secret.txt', which canonical() rejects (returns null on '..' above root). The null guard is required because canonical() can now legitimately return null. Change is a no-op for legitimate forward-slash paths. Does not remove functionality or add unrelated behavior. The pov.diff only adds the self-contained POV harness and compiled artifacts under .security-pipeline/pov/; no product code or existing tests were modified by the POV. The only test change is an added regression test (testGetResource_whenPathUsesBackslashTraversal_thenReturnNull) asserting getResource(\"/..\\\\secret.txt\") returns null.",
+        "issues": [
+          "Sibling handlers (e.g. ClassPathResourceHandler) sharing similar UriPath usage were not modified; noted by patcher as out of scope for this alert, so no meaningful residual risk for the flagged ExternalResourceHandler path."
+        ],
+        "pov_result": "Reran POV on patched code: \"[POV] getResource() returned null -> traversal blocked. Not vulnerable.\" EXIT=1. Orchestrator log confirms unpatched code exits 0 (VULNERABLE, served /tmp/.../secret.txt with TOP-SECRET content). Vulnerability no longer reproduces after patch.",
+        "regression_result": "Reran `mvn -B -Dtest=ExternalResourceHandlerTest,UriPathTest test`: BUILD SUCCESS, Tests run: 12, Failures: 0, Errors: 0. ExternalResourceHandlerTest now has 7 tests (up from 6 at HEAD), confirming the new backslash-traversal regression test ran and passed alongside existing coverage; UriPathTest (5) passes.",
+        "summary": "The patch fixes the CWE-022 path traversal in ExternalResourceHandler.getResource() by normalizing backslashes to forward slashes before UriPath.canonical() and rejecting paths that canonicalize above root (null return). The fix is minimal and appropriate, the original POV no longer reproduces (exit 0 -> exit 1), and regression tests pass.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 3.2992,
+    "num_turns": 63,
+    "agent_duration_ms": 607196
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log"
+    ]
+  }
+}

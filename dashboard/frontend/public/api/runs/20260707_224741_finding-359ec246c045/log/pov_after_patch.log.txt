@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260707_224741_finding-359ec246c045/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-359ec246c045:9e95644bb5c7 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+[POV] extractAll threw (traversal likely blocked): net.lingala.zip4j.exception.ZipException: net.lingala.zip4j.exception.ZipException: net.lingala.zip4j.exception.ZipException: illegal file name that breaks out of the target directory: /workspace/repo/target/pov-zipslip/dest/../pov_pwned.txt
+[POV] dest dir           : /workspace/repo/target/pov-zipslip/dest
+[POV] escaped target     : /workspace/repo/target/pov-zipslip/pov_pwned.txt exists=false
+[POV] confined target    : /workspace/repo/target/pov-zipslip/dest/pov_pwned.txt exists=false
+[POV] NOT VULNERABLE: no file was written outside the destination directory.
+
+--- stderr ---
+

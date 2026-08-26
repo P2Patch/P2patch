@@ -1,0 +1,64 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_024122_finding-cea32a9afd67/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-cea32a9afd67:c5314ac69ae9 bash -lc cd /workspace/repo && cp .security-pipeline/pov/JsonpCallbackXssPovTest.java agent/core/src/test/java/org/jolokia/http/JsonpCallbackXssPovTest.java && mvn -B -q test -pl agent/core -am -Dtest=JsonpCallbackXssPovTest -DfailIfNoTests=false; STATUS=$?; rm -f agent/core/src/test/java/org/jolokia/http/JsonpCallbackXssPovTest.java; exit $STATUS
+exit_code=1
+timed_out=false
+
+--- stdout ---
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running org.jolokia.http.JsonpCallbackXssPovTest
+Configuring TestNG with: TestNG652Configurator
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.503 sec <<< FAILURE! - in org.jolokia.http.JsonpCallbackXssPovTest
+jsonpCallbackReflectsRawScriptMarkup(org.jolokia.http.JsonpCallbackXssPovTest)  Time elapsed: 0.111 sec  <<< FAILURE!
+java.lang.AssertionError: 
+  Unexpected method call setStatus(400):
+    setHeader("Cache-Control", "no-cache"): expected: 1, actual: 0
+    setHeader("Pragma", "no-cache"): expected: 1, actual: 0
+    setDateHeader("Date", <any>): expected: 1, actual: 0
+    setDateHeader("Expires", <any>): expected: 1, actual: 0
+    setCharacterEncoding("utf-8"): expected: 1, actual: 0
+    setContentType("text/javascript"): expected: 1, actual: 0
+    setStatus(200): expected: 1, actual: 0
+    getOutputStream(): expected: 1, actual: 0
+	at org.easymock.internal.MockInvocationHandler.invoke(MockInvocationHandler.java:45)
+	at org.easymock.internal.ObjectMethodsFilter.invoke(ObjectMethodsFilter.java:73)
+	at org.jolokia.http.AgentServlet.sendBadCallbackError(AgentServlet.java:504)
+	at org.jolokia.http.AgentServlet.sendResponse(AgentServlet.java:476)
+	at org.jolokia.http.AgentServlet.handle(AgentServlet.java:288)
+	at org.jolokia.http.AgentServlet.doGet(AgentServlet.java:237)
+	at org.jolokia.http.JsonpCallbackXssPovTest.jsonpCallbackReflectsRawScriptMarkup(JsonpCallbackXssPovTest.java:101)
+
+
+Results :
+
+Failed tests: 
+  JsonpCallbackXssPovTest.jsonpCallbackReflectsRawScriptMarkup:101 
+  Unexpected method call setStatus(400):
+    setHeader("Cache-Control", "no-cache"): expected: 1, actual: 0
+    setHeader("Pragma", "no-cache"): expected: 1, actual: 0
+    setDateHeader("Date", <any>): expected: 1, actual: 0
+    setDateHeader("Expires", <any>): expected: 1, actual: 0
+    setCharacterEncoding("utf-8"): expected: 1, actual: 0
+    setContentType("text/javascript"): expected: 1, actual: 0
+    setStatus(200): expected: 1, actual: 0
+    getOutputStream(): expected: 1, actual: 0
+
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0
+
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:2.18.1:test (default-test) on project jolokia-core: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /workspace/repo/agent/core/target/surefire-reports for the individual test results.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <goals> -rf :jolokia-core
+
+--- stderr ---
+

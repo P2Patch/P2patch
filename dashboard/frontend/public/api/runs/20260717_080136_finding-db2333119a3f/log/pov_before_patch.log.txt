@@ -1,0 +1,10 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080136_finding-db2333119a3f/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-db2333119a3f:238451dda380 bash -lc mvn -q -B -DskipTests compile && mkdir -p .security-pipeline/pov/classes && javac -cp target/classes -d .security-pipeline/pov/classes .security-pipeline/pov/CommandInjectionPov.java && java -cp target/classes:.security-pipeline/pov/classes CommandInjectionPov
+exit_code=0
+timed_out=false
+
+--- stdout ---
+Shell command line: [/bin/sh, -c, "true$(touch /tmp/plexus_pov_marker7121890564834710561.txt)"]
+VULNERABLE: injected shell command executed; marker created at /tmp/plexus_pov_marker7121890564834710561.txt
+
+--- stderr ---
+

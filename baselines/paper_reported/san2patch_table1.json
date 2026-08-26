@@ -1,0 +1,95 @@
+{
+  "source": {
+    "paper": "Logs In, Patches Out: Automated Vulnerability Repair via Tree-of-Thought LLM Analysis",
+    "venue": "USENIX Security '25",
+    "table": "Table 1 (p. 4410), with dataset notes from Appendix B",
+    "url": "https://www.usenix.org/system/files/usenixsecurity25-kim-youngjoon.pdf",
+    "code": "https://github.com/acorn421/san2patch",
+    "benchmark": "https://github.com/acorn421/san2patch-benchmark",
+    "transcribed": "2026-08-12"
+  },
+  "legend": {
+    "automated": {
+      "pass": "✓ both vulnerability and functionality tests passed",
+      "fail": "✗ vulnerability test or functionality test failed"
+    },
+    "manual": {
+      "correct": "✓ correct, developer-matched",
+      "alternative": "✓(A) correct, alternative — differs from the developer fix but resolves the general cause without changing functionality",
+      "incorrect_some": "▲ incorrect, failed some test cases",
+      "incorrect_all": "✗ incorrect, failed all test cases"
+    }
+  },
+  "model": "gpt-4o-2024-08-06",
+  "totals_reported": {
+    "san2patch": {"automated": "34/39", "manual": "31/39", "rate": 0.795},
+    "zero_shot": {"automated": "22/39", "manual": "21/39"},
+    "cot": {"automated": "26/39", "manual": "22/39"},
+    "no_context": {"automated": "28/39", "manual": "24/39"},
+    "vulnfix": {"automated": "20/39"},
+    "extractfix": {"automated": "9/21", "rate_on_own_subset": 0.429},
+    "vulrepair": {"automated": "1/36"},
+    "vulmaster": {"automated": "2/36"}
+  },
+  "no_functional_tests_available": [
+    "gnubug-19784", "CVE-2016-8691", "CVE-2016-9557", "CVE-2016-5844",
+    "CVE-2017-5974", "CVE-2017-5975", "CVE-2017-5976"
+  ],
+  "excluded_from_vulnloc": {
+    "cases": ["bugchrom-1404", "CVE-2017-9992", "CVE-2016-3186", "CVE-2016-5314"],
+    "reason": "could not be reproduced with sanitizer instrumentation; 43 VulnLoc cases -> 39 evaluated"
+  },
+  "notes": "Bug type codes: IO integer overflow, DT data type overflow, DZ divide by zero, NPD null pointer dereference, BO buffer overflow, UAF use-after-free. Per-case san2patch columns below are (automated, manual). Baseline per-case columns are omitted here — read them from the PDF; only san2patch's own column is transcribed, since that is the one we compare against.",
+  "cases": [
+    {"case_id": "CVE-2017-14745", "project": "binutils",   "bug_type": "IO",  "san2patch": ["pass", "correct"]},
+    {"case_id": "CVE-2017-15020", "project": "binutils",   "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-15025", "project": "binutils",   "bug_type": "DZ",  "san2patch": ["pass", "correct"]},
+    {"case_id": "CVE-2017-6965",  "project": "binutils",   "bug_type": "BO",  "san2patch": ["pass", "incorrect_some"]},
+    {"case_id": "gnubug-19784",   "project": "coreutils",  "bug_type": "BO",  "san2patch": ["pass", "correct"]},
+    {"case_id": "gnubug-25003",   "project": "coreutils",  "bug_type": "IO",  "san2patch": ["pass", "correct"]},
+    {"case_id": "gnubug-25023",   "project": "coreutils",  "bug_type": "IO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "gnubug-26545",   "project": "coreutils",  "bug_type": "IO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-8691",  "project": "jasper",     "bug_type": "DZ",  "san2patch": ["fail", "incorrect_all"]},
+    {"case_id": "CVE-2016-9557",  "project": "jasper",     "bug_type": "IO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-5844",  "project": "libarchive", "bug_type": "IO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2012-2806",  "project": "libjpeg",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-15232", "project": "libjpeg",    "bug_type": "NPD", "san2patch": ["fail", "incorrect_all"]},
+    {"case_id": "CVE-2018-14498", "project": "libjpeg",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2018-19664", "project": "libjpeg",    "bug_type": "BO",  "san2patch": ["fail", "incorrect_all"]},
+    {"case_id": "CVE-2016-9264",  "project": "libming",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2018-8806",  "project": "libming",    "bug_type": "UAF", "san2patch": ["fail", "incorrect_all"]},
+    {"case_id": "CVE-2018-8964",  "project": "libming",    "bug_type": "UAF", "san2patch": ["fail", "incorrect_all"]},
+    {"case_id": "bugzilla-2610",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "bugzilla-2611",  "project": "libtiff",    "bug_type": "DZ",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "bugzilla-2633",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-10092", "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-10094", "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-10272", "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-5314",  "project": "libtiff",    "bug_type": "IO",  "san2patch": ["pass", "correct"]},
+    {"case_id": "CVE-2016-5321",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-9273",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-9532",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-5225",  "project": "libtiff",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-7595",  "project": "libtiff",    "bug_type": "DZ",  "san2patch": ["pass", "correct"]},
+    {"case_id": "CVE-2017-7599",  "project": "libtiff",    "bug_type": "DT",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-7600",  "project": "libtiff",    "bug_type": "DT",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-7601",  "project": "libtiff",    "bug_type": "IO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2012-5134",  "project": "libxml2",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-1838",  "project": "libxml2",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2016-1839",  "project": "libxml2",    "bug_type": "BO",  "san2patch": ["pass", "incorrect_some"]},
+    {"case_id": "CVE-2017-5969",  "project": "libxml2",    "bug_type": "NPD", "san2patch": ["pass", "correct"]},
+    {"case_id": "CVE-2013-7437",  "project": "potrace",    "bug_type": "BO",  "san2patch": ["pass", "incorrect_some"]},
+    {"case_id": "CVE-2017-5974",  "project": "zziplib",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-5975",  "project": "zziplib",    "bug_type": "NPD", "san2patch": ["pass", "alternative"]},
+    {"case_id": "CVE-2017-5976",  "project": "zziplib",    "bug_type": "BO",  "san2patch": ["pass", "alternative"]}
+  ],
+  "transcription_confidence": "medium — the ✓/✓(A)/▲/✗ glyphs are small in the source PDF and the row for libtiff bugzilla-2610/2611 is easy to misread. Verify any row before publishing a number off it.",
+  "aggregate_other_benchmarks": {
+    "san2vuln": {"cases": 27, "repaired": 17, "rate": 0.63, "avg_cost_usd": 0.48, "avg_time_min": 8.9},
+    "per_model_on_vulnloc": {
+      "gpt-4o": 31, "claude-3.5-sonnet": 28, "gemini-1.5-pro": 18,
+      "gpt-4o-mini": 17, "gemini-1.5-flash": 14, "gpt-3.5-turbo": 8, "of": 39
+    },
+    "buffer_overflow_subset": {"repaired": 18, "total": 22, "rate": 0.818}
+  }
+}

@@ -1,0 +1,14 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_000259_finding-db2333119a3f/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-db2333119a3f:238451dda380 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[pov] executable    : echo
+[pov] tainted arg   : 'a' ; touch /tmp/plexus_pov_injected_marker ; 'b'
+[pov] shell argv[-1]: echo 'a' ; touch /tmp/plexus_pov_injected_marker ; 'b'
+[pov] process exit  : 141
+[pov] marker file   : /tmp/plexus_pov_injected_marker exists=true
+[pov] RESULT: VULNERABLE - injected command executed via /bin/sh -c
+
+--- stderr ---
+

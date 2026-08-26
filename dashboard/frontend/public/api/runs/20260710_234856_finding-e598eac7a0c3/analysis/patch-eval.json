@@ -1,0 +1,272 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:12:39.351923+00:00",
+    "finished_at": "2026-07-11T23:13:36.742334+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds a `checkPathSecurity` guard at all four log sinks (GET_LOG_BYTES, VIEW_WHOLE_LOG, ROLL_VIEW_LOG, REMOVE_TASK_LOG) in LoggerRequestProcessor — correct location and broad call-site coverage — and blocks the observed `../` payload, so the POV no longer reproduces. However, it uses a `..`-blocklist rather than the official fix's allowlist confinement (path must start with DOLPHINSCHEDULER_HOME, not contain `../`, and end with `.log`). Because the sink reads arbitrary absolute paths, an attacker can bypass the blocklist with a direct absolute path such as `/etc/passwd` (no `..` segment), so the path-traversal class is NOT actually closed. This is a symptom-level, weaker-than-official fix.",
+    "root_cause": "Attacker-controlled log paths are passed to file-read sinks without confining the resolved path to the allowed log base directory, allowing arbitrary file disclosure.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Blocks the observed '..' payload but a direct absolute path (e.g. /etc/passwd) still passes and is read.",
+        "evidence": "checkPathSecurity: only rejects when normalized.contains(\"..\") || path.contains(\"..\"); no base-dir containment, so '/etc/passwd' reaches LoggerUtils.readWholeFileContent.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Guards the right entry points but with a blocklist; does not confine path to the log base dir, so the underlying flaw survives.",
+        "evidence": "Official checkPathSecurity requires path.startsWith(dsHome) && endsWith(\".log\"); ours only forbids '..'.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Covers all four sink call sites (even more than strictly required) but leaves bypass variants (direct absolute path, non-.log, symlink) open.",
+        "evidence": "checkPathSecurity added before getFileContentBytes, readWholeFileContent, readPartFileContent, and removeTask File(taskLogPath).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same method name and location as official fix but a weaker mechanism (blocklist vs allowlist confinement + .log).",
+        "evidence": "Both edit LoggerRequestProcessor.checkPathSecurity; official uses dsHome/.log allowlist, ours uses normalize()+'..' check.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Regressions passed and legitimate absolute log paths (no '..') are unaffected; arguably more permissive than official so unlikely to over-restrict.",
+        "evidence": "regressions_ran=2, regressions_passed=true; legit paths lack '..' so they pass the guard.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No ReDoS/TOCTOU/injection introduced; only a behavioral change to throw IllegalArgumentException instead of returning false.",
+        "evidence": "checkPathSecurity throws IllegalArgumentException; official returns boolean false — differing contract but no new weakness.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized diff in one production file plus a test; adds one helper and per-sink calls.",
+        "evidence": "Single new private checkPathSecurity method + 4 call sites in LoggerRequestProcessor.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Uses blocklisting of '..' without canonical base-dir containment — explicitly the fragile CWE-022 anti-pattern.",
+        "evidence": "Paths.get(path).normalize() then contains(\"..\") check; no verification that resolved path stays under an allowed base dir, no symlink resolution.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Blocklist bypass: the guard only rejects paths containing '..'. Since the sinks read arbitrary absolute paths, an attacker supplies a direct absolute path with no parent segment (e.g. '/etc/passwd') which passes checkPathSecurity and is read/disclosed. The path-traversal / arbitrary-file-read class is not eliminated."
+      },
+      {
+        "severity": "medium",
+        "description": "No base-directory confinement or extension restriction unlike the official fix (path.startsWith(DOLPHINSCHEDULER_HOME) && endsWith('.log')), and no symlink/canonical-real-path resolution, so files outside the log directory and non-log files remain readable."
+      },
+      {
+        "severity": "low",
+        "description": "Behavioral divergence: throws IllegalArgumentException where the official design returns a boolean and the caller decides; if any caller does not expect an exception this changes control flow, though current sinks tolerate it."
+      }
+    ],
+    "overall": {
+      "mean": 3.0,
+      "score": 60,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 60,
+        "score_mean": 59.0,
+        "score_min": 57,
+        "score_max": 60,
+        "score_stdev": 1.41,
+        "mean_median": 3.0,
+        "band_mode": "incomplete",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 57,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 60,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 60,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "LoggerRequestProcessor.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+      ],
+      "commits": [
+        "9717da6c255414eaef1c9ac943b0eb8989c1a85d"
+      ]
+    }
+  }
+}

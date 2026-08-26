@@ -1,0 +1,52 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__sling-org-apache-sling-servlets-resolver_[redacted]_2.10.0/55/Dockerfile -t simpleautosec-finding-0e3d805b257c:2dfd255be568 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__sling-org-apache-sling-servlets-resolver_[redacted]_2.10.0/55
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.24kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72
+#4 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72 done
+#4 DONE 0.0s
+
+#5 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#5 CACHED
+
+#6 [builder 5/7] RUN set -eux;     git clone "https://github.com/apache/sling-org-apache-sling-servlets-resolver" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "2.10.0" ]; then git checkout "2.10.0"; fi
+#6 CACHED
+
+#7 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#7 CACHED
+
+#8 [builder 2/7] WORKDIR /workspace
+#8 CACHED
+
+#9 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#9 CACHED
+
+#10 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:5db5eabfbe81bdf3b9257798797b708e76af39be05638003cfda66547955eaa4 done
+#11 exporting config sha256:e24f09326453a1d96e2c0a0930bb81032461360c7f6edbcfc1182c83b7ec5a53 done
+#11 exporting attestation manifest sha256:c002a89673966385f70bbf36e72d85eab072f1d40062a49ba7597ca650fff17b done
+#11 exporting manifest list sha256:ba564f3cea2dbef0afcdd376ed8e3a4110d6d0e9745328971702df36ab6cc50e done
+#11 naming to docker.io/library/simpleautosec-finding-0e3d805b257c:2dfd255be568 done
+#11 unpacking to docker.io/library/simpleautosec-finding-0e3d805b257c:2dfd255be568 done
+#11 DONE 0.0s
+

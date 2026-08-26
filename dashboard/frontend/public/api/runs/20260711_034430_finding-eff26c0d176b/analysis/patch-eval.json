@@ -1,0 +1,278 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:09:37.653993+00:00",
+    "finished_at": "2026-07-11T23:10:15.729703+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch implements the CWE-022 defense-of-record for Zip Slip: it canonicalizes the extraction base directory once, canonicalizes each entry's destination file, and rejects any entry whose canonical path is not equal to or under the base dir + File.separator, throwing IOException before any file write or parent-dir creation. This neutralizes the flaw at the sink for the whole attack class (canonicalization resolves ../, encodings, and symlinks), and regressions plus the POV pass. The official fix took a different route (deleting the unused unzip method entirely and bumping versions), but ours is a functionally-preserving, semantically sound alternative.",
+    "root_cause": "unzip() builds destFile via new File(newPath, currentEntry) from an attacker-controlled zip entry name and writes to it without verifying the resolved path stays inside the extraction directory, allowing traversal (../) writes outside the base.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical containment check blocks any entry resolving outside the base dir, not just the observed ../ payload.",
+        "evidence": "IOUtils.java: canonicalDestFile.startsWith(canonicalDestDir + File.separator) guard throws IOException before write",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the sink between destFile construction and getParentFile/write, exactly at the taint boundary.",
+        "evidence": "check inserted right after `File destFile = new File(newPath, currentEntry)` and before `destinationParent.mkdirs()`",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Check runs inside the per-entry loop for every entry; getCanonicalPath resolves encodings, redundant separators, and symlinks so variants are covered.",
+        "evidence": "guard within `while (zipFileEntries.hasMoreElements())` using getCanonicalPath on both dir and file",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Official removed the vulnerable method entirely; ours preserves and hardens it—same safety outcome, different mechanism and location intent.",
+        "evidence": "official diff deletes unzip(); ours adds canonical-path guard in same file/method",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate entries (dir/hello.txt) still extract; regression suite and added tests pass.",
+        "evidence": "regressions_passed=true, pov_after_still_reproduces=false, testUnzipExtractsNormalEntry",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe canonicalization primitive; separator-boundary check avoids prefix-sibling false negatives; no TOCTOU-relevant window introduced beyond pre-existing IO.",
+        "evidence": "equals(canonicalDestDir) || startsWith(canonicalDestDir + File.separator)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized edit in the vulnerable method plus a focused regression test; no unrelated churn.",
+        "evidence": "few lines added around destFile construction in IOUtils.java",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify-inside-base is the CWE-022 defense of record, not a ../ blocklist.",
+        "evidence": "getCanonicalPath() on destDir and destFile with containment comparison",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Official fix removed the entire unzip method (dead code) and did version bumps; ours keeps the method alive, so if the method is truly unused this leaves a larger surface than upstream intended, though it is safe. Minor theoretical TOCTOU with symlink races exists but is inherent to filesystem extraction and not introduced by this patch."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 98,
+        "score_mean": 97.0,
+        "score_min": 95,
+        "score_max": 98,
+        "score_stdev": 1.41,
+        "mean_median": 4.88,
+        "band_mode": "good",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 95,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "IOUtils.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "bytekit-demo-plugin/pom.xml",
+        "demo-agent/pom.xml",
+        "demo-plugin/pom.xml",
+        "dubbo-test-instrument/pom.xml",
+        "dubbo-test-plugin-common/pom.xml",
+        "dubbo-test-plugin/pom.xml",
+        "fastjson-demo-plugin/pom.xml",
+        "one-java-agent-plugin/pom.xml",
+        "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+        "one-java-agent-spy/pom.xml",
+        "one-java-agent/pom.xml",
+        "pom.xml"
+      ],
+      "commits": [
+        "359603b63fc6c59d8b57e061c171954bab3433bf",
+        "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+      ]
+    }
+  }
+}

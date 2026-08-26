@@ -1,0 +1,128 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:32.579576+00:00",
+    "finished_at": "2026-07-17T08:42:14.341135+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical-path containment check is applied at the exact File construction that both taint traces originate from, so no entry name can produce a write target outside the destination directory.",
+        "evidence": "util/src/main/java/io/kubernetes/client/Copy.java: `File f = resolveArchiveEntry(destination.toFile(), entry.getName());` replacing `new File(destination.toFile(), entry.getName())` (line ~140); helper compares `f.getCanonicalPath()` against `destinationDir.getCanonicalPath()` with `+ File.separator` prefix guard and throws IOException on escape.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fix is at the sink/trust boundary (resolution of the untrusted tar entry name into a filesystem path), dominating both the `f` write and the `f.getParentFile()` mkdirs path, rather than guarding a caller or the observed payload.",
+        "evidence": "Both trace endpoints (line 142 `f`, line 146-147 `f.getParentFile()` → `parent`) derive from the single line-140 construction that is now routed through `resolveArchiveEntry`; same method (`copyDirectoryFromPod`) the official localization names.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "The only tainted sink in the trace is covered, and the mechanism is class-complete: `../` in any position, nested/mixed forms, and absolute entry names all canonicalize and get rejected or contained; symlink-mediated escape is also blocked because canonicalization resolves links.",
+        "evidence": "`targetCanonicalPath.startsWith(destDirCanonicalPath + File.separator)` — sibling-prefix bypass (`/tmp/dest-evil` vs `/tmp/dest`) is excluded by the separator; test cases `../evil.txt`, `../../etc/evil.txt`, `nested/../../evil.txt` all rejected. No other entry-name→File construction exists in the diffed region, and the official fix touches no additional production sink.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy (reject entries that escape the destination) at the same file/method as the official fix; mechanism differs (canonicalization + containment vs FilenameUtils.normalize null-check) but is semantically a superset and avoids adding the commons-io dependency the official fix needed.",
+        "evidence": "Official: `String normalName = FilenameUtils.normalize(entry.getName()); if (normalName == null) throw new IOException(...)` in `Copy.copyDirectoryFromPod`. Ours: same line replaced with a validated resolve in the same method. `official_only: [pom.xml]` is purely the commons-io dependency plumbing, unnecessary for our JDK-only mechanism.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate in-tree entries (including `subdir/file.txt` and internally-normalizing names like `a/../b.txt`) still resolve and extract; but zero regression tests were executed by the pipeline, so this rests on code review, and a destination of filesystem root would be over-restricted.",
+        "evidence": "`regressions_ran: 0, regressions_passed: null`; positive test `testResolveArchiveEntryAllowsEntriesWithinDestination` asserts `subdir/file.txt` resolves. Edge: if `destinationDir.getCanonicalPath()` is \"/\", the guard becomes `startsWith(\"//\")` and every entry is rejected.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe JDK primitives correctly and throws an already-declared IOException; only minor edge risks — the root-destination case above, a theoretical TOCTOU window between canonicalization and write, and retention of the non-canonical File causing an extra intermediate directory.",
+        "evidence": "`resolveArchiveEntry` returns the raw `f` (not the canonical file), so entry `a/../b.txt` still yields `parent = dest/a` at line 146-147 and `mkdirs()` creates it; official's `normalize` would have collapsed it to `b.txt`. No regex/ReDoS, no blocklist, no new injection surface.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Production change is one call-site substitution plus a small package-private helper in the same class; test additions are proportionate and no unrelated files are touched.",
+        "evidence": "Diff touches only `util/src/main/java/io/kubernetes/client/Copy.java` (1 line changed + ~13-line helper) and `util/src/test/java/io/kubernetes/client/CopyTest.java`; `ours_only: []` against the official file set.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "This is the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks), then verify containment within the allowed base — not a `../` blocklist or string filter.",
+        "evidence": "`String destDirCanonicalPath = destinationDir.getCanonicalPath(); String targetCanonicalPath = f.getCanonicalPath(); if (!equals && !startsWith(dest + File.separator)) throw new IOException(...)`. Strictly stronger than the official lexical `FilenameUtils.normalize`, which does not resolve symlinks.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "No dynamic evidence supports the fix: pov_before_reproduced=false (the POV never reproduced even on the vulnerable code) and regressions_ran=0. The verdict rests entirely on static reasoning about the changed code; the harness demonstrated neither that the vulnerability was triggerable nor that existing behavior still passes."
+      },
+      {
+        "severity": "low",
+        "description": "Root-destination over-restriction: when destinationDir canonicalizes to \"/\", destDirCanonicalPath + File.separator becomes \"//\", so every legitimate entry fails the startsWith check and extraction throws. Normalizing the base (strip trailing separator / compare with Path.startsWith or toPath().normalize()) would remove this edge case."
+      },
+      {
+        "severity": "low",
+        "description": "resolveArchiveEntry returns the non-canonical File rather than the validated canonical one, so an internally-normalizing entry like \"a/../b.txt\" still causes f.getParentFile() (= dest/a) to be created by mkdirs at the line 146-147 sink. Harmless (still inside dest) but a behavioral divergence from the official normalize-then-construct approach."
+      },
+      {
+        "severity": "low",
+        "description": "Theoretical TOCTOU: containment is validated at resolve time, and the write happens later in the loop. Since this extractor writes only regular files and directories (no symlink entries) and archives are processed sequentially, there is no practical in-archive escape, but the check-then-write gap is not atomic against a concurrent local attacker."
+      }
+    ],
+    "root_cause": "Untrusted tar entry names streamed from a pod were passed directly to `new File(destination.toFile(), entry.getName())` in `Copy.copyDirectoryFromPod` with no containment validation, so `../` sequences (or absolute/symlink-mediated paths) let an attacker-controlled archive write files outside the caller's destination directory (zip-slip).",
+    "summary": "Our patch is a correct and arguably stronger fix than the official one: it intercepts the exact sink named in both taint traces (`new File(destination.toFile(), entry.getName())` at Copy.java:140) and routes it through a helper that canonicalizes both the destination and the target and rejects anything not contained under the destination — the textbook CWE-022 defense-of-record, closing the whole class (any `../` placement, absolute names, sibling-prefix confusion, and symlink-resolved escapes) rather than a single payload. It lands in the same file/method as the official fix with the same intent, and is a superset of the official lexical `FilenameUtils.normalize` null-check, which does not resolve symlinks; the `official_only: [pom.xml]` delta is just the commons-io dependency our JDK-only mechanism doesn't need. Confidence is dampened by the evidence gap, not the code: the POV never reproduced even pre-patch and zero regression tests ran, so correctness rests on review alone. Minor blemishes — a destination of filesystem root would be over-restricted by the `+ File.separator` guard, and returning the non-canonical File leaves an extra intermediate directory created for names like `a/../b.txt` — are cosmetic, not security-relevant.",
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Copy.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "util/pom.xml",
+        "util/src/main/java/io/kubernetes/client/Copy.java"
+      ],
+      "commits": [
+        "858316ae8bc1145005a0310e1f65f95d2389a589"
+      ]
+    }
+  }
+}

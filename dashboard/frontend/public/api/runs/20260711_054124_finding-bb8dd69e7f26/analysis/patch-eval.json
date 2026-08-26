@@ -1,0 +1,283 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T04:50:33.823885+00:00",
+    "finished_at": "2026-07-11T04:52:01.172679+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Canonical-path containment on the external handler closes the traversal class for the CVE's sink, though POV was never reproduced so runtime evidence is weak.",
+        "evidence": "ExternalResourceHandler.isWithinBaseDirectory(): getCanonicalFile() on base+target, walk parents; getResource() now returns resource only if isWithinBaseDirectory()",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Fixes the flaw at the sink (post-resolution containment against the base dir), fails closed via catch->null, but only for the external handler.",
+        "evidence": "guarded return at ExternalResourceHandler.getResource(); IOException propagates to catch(Exception) returning null",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "External path (the CVE vector) covered with a robust check, but the sibling ClassPathResourceHandler that the official fix also protected is left unpatched.",
+        "evidence": "official_only includes ClassPathResourceHandler.java (protectAgainstInClassPath); our diff touches only ExternalResourceHandler.java",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive intent and location (containment check right after resolution in getResource) but a stronger mechanism than the official startsWith(folder) string test.",
+        "evidence": "ours: canonical File containment vs official DirectoryTraversal.protectAgainstForExternal using removeLeadingAndTrailingSlashesFrom(path).startsWith(external())",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legit in-base file still served (new test asserts it); existing mock test updated for extra getPath() call; but regressions_ran=0 leaves full suite unconfirmed.",
+        "evidence": "testGetResource_whenPathTraversesOutsideBaseUsingBackslashes...; verify(secondResourceMock, times(2)).getPath()",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe canonicalization primitives; minor TOCTOU window between check and later stream open, same as official, negligible.",
+        "evidence": "new File(...).getCanonicalFile() resolves symlinks before comparison in isWithinBaseDirectory()",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change: one helper plus a guarded return in the correct method, no unrelated edits.",
+        "evidence": "single method isWithinBaseDirectory added to ExternalResourceHandler; only imports File/IOException added",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Implements the CWE-022 defense-of-record: canonicalize to real absolute path (resolving symlinks) then verify containment under the base dir — stronger than the official string startsWith.",
+        "evidence": "getCanonicalFile() on base and target, parent-walk equality check in isWithinBaseDirectory()",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "ClassPathResourceHandler is not patched, unlike the official fix (DirectoryTraversal.protectAgainstInClassPath). Classpath static-file traversal remains unmitigated; if classpath serving is used, that sibling sink is still exposed."
+      },
+      {
+        "severity": "low",
+        "description": "regressions_ran=0 and pov_before_reproduced=false, so both the fix's effectiveness and absence of regressions rest on code reasoning and the added unit test rather than executed evidence."
+      },
+      {
+        "severity": "low",
+        "description": "Minor TOCTOU: containment is verified on the canonical path at getResource time, but the file is opened later by the caller; acceptable and equivalent to the official design."
+      }
+    ],
+    "root_cause": "Resolved static-file resources were returned without verifying the canonicalized target stays within the configured base directory, letting traversal sequences escape to arbitrary files.",
+    "summary": "Our patch adds a canonicalize-then-verify-containment check to ExternalResourceHandler.getResource(), which is the CWE-022 defense-of-record and actually more robust than the official startsWith(folder) string comparison for the external static-file vector that is the CVE's sink. It fails closed and preserves legitimate in-base access. The main shortfall versus ground truth is completeness: the official fix also hardened ClassPathResourceHandler, which our patch leaves untouched, so classpath traversal is not covered. Runtime evidence is thin (POV never reproduced, 0 regressions run), but the mechanism is sound for the targeted external sink.",
+    "overall": {
+      "mean": 4.12,
+      "score": 82,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 82,
+        "score_mean": 81.7,
+        "score_min": 75,
+        "score_max": 88,
+        "score_stdev": 5.31,
+        "mean_median": 4.12,
+        "band_mode": "incomplete",
+        "band_agreement": 0.33,
+        "mean_dim_stdev": 0.28
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 4,
+          "min": 3,
+          "max": 5,
+          "stdev": 0.82,
+          "agreement": 0.33,
+          "samples": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.67,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 75,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 82,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 88,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "low",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ExternalResourceHandler.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "ClassPathResourceHandler.java",
+        "DirectoryTraversal.java",
+        "StaticFilesConfiguration.java",
+        "StaticFilesFolder.java",
+        "StringUtils.java"
+      ],
+      "jaccard": 0.167,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "src/main/java/spark/staticfiles/DirectoryTraversal.java",
+        "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "src/main/java/spark/staticfiles/StaticFilesFolder.java",
+        "src/main/java/spark/utils/StringUtils.java"
+      ],
+      "commits": [
+        "efcb46c710e3f56805b9257a63d1306882f4faf9"
+      ]
+    }
+  }
+}

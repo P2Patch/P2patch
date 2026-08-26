@@ -1,0 +1,130 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:41:09.755911+00:00",
+    "finished_at": "2026-07-17T08:45:29.203601+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Adds a canonicalize-then-contain check applied ahead of every log sink, closing the traversal class (relative `../`, absolute paths, `..\\`, redundant separators all collapse under normalize()), not just the observed payload.",
+        "evidence": "LoggerRequestProcessor.isLogPathIllegal: `Path base = Paths.get(logBasePath).toAbsolutePath().normalize(); Path target = Paths.get(filePath).toAbsolutePath().normalize(); if (!target.startsWith(base)) return true;` gating GET_LOG_BYTES_REQUEST (l.83), VIEW_WHOLE_LOG_REQUEST (l.90), ROLL_VIEW_LOG_REQUEST (l.97) and REMOVE_TAK_LOG_REQUEST (l.112). Not 5: normalize() does not resolve symlinks (no toRealPath), and the pipeline never demonstrated the POV (pov_before_reproduced=false, pov_after_present=false), so elimination rests on code reasoning only.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "The guard sits at the trust boundary where the untrusted Netty command payload is unwrapped, which is exactly where the official fix places checkPathSecurity; it is not a caller/symptom patch.",
+        "evidence": "isLogPathIllegal() added to LoggerRequestProcessor (same class/method role as official `private boolean checkPathSecurity(String path)` at LoggerRequestProcessor.java:142-148, confirmed absent from the 2.0.5 base: grep for checkPathSecurity in the pre-image returns nothing). Not 5: the sinks themselves (getFileContentBytes, LoggerUtils.readWholeFileContent, readPartFileContent) still accept raw paths, so safety depends on every future caller repeating the check.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Every command type that reaches a path sink is guarded, and canonicalization defeats the usual encoding/traversal variants; two gaps remain versus the official strategy.",
+        "evidence": "All four switch branches in process() are gated (l.83, 90, 97, 112) — LoggerServer.java:55-58 confirms these are the only four registered command types, so no sibling path is missed. Gaps: no `.log` suffix restriction (official requires path.endsWith(\".log\")), so any file inside the log root is readable/deletable; and a symlink planted under the log root still escapes because normalize() is purely lexical.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy and same location as the official fix (private containment predicate in LoggerRequestProcessor, deny → empty response), with a stronger containment primitive but a different base directory and no extension allowlist — so close to, but not semantically equal to, the reference.",
+        "evidence": "Ours: `isLogPathIllegal(...) ? new byte[0] : getFileContentBytes(...)` / `? \"\" : LoggerUtils.readWholeFileContent(...)` / `? Collections.emptyList() : readPartFileContent(...)`, plus blank-path deny (`StringUtils.isBlank(filePath) -> true`) mirroring the official's added `if (!StringUtils.isBlank(path)) ... else logger.warn(\"path is null\")`. Differs: base = LogUtils.getTaskLogBasePath() (TASKLOGFILE logBase) vs official `System.getProperty(\"DOLPHINSCHEDULER_HOME\")`; official also enforces `!path.contains(\"../\") && path.endsWith(\".log\")`.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 2,
+        "rationale": "The base path is derived from a logback appender that does not exist in the JVM this processor actually runs in, so the guard degenerates to deny-all and breaks log viewing/download/removal entirely in the standard deployment; zero regression tests were run to catch it.",
+        "evidence": "LogUtils.getTaskLogBasePath() resolves ROOT->getAppender(\"TASKLOGFILE\")->TaskLogDiscriminator::getLogBase, .orElse(\"\"); isLogPathIllegal then does `if (StringUtils.isBlank(logBasePath)) { ... return true; }`. But LoggerRequestProcessor is registered only by LoggerServer (LoggerServer.java:55-58; grep shows no other registration — WorkerServer registers only TASK_* processors), and script/dolphinscheduler-daemon.sh:92-96 starts `logger-server` with NO `-Dlogging.config` while no logback.xml/logback-test.xml exists on the classpath (only logback-master.xml / logback-worker.xml, non-default names). script/start-all.sh:50 launches logger-server on every worker host. In that JVM getAppender(\"TASKLOGFILE\") is null → base \"\" → every legitimate request denied (msg \"\", 0 bytes, delete refused). Execution results show regressions_ran=0, regressions_passed=null — nothing exercised this.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "No new injection/TOCTOU/ReDoS, and the failure mode is fail-closed rather than fail-open, but an unguarded call outside the try block can throw into the Netty handler, and the javadoc misstates the protection provided.",
+        "evidence": "In isLogPathIllegal, `String logBasePath = LogUtils.getTaskLogBasePath();` sits BEFORE the try/catch; the logback cast chain (`(AppenderAttachable<ILoggingEvent>)(e.getLogger(\"ROOT\"))`, `(SiftingAppender)(e.getAppender(...))`, `(TaskLogDiscriminator)(e.getDiscriminator())`) can raise ClassCastException, which escapes process() and leaves the request unanswered. Javadoc claims it guards \"symlink-based escapes\" — normalize() is lexical and does not resolve symlinks. Imports verified present (LogUtils already imports java.nio.file.Path/Paths/Optional; commons-lang is a declared dep, pom.xml:642, and org.apache.commons.lang.StringUtils is already used in dolphinscheduler-server), so no compile break.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, well-placed diff: one private predicate plus one small util method, no unrelated edits; the REMOVE branch restructuring is slightly more churn than a guard clause would need.",
+        "evidence": "Production changes limited to LoggerRequestProcessor.isLogPathIllegal (+32 lines) and LogUtils.getTaskLogBasePath (+17 lines), reusing the existing Optional chain pattern of LogUtils.getTaskLogPath (LogUtils.java:42-57). The REMOVE_TAK_LOG_REQUEST branch is re-indented into an if/else (l.112-124) rather than an early guard.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Uses the CWE-022 defense-of-record shape — canonicalize both sides, then component-wise containment — and is strictly more robust than the official's string blocklist; falls short only on symlink resolution.",
+        "evidence": "`target.startsWith(base)` on normalized java.nio Paths is component-wise, so a sibling-prefix bypass (/data/logs-evil vs /data/logs) is rejected, unlike the official `path.startsWith(dsHome)` String prefix test; normalize() also removes the official's reliance on the `!path.contains(\"../\")` blocklist (which misses `..\\`, `%2e%2e/`, and `foo/..%2f`). Not 5: toRealPath()/canonical-file resolution is the full anchor and is not used.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Deny-all functional break in the real deployment topology. LoggerRequestProcessor is instantiated only by LoggerServer (LoggerServer.java:54-58), which script/start-all.sh:50 launches via `dolphinscheduler-daemon.sh start logger-server` — and that branch (dolphinscheduler-daemon.sh:92-96) sets no `-Dlogging.config`, while the repo has no default logback.xml on the classpath (only the non-auto-loaded logback-master.xml / logback-worker.xml). In that JVM LoggerFactory ROOT has no TASKLOGFILE appender, so LogUtils.getTaskLogBasePath() returns \"\" and isLogPathIllegal() returns true for EVERY path: log viewing returns \"\", downloads return 0 bytes, task-log removal always reports failure. The check is secure but the feature is dead. The official fix avoids this by using a system property (DOLPHINSCHEDULER_HOME) rather than a logback appender that lives in a different process."
+      },
+      {
+        "severity": "medium",
+        "description": "No execution evidence backs the fix: pov_before_reproduced=false, pov_after_present=false, regressions_ran=0, regressions_passed=null. The vulnerability was never demonstrated pre-patch and no regression suite ran post-patch, so both the elimination claim and the behavior-preservation claim rest entirely on code reading. The four added unit tests only pass because they PowerMock LogUtils.getTaskLogBasePath(), which masks the deny-all defect above."
+      },
+      {
+        "severity": "medium",
+        "description": "Symlink escape not covered, contrary to the javadoc. isLogPathIllegal uses Paths.get(...).toAbsolutePath().normalize(), which is purely lexical; a symlink under the task-log root pointing at /etc/shadow passes the containment check. toRealPath(LinkOption...) (with a fallback to the nearest existing ancestor for not-yet-created files) is the sound primitive, and the comment \"guards against ... symlink-based escapes\" is inaccurate as written."
+      },
+      {
+        "severity": "low",
+        "description": "Weaker than the official fix on the extension allowlist: the official requires path.endsWith(\".log\"), ours does not. Any file that happens to live under the task-log base (e.g. a dropped credentials or config file in the log tree) remains readable via GET_LOG_BYTES_REQUEST and deletable via REMOVE_TAK_LOG_REQUEST."
+      },
+      {
+        "severity": "low",
+        "description": "LogUtils.getTaskLogBasePath() is invoked outside the try/catch in isLogPathIllegal, so a ClassCastException from the logback cast chain (e.g. a non-logback SLF4J binding, or TASKLOGFILE bound to a non-SiftingAppender) propagates out of process() into the Netty pipeline, leaving the request without a response instead of a clean deny."
+      }
+    ],
+    "root_cause": "LoggerRequestProcessor.process() passes the attacker-controlled `path` field from remote log commands (GetLogBytes/ViewLog/RollViewLog/RemoveTaskLog) straight into file read/delete sinks with no confinement check, so any path — traversal or absolute — is honored; a correct fix must canonicalize the requested path and prove it stays inside the task-log root before any of the four sinks run.",
+    "summary": "Our patch fixes the vulnerability at the right place with a stronger primitive than the official one: a canonicalize-then-contain predicate (`Paths.get(...).toAbsolutePath().normalize()` + component-wise `Path.startsWith`) applied ahead of all four command handlers, versus the official's `startsWith(dsHome) && !contains(\"../\") && endsWith(\".log\")` string blocklist. Security-wise it is sound and closes the class, not just the payload (symlink escapes and the missing `.log` restriction are the residual gaps). However, it sources the log base from the TASKLOGFILE logback appender, which does not exist in the standalone `logger-server` JVM that is the only process registering this handler (start-all.sh:50 → dolphinscheduler-daemon.sh:92, no `-Dlogging.config`, no default logback.xml) — so in the real deployment the guard fails closed and disables log view/download/removal entirely. With regressions_ran=0 and the POV never reproducing, that break is unverified but concretely traceable in the code, making this a secure-but-functionally-broken fix.",
+    "overall": {
+      "mean": 3.62,
+      "score": 72,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "LoggerRequestProcessor.java"
+      ],
+      "ours_only": [
+        "LogUtils.java"
+      ],
+      "official_only": [],
+      "jaccard": 0.5,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+      ],
+      "commits": [
+        "9717da6c255414eaef1c9ac943b0eb8989c1a85d"
+      ]
+    }
+  }
+}

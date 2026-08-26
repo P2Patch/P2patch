@@ -1,0 +1,73 @@
+From 1d0f1b7ce10807290715d0b7c4637ac9d4fc7821 Mon Sep 17 00:00:00 2001
+From: Yury Usishchev <y.usishchev@samsung.com>
+Date: Thu, 5 Feb 2015 23:04:29 +0000
+Subject: [PATCH] build: ensure make-prime-list doesn't access out of bounds
+ memory
+
+The -fsanitize=address run associated with v8.22-75-gf940fec
+failed to check make-prime-list, as src/primes.h is not
+regenerated with `make clean`.  Running with -fsanitize=address
+indicates a read 1 byte beyond the allocated buffer.
+
+  $ rm src/make-prime-list.o
+  $ make AM_CFLAGS=-fsanitize=address src/make-prime-list
+  $ src/make-prime-list 5000
+
+=================================================================
+==13913==ERROR: AddressSanitizer: heap-buffer-overflow on address
+0x61e00000fa43 at pc 0x4016f5 bp 0x7fff9d9840e0 sp 0x7fff9d9840d0
+READ of size 1 at 0x61e00000fa43 thread T0
+    #0 0x4016f4 in main src/make-prime-list.c:214
+    #1 0x7f98892c5fdf in __libc_start_main (/lib64/libc.so.6+0x1ffdf)
+    #2 0x401774 (src/make-prime-list+0x401774)
+
+0x61e00000fa43 is located 0 bytes to the right of 2499-byte
+region [0x61e00000f080,0x61e00000fa43) allocated by thread T0 here:
+    #0 0x7f98896ba7b7 in malloc (/lib64/libasan.so.1+0x577b7)
+    #1 0x400f3f in xalloc src/make-prime-list.c:163
+    #2 0x400f3f in main src/make-prime-list.c:198
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow
+src/make-prime-list.c:214 main
+Shadow bytes around the buggy address:
+  0x0c3c7fff9ef0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c3c7fff9f00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c3c7fff9f10: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c3c7fff9f20: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c3c7fff9f30: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0c3c7fff9f40: 00 00 00 00 00 00 00 00[03]fa fa fa fa fa fa fa
+  0x0c3c7fff9f50: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c3c7fff9f60: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c3c7fff9f70: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c3c7fff9f80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c3c7fff9f90: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:     fa
+  ...
+==13913==ABORTING
+
+* src/make-prime-list.c (main): Bounds check the incremented index,
+before using to access the buffer.
+Fixes http://bugs.gnu.org/19784
+---
+ src/make-prime-list.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/make-prime-list.c b/src/make-prime-list.c
+index 68c972a84..69b91e895 100644
+--- a/src/make-prime-list.c
++++ b/src/make-prime-list.c
+@@ -211,7 +211,7 @@ main (int argc, char **argv)
+       for (j = (p*p - 3)/2; j < size; j+= p)
+         sieve[j] = 0;
+ 
+-      while (i < size && sieve[++i] == 0)
++      while (++i < size && sieve[i] == 0)
+         ;
+     }
+ 
+-- 
+2.17.1
+

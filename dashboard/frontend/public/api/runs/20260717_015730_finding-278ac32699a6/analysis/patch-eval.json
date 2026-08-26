@@ -1,0 +1,141 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:03.027883+00:00",
+    "finished_at": "2026-07-17T08:47:33.989222+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a real but partial fix. It correctly identifies and closes a genuine parser-differential: `UriPath.canonical()` only understood '/' separators while `StringUtils.cleanPath()` (spark/utils/StringUtils.java:222) rewrites '\\'→'/' and then resolves `..`, so a `..\\` sequence could be smuggled past canonicalization and re-interpreted downstream — and the colon-prefix logic in cleanPath (`prefixIndex = pathToUse.indexOf(\":\")`, no `prefix.contains(\"/\")` guard) shields the base folder from that `..` resolution so `DirectoryTraversal.protectAgainstInClassPath`'s `startsWith(local())` still passes. Normalizing backslashes in `UriPath.canonical` before segment scanning plausibly closes that relative-traversal leg for both the classpath and external handlers, and `isWithinBase()` fixes a real prefix-sibling boundary bug. However, NVD describes the class as \"various representations of absolute or relative pathnames, **as demonstrated by file: URLs** and directory traversal sequences\", and the actual 2.7.2 fix (ce9e115) is `Assert.state(doesNotContainFileColon(path))` in the `ClassPathResource` constructor — our patch never touches that sink and never rejects `file:`/`:/`/`url:` forms, so the absolute-URL representation survives (e.g. `staticFiles.location(\"/\")` → `local()==\"\"` → our `isWithinBase` explicitly returns true → `GET /file:/etc/passwd` yields `this.path == \"file:/etc/passwd\"` at ClassPathResource.java:81 → `classLoader.getResource(...)`). There is also zero execution evidence: the POV never reproduced before the patch, no POV exists after, and 0 regression tests ran.",
+    "root_cause": "`ClassPathResource`'s constructor accepts any attacker-influenced path and normalizes it (cleanPath's '\\'→'/' rewrite plus its colon-prefix shielding) *after* the upstream `UriPath.canonical()` check and *before* the `DirectoryTraversal.startsWith(base)` containment test, so both absolute (`file:` URL) and separator-smuggled relative (`..\\`) representations reach the classloader/file sink outside the configured static-files root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Closes the backslash-smuggled relative-traversal leg, but the CVE's explicitly demonstrated 'file: URL' absolute-pathname representation — the exact thing the 2.7.2 fix blocks — is untouched.",
+        "evidence": "UriPath.java:+37 `path = path.replace('\\\\','/')` blocks `..\\` smuggling; nothing in the diff rejects `file:` / `:/` / `url:`; DirectoryTraversal.java `isWithinBase()` returns true when `base.isEmpty()`, so with staticFiles.location(\"/\") (local()==\"\") a path cleaned to `file:/etc/passwd` (ClassPathResource.java:77-81) still reaches classLoader.getResource(). POV never reproduced (pov_before_reproduced=false), so no empirical confirmation either way.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Fixes a genuine underlying normalization differential upstream (canonical vs cleanPath separator handling) rather than a single payload, but leaves the sink/trust boundary itself (ClassPathResource constructor) accepting arbitrary paths.",
+        "evidence": "Our fix sits in UriPath.canonical + the two handlers' getResource(); the official fix is at ClassPathResource(String,ClassLoader): `Assert.state(doesNotContainFileColon(path))` / `Assert.isTrue(isValid(path))` — our diff does not touch ClassPathResource.java at all (overlap jaccard 0.0).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Main relative-traversal path plus both handler siblings are covered, but whole documented representation classes and other routes to the sink are not.",
+        "evidence": "Covered: ClassPathResourceHandler.java:+69 and ExternalResourceHandler.java:+68 null-canonical fail-closed; UriPath backslash normalization shared by both. Missing: `file:` URLs, `:/`+ResourceUtils.isUrl, `url:` prefix, WEB-INF/META-INF (all in official isInvalidPath); any other caller of `new ClassPathResource(...)` (e.g. the welcome-file construction at ClassPathResourceHandler.java:74) is unguarded; ExternalResource containment still uses Paths.toAbsolutePath() (no toRealPath) so symlink escape remains.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same broad goal (stop static-file traversal) but a different location and a different mechanism that omits the specific defense the maintainer chose for this CVE.",
+        "evidence": "Official (ce9e115, the 2.7.2 CVE fix) adds `doesNotContainFileColon` in ClassPathResource; later 030e9d0/a221a86 generalize to `isInvalidPath` (WEB-INF/META-INF, `:/`+isUrl, residual `../` after cleanPath). Ours changes UriPath.java, ClassPathResourceHandler.java, ExternalResourceHandler.java, DirectoryTraversal.java — official_only=[ClassPathResource.java, pom.xml], covers_all_official=false.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 3,
+        "rationale": "No evidence of correctness: zero regression tests ran, and the patch rewrites an existing test's expected status, i.e. it deliberately changes documented behavior.",
+        "evidence": "regressions_ran=0, regressions_passed=null. StaticFilesTestExternal.java: existing assertion changed from `assertEquals(404, response.status)` / NOT_FOUND_BRO to `assertEquals(400, response.status)`. Also, UriPath.canonical is public API and now rewrites '\\'→'/' for every caller, so a POSIX filename legitimately containing a backslash becomes unservable.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No new weakness introduced; the null-check actually removes a latent NPE, though behavior shifts 404→400 and public-API semantics change.",
+        "evidence": "Pre-patch `path = UriPath.canonical(path); ... if (resource.exists() && path.endsWith(\"/\"))` NPEs on null and is swallowed by `catch (Exception e)`; the new null guard (ClassPathResourceHandler.java:+69) fails closed instead. `isWithinBase` uses simple equals/startsWith(base+\"/\") — no regex/ReDoS, no TOCTOU added.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight and localized (3 production files, ~25 added lines) at coherent choke points; slight scope creep into the prefix-sibling boundary bug and rewritten existing tests.",
+        "evidence": "UriPath.java: one line + comment; two handlers: identical 7-line guards; DirectoryTraversal.java: extracted `isWithinBase` helper replacing two `startsWith` calls.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Moves toward the CWE-022 defense-of-record (consistent canonicalization, then boundary-correct containment) — arguably better shaped than the official blocklist — but stays lexical and doesn't cover absolute-URL representations.",
+        "evidence": "DirectoryTraversal.isWithinBase: `path.equals(base) || path.startsWith(base + \"/\")` fixes prefix-sibling acceptance ('public' matching 'public-secret/file'), a real improvement over the raw startsWith. But: no real-path/symlink resolution (protectAgainstForExternal still `Paths.get(path).toAbsolutePath()`, not toRealPath), and `base.isEmpty() → return true` opts out of containment entirely for the root-location config.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "The CVE's headline representation — 'file: URLs' per NVD, blocked by the official fix's `doesNotContainFileColon`/`isValid` in the ClassPathResource constructor — is not addressed anywhere in our patch. Concretely, with `staticFiles.location(\"/\")` (StaticFilesFolder.local()==\"\"), `GET /file:/etc/passwd` passes UriPath.canonical unchanged (no '..'), addPaths yields \"/file:/etc/passwd\", cleanPath's colon-prefix branch preserves it, the constructor strips the leading '/' giving this.path=\"file:/etc/passwd\", and our `isWithinBase` explicitly returns true for an empty base — so the containment check is a no-op and the absolute URL reaches classLoader.getResource()."
+      },
+      {
+        "severity": "medium",
+        "description": "No execution evidence supports the fix: pov_before_reproduced=false (the vulnerability was never demonstrated on the unpatched build), pov_after_present=false, regressions_ran=0. Neither gate can be substantiated; the judgment rests entirely on static reasoning."
+      },
+      {
+        "severity": "medium",
+        "description": "Defense is placed upstream of the sink (UriPath + two handler entry points) rather than at the ClassPathResource trust boundary the official fix hardens. Any current or future construction of ClassPathResource with an attacker-influenced path — including the welcome-file path `new ClassPathResource(addPaths(resource.getPath(), welcomeFile))` — bypasses the new guards entirely."
+      },
+      {
+        "severity": "low",
+        "description": "Behavior change with an existing test rewritten to match: StaticFilesTestExternal's traversal test expectation goes 404 → 400. Defensible (fail-closed), but it means the pre-existing suite would have failed, and the change was never validated (0 regressions ran)."
+      },
+      {
+        "severity": "low",
+        "description": "UriPath.canonical is public API; unconditionally rewriting '\\' → '/' changes its contract for all callers and makes POSIX filenames legitimately containing a backslash unservable via static files."
+      },
+      {
+        "severity": "low",
+        "description": "External containment remains lexical: DirectoryTraversal.protectAgainstForExternal uses Paths.get(path).toAbsolutePath() (which does not normalize or resolve symlinks) rather than toRealPath(), so a symlink inside the external folder still escapes the base. Shared with the official fix, but it means the CWE-022 defense-of-record is still not fully met."
+      }
+    ],
+    "overall": {
+      "mean": 2.88,
+      "score": 57,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "ClassPathResourceHandler.java",
+        "DirectoryTraversal.java",
+        "ExternalResourceHandler.java",
+        "UriPath.java"
+      ],
+      "official_only": [
+        "ClassPathResource.java",
+        "pom.xml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/spark/resource/ClassPathResource.java"
+      ],
+      "commits": [
+        "030e9d00125cbd1ad759668f85488aba1019c668",
+        "a221a864db28eb736d36041df2fa6eb8839fc5cd",
+        "ce9e11517eca69e58ed4378d1e47a02bd06863cc"
+      ]
+    }
+  }
+}

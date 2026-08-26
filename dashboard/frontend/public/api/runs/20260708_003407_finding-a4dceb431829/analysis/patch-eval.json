@@ -1,0 +1,268 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:28.071523+00:00",
+    "finished_at": "2026-07-11T23:22:10.503853+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical-path containment check rejects any entry resolving outside destination, closing the whole traversal class not just the observed payload.",
+        "evidence": "Copy.java: fCanonical.startsWith(destCanonical + File.separator) guard throws IOException before write; POV after no longer reproduces.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the sink (the new File(destination, entry.getName()) write point) inside copyDirectoryFromPod, neutralizing the trust boundary itself.",
+        "evidence": "Inserted immediately after 'File f = new File(destination.toFile(), entry.getName());' at Copy.java:140.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Check runs per-entry in the extraction loop for both directory and file entries; canonicalization also defeats symlink/encoding variants, not just literal '../'.",
+        "evidence": "Guard precedes both entry.isDirectory() branch and file-write branch; getCanonicalPath resolves symlinks/normalizes.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same file/class/method as official fix; mechanism (canonical containment) is a strict superset of the official FilenameUtils.normalize null-check.",
+        "evidence": "Both edit Copy.copyDirectoryFromPod at the 'new File(destination, entryName)' site.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate entries within destination satisfy the startsWith check and extract normally; regressions passed.",
+        "evidence": "regressions_ran=2, regressions_passed=true; equals/startsWith allows dest and dest/... paths.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe File.getCanonicalPath primitive with correct separator-bounded prefix check (avoids sibling-prefix bug); IOException propagates via existing throws.",
+        "evidence": "destCanonical + File.separator boundary prevents '/dest-evil' false match; method already declares throws IOException.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Production change is a tight, localized ~9-line guard at the exact sink; remainder of the diff is added tests only.",
+        "evidence": "Only Copy.java hunk touches production code; CopyTest.java additions are regression tests.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Implements the CWE-022 defense-of-record: canonicalize to the real absolute path, then verify it stays inside the allowed base dir — not a '../' blocklist.",
+        "evidence": "getCanonicalPath on both f and destination, then containment assertion.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Official fix added a commons-io dependency (pom.xml); our patch intentionally avoids it by using only java.io.File, so the missing pom.xml overlap is not a functional gap. No action needed."
+      }
+    ],
+    "root_cause": "Tar archive entry names from an untrusted pod are joined to the destination directory without normalization/containment validation, so an entry like \"../pwned.txt\" escapes the destination on extraction.",
+    "summary": "Our patch is a correct and complete fix: it applies the canonical-path containment check (canonicalize destination and entry, require the entry to equal or start with destination + separator) at the exact extraction sink in Copy.copyDirectoryFromPod. This closes the whole traversal class — including symlink and encoding variants — rather than just the observed '../pwned.txt' payload, and is a strict superset of the official FilenameUtils.normalize null-check. POV no longer reproduces, regressions pass, and legitimate in-destination entries are preserved.",
+    "overall": {
+      "mean": 5.0,
+      "score": 100,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 100,
+        "score_mean": 99.3,
+        "score_min": 98,
+        "score_max": 100,
+        "score_stdev": 0.94,
+        "mean_median": 5.0,
+        "band_mode": "good",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 100,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 100,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Copy.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "util/pom.xml",
+        "util/src/main/java/io/kubernetes/client/Copy.java"
+      ],
+      "commits": [
+        "858316ae8bc1145005a0310e1f65f95d2389a589"
+      ]
+    }
+  }
+}

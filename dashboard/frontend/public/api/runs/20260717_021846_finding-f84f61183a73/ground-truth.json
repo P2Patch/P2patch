@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-f84f61183a73",
+  "cve_id": "CVE-2022-26049",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "diffplug__goomph_CVE-2022-26049_3.37.1",
+  "alert_file": "DIFFPLUG_CVE_2022_26049.json",
+  "github_url": "https://github.com/diffplug/goomph",
+  "repo": "diffplug/goomph",
+  "github_tag": "3.37.1",
+  "advisory_id": "GHSA-p2f7-9cv7-jjf6",
+  "buggy_commit_id": "fe2083196f0d0a75885aea402baaa972254173d5",
+  "fix_commit_ids": [
+    "25f04f67ba62d9a14104bee13a0a0f2517afb8c8"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "25f04f67ba62d9a14104bee13a0a0f2517afb8c8",
+      "file": "src/main/java/com/diffplug/gradle/ZipMisc.java",
+      "class": "ZipMisc",
+      "class_start": "47.0",
+      "class_end": "176.0",
+      "method": "unzip",
+      "method_start": "176.0",
+      "method_end": "186.0",
+      "signature": "void unzip(File,File)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "src/main/java/com/diffplug/gradle/ZipMisc.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-26049",
+    "advisory": "https://github.com/advisories/GHSA-p2f7-9cv7-jjf6",
+    "repo": "https://github.com/diffplug/goomph",
+    "buggy_commit": "https://github.com/diffplug/goomph/commit/fe2083196f0d0a75885aea402baaa972254173d5"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "25f04f67ba62d9a14104bee13a0a0f2517afb8c8",
+      "url": "https://github.com/diffplug/goomph/commit/25f04f67ba62d9a14104bee13a0a0f2517afb8c8.diff",
+      "diff": "diff --git a/src/main/java/com/diffplug/gradle/ZipMisc.java b/src/main/java/com/diffplug/gradle/ZipMisc.java\nindex baf8ee32..78cf6d08 100644\n--- a/src/main/java/com/diffplug/gradle/ZipMisc.java\n+++ b/src/main/java/com/diffplug/gradle/ZipMisc.java\n@@ -178,6 +178,9 @@ public static void unzip(File input, File destinationDir) throws IOException {\n \t\t\tZipEntry entry;\n \t\t\twhile ((entry = zipInput.getNextEntry()) != null) {\n \t\t\t\tFile dest = new File(destinationDir, entry.getName());\n+\t\t\t\tif (!dest.toPath().normalize().startsWith(destinationDir.toPath().normalize())) {\n+\t\t\t\t\tthrow new RuntimeException(\"Bad zip entry\");\n+\t\t\t\t}\n \t\t\t\tif (entry.isDirectory()) {\n \t\t\t\t\tFileMisc.mkdirs(dest);\n \t\t\t\t} else {\n",
+      "cached": true
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index 52454f1..b7ce9eb 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -352,6 +352,25 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+             throw new ArchiverException( "Entry is outside of the target directory (" + entryName + ")" );
+         }
+ 
++        // The check above can be fooled by a symlink that a *previous* entry of this very archive created
++        // (e.g. tar/zip entries "evil -> /somewhere/outside" followed by "evil/pwned.txt", or even just a
++        // second entry named "evil" itself, this time a plain file): when that symlink is "dangling" (its
++        // target does not exist on disk yet, which is the common case right after it was just extracted),
++        // File#getCanonicalFile() is unable to resolve it and silently falls back to the raw, un-resolved
++        // path - which then looks like it stays inside the destination even though the OS will actually
++        // follow the real symlink and write outside of it once this entry is materialized. Resolve the path
++        // ourselves instead, one segment at a time via Files.isSymbolicLink()/readSymbolicLink() (which work
++        // regardless of whether the link target exists), to catch that case too. The final path segment is
++        // only dereferenced when this entry is not itself (re)defining a symlink there: a symlink entry is
++        // allowed to point anywhere (existing behaviour, e.g. re-extracting the same archive twice), it is
++        // only a problem once something is later read or written *through* it.
++        boolean dereferenceLastSegment = StringUtils.isEmpty( symlinkDestination );
++        if ( !resolveAgainstExistingSymlinks( canonicalDirPath, entryName, dereferenceLastSegment )
++                .startsWith( canonicalDirPath ) )
++        {
++            throw new ArchiverException( "Entry is outside of the target directory (" + entryName + ")" );
++        }
++
+         try
+         {
+             if ( !shouldExtractEntry( dir, targetFileName, entryName, entryDate ) )
+@@ -395,6 +414,57 @@ else if ( isDirectory )
+         }
+     }
+ 
++    /**
++     * Resolves {@code entryName} against {@code canonicalDirPath}, following any symlink already present on disk
++     * (typically created by an earlier entry of the very same archive) at each path segment, even when that
++     * symlink is dangling, i.e. its target does not exist (yet). Unlike {@link File#getCanonicalFile()}, this
++     * does not require the resolved location to exist, so a malicious archive cannot hide a path traversal
++     * behind a not-yet-materialized symlink target.
++     *
++     * @param dereferenceLastSegment whether an existing on-disk symlink at the final path segment should be
++     *                               followed too. This must be {@code false} when the current entry is itself
++     *                               (re)creating a symlink at that location, since it is about to replace
++     *                               whatever is currently there rather than read or write through it.
++     */
++    private static Path resolveAgainstExistingSymlinks( final Path canonicalDirPath, final String entryName,
++                                                         final boolean dereferenceLastSegment )
++        throws IOException
++    {
++        final String[] segments = entryName.replace( '\\', '/' ).split( "/" );
++        Path resolved = canonicalDirPath;
++        for ( int i = 0; i < segments.length; i++ )
++        {
++            final String segment = segments[i];
++            if ( segment.isEmpty() || ".".equals( segment ) )
++            {
++                continue;
++            }
++
++            resolved = resolved.resolve( segment );
++
++            final boolean isLastSegment = i == segments.length - 1;
++            if ( ( dereferenceLastSegment || !isLastSegment ) && Files.isSymbolicLink( resolved ) )
++            {
++                final Path linkTarget = Files.readSymbolicLink( resolved );
++                resolved = linkTarget.isAbsolute()
++                    ? linkTarget.normalize()
++                    : resolved.getParent().resolve( linkTarget ).normalize();
++            }
++            else
++            {
++                resolved = resolved.normalize();
++            }
++
++            // Bail out as soon as the path escapes, so that a later segment can't step back "inside" and
++            // hide the fact that it briefly left the destination directory via a symlink.
++            if ( !resolved.startsWith( canonicalDirPath ) )
++            {
++                return resolved;
++            }
++        }
++        return resolved;
++    }
++
+     /**
+      * Counter for casing message emitted, visible for testing.
+      */
+diff --git a/src/test/java/org/codehaus/plexus/archiver/AbstractUnArchiverTest.java b/src/test/java/org/codehaus/plexus/archiver/AbstractUnArchiverTest.java
+index b7698aa..805afcb 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/AbstractUnArchiverTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/AbstractUnArchiverTest.java
+@@ -87,6 +87,101 @@ public void shouldThrowExceptionBecauseRewrittenPathIsOutOfDirectory( @TempDir F
+         assertEquals( "Entry is outside of the target directory (" + prefix + "ENTRYNAME.SUFFIX)", exception.getMessage() );
+     }
+ 
++    @Test
++    public void shouldExtractDanglingSymlinkPointingOutsideOfDirectory( @TempDir File targetFolder )
++        throws IOException
++    {
++        // Archives are allowed to contain a symlink entry whose target lies outside of the destination
++        // directory (tar/zip faithfully preserve whatever the symlink points to) - as long as nothing in the
++        // same archive then reads or writes *through* that symlink. The target does not exist on disk, i.e.
++        // it is a "dangling" symlink.
++        String outside = "../" + targetFolder.getName() + "-OUTSIDE/does-not-exist";
++
++        abstractUnArchiver.extractFile( null, targetFolder, null, "evil-link", new Date(), false, null,
++                                         outside, null );
++
++        File link = new File( targetFolder, "evil-link" );
++        assertTrue( java.nio.file.Files.isSymbolicLink( link.toPath() ) );
++        assertEquals( outside, java.nio.file.Files.readSymbolicLink( link.toPath() ).toString() );
++    }
++
++    @Test
++    public void shouldThrowExceptionWhenEntryWritesThroughDanglingSymlinkEscapingDirectory( @TempDir File targetFolder )
++        throws IOException
++    {
++        // given: a previous entry of the archive created a dangling symlink pointing outside of the
++        // destination directory (see shouldExtractDanglingSymlinkPointingOutsideOfDirectory above)
++        String outside = "../" + targetFolder.getName() + "-OUTSIDE/does-not-exist";
++        abstractUnArchiver.extractFile( null, targetFolder, null, "evil-link", new Date(), false, null,
++                                         outside, null );
++
++        // when: a later entry in the same archive tries to write through that symlink. Relying on
++        // canonicalization alone to catch this does not work: File#getCanonicalFile() cannot resolve a
++        // symlink whose target does not (yet) exist, so a naive check would let this through even though the
++        // OS will happily follow the real, already-created symlink and write outside of the destination.
++        Exception exception = assertThrows( ArchiverException.class, () ->
++            abstractUnArchiver.extractFile( null, targetFolder, new java.io.ByteArrayInputStream( new byte[0] ),
++                                             "evil-link/pwned.txt", new Date(), false, null, null, null ) );
++
++        // then
++        assertTrue( exception.getMessage().contains( "evil-link/pwned.txt" ) );
++        assertFalse( new File( targetFolder.getParentFile(), targetFolder.getName() + "-OUTSIDE/does-not-exist/pwned.txt" ).exists() );
++    }
++
++    @Test
++    public void shouldThrowExceptionWhenFileEntryReplacesDanglingSymlinkEscapingDirectory( @TempDir File targetFolder )
++        throws IOException
++    {
++        // given: a previous entry of the archive created a dangling symlink pointing outside of the
++        // destination directory, using the same name that a later, plain-file entry will also use
++        String outside = "../" + targetFolder.getName() + "-OUTSIDE/does-not-exist";
++        abstractUnArchiver.extractFile( null, targetFolder, null, "evil", new Date(), false, null, outside, null );
++
++        // when: a later entry with the very same name tries to write regular file content. Since the
++        // filesystem call backing that write (Files.newOutputStream) follows symlinks, it would otherwise
++        // write through the existing symlink and escape the destination directory.
++        Exception exception = assertThrows( ArchiverException.class, () ->
++            abstractUnArchiver.extractFile( null, targetFolder, new java.io.ByteArrayInputStream( new byte[0] ),
++                                             "evil", new Date(), false, null, null, null ) );
++
++        // then
++        assertTrue( exception.getMessage().contains( "evil" ) );
++        assertFalse( new File( targetFolder.getParentFile(), targetFolder.getName() + "-OUTSIDE/does-not-exist" ).exists() );
++    }
++
++    @Test
++    public void shouldReExtractSymlinkPointingOutsideOfDirectoryWithoutError( @TempDir File targetFolder )
++        throws IOException
++    {
++        // Re-extracting the very same archive into the same directory (e.g. a build re-run without cleaning
++        // the output first) must keep working: a symlink entry replacing an already-existing symlink at the
++        // same path is not "writing through" anything, so it must not be rejected just because that path
++        // already happens to be a symlink escaping the destination directory.
++        String outside = "../" + targetFolder.getName() + "-OUTSIDE/does-not-exist";
++        abstractUnArchiver.extractFile( null, targetFolder, null, "evil-link", new Date(), false, null,
++                                         outside, null );
++
++        abstractUnArchiver.extractFile( null, targetFolder, null, "evil-link", new Date(), false, null,
++                                         outside, null );
++
++        File link = new File( targetFolder, "evil-link" );
++        assertTrue( java.nio.file.Files.isSymbolicLink( link.toPath() ) );
++    }
++
++    @Test
++    public void shouldExtractSymlinkWhenTargetStaysWithinDirectory( @TempDir File targetFolder )
++        throws IOException
++    {
++        // given a relative, dangling symlink target that stays inside the destination directory
++        abstractUnArchiver.extractFile( null, targetFolder, null, "link", new Date(), false, null,
++                                         "some/inner/target.txt", null );
++
++        // then the symlink is created and points where expected
++        File link = new File( targetFolder, "link" );
++        assertTrue( java.nio.file.Files.isSymbolicLink( link.toPath() ) );
++        assertEquals( "some/inner/target.txt", java.nio.file.Files.readSymbolicLink( link.toPath() ).toString() );
++    }
++
+     @Test
+     public void shouldExtractWhenFileOnDiskDoesNotExist(  @TempDir File temporaryFolder ) throws IOException
+     {

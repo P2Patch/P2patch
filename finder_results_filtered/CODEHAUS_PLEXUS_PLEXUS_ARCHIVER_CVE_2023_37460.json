@@ -1,0 +1,65 @@
+{
+  "cwe_id": "cwe-022",
+  "cve_id": "CVE-2023-37460",
+  "note": "CVE-aligned tar and zip symlink-destination paths reaching filesystem symlink creation. Extraction must not later follow archive-created dangling symlinks outside the destination.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "getLinkName(...) : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java",
+            "line": 118
+          },
+          {
+            "message": "symlinkDestination : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java",
+            "line": 120
+          },
+          {
+            "message": "symlinkDestination : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 330
+          },
+          {
+            "message": "symlinkDestination : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 371
+          },
+          {
+            "message": "new File(...)",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 371
+          }
+        ],
+        [
+          {
+            "message": "getUnixSymlink(...) : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java",
+            "line": 173
+          },
+          {
+            "message": "resolveSymlink(...) : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java",
+            "line": 209
+          },
+          {
+            "message": "symlinkDestination : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 330
+          },
+          {
+            "message": "symlinkDestination : String",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 371
+          },
+          {
+            "message": "new File(...)",
+            "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+            "line": 371
+          }
+        ]
+      ]
+    }
+  ]
+}

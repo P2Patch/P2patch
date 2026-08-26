@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-df96980312d5",
+  "cve_id": "CVE-2020-35460",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "joniles__mpxj_CVE-2020-35460_8.3.4",
+  "alert_file": "JONILES_MPXJ_CVE_2020_35460.json",
+  "github_url": "https://github.com/joniles/mpxj",
+  "repo": "joniles/mpxj",
+  "github_tag": "8.3.4",
+  "advisory_id": "GHSA-p9j6-4pjr-gp48",
+  "buggy_commit_id": "87ea0ba33e901b87c95a18e3703ac51b59e2ee04",
+  "fix_commit_ids": [
+    "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d",
+      "file": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java",
+      "class": "InputStreamHelper",
+      "class_start": "37.0",
+      "class_end": "115.0",
+      "method": "processZipStream",
+      "method_start": "115.0",
+      "method_end": "146.0",
+      "signature": "void processZipStream(File,InputStream)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2020-35460",
+    "advisory": "https://github.com/advisories/GHSA-p9j6-4pjr-gp48",
+    "repo": "https://github.com/joniles/mpxj",
+    "buggy_commit": "https://github.com/joniles/mpxj/commit/87ea0ba33e901b87c95a18e3703ac51b59e2ee04"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d",
+      "url": "https://github.com/joniles/mpxj/commit/8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d.diff",
+      "diff": "diff --git a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java\nindex 69e2518945a..81209caa291 100644\n--- a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java\n+++ b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java\n@@ -114,6 +114,7 @@ public static File writeZipStreamToTempDir(InputStream inputStream) throws IOExc\n     */\n    private static void processZipStream(File dir, InputStream inputStream) throws IOException\n    {\n+      String canonicalDestinationDirPath = dir.getCanonicalPath();\n       ZipInputStream zip = new ZipInputStream(inputStream);\n       while (true)\n       {\n@@ -124,6 +125,14 @@ private static void processZipStream(File dir, InputStream inputStream) throws I\n          }\n \n          File file = new File(dir, entry.getName());\n+\n+         // https://snyk.io/research/zip-slip-vulnerability\n+         String canonicalDestinationFile = file.getCanonicalPath();\n+         if (!canonicalDestinationFile.startsWith(canonicalDestinationDirPath + File.separator))\n+         {\n+            throw new IOException(\"Entry is outside of the target dir: \" + entry.getName());\n+         }\n+\n          if (entry.isDirectory())\n          {\n             FileHelper.mkdirsQuietly(file);\n",
+      "cached": true
+    }
+  ]
+}

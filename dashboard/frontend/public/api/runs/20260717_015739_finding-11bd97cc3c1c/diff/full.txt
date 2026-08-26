@@ -1,0 +1,97 @@
+diff --git a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+index 75a4b6c..98633ab 100644
+--- a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
++++ b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+@@ -52,7 +52,19 @@ public class ContextAssetRequestHandler implements AssetRequestHandler
+             return false;
+         }
+ 
+-        return path.stream(rootContextResource.forFile(path.resourcePath));
++        Resource resource = rootContextResource.forFile(path.resourcePath);
++
++        // Re-check the blacklist against the *resolved* path (after "." / ".." segments and
++        // alternate separators such as Windows-style backslashes have been normalized away by
++        // forFile()). The check above operates on the raw, un-resolved extraPath and can be
++        // bypassed with something like "foo/../WEB-INF/web.xml" or "foo\\..\\WEB-INF\\web.xml",
++        // neither of which starts with "WEB-INF" until normalized/resolved.
++        if (resource == null || illegal.matcher(resource.getPath()).matches())
++        {
++            return false;
++        }
++
++        return path.stream(resource);
+     }
+ 
+ }
+diff --git a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+index 767ed12..a9a3c38 100644
+--- a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
++++ b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+@@ -14,7 +14,10 @@
+ 
+ package org.apache.tapestry5.internal.services.assets;
+ 
++import org.apache.tapestry5.internal.services.ContextResource;
++import org.apache.tapestry5.ioc.Resource;
+ import org.apache.tapestry5.ioc.test.TestBase;
++import org.apache.tapestry5.services.Context;
+ import org.testng.annotations.DataProvider;
+ import org.testng.annotations.Test;
+ 
+@@ -41,4 +44,38 @@ public class ContextAssetRequestHandlerTest extends TestBase
+         assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
+                 "Handler should return false for invalid path.");
+     }
++
++    @DataProvider
++    public Object[][] blacklist_bypass_paths()
++    {
++        return new Object[][]
++                {
++                        // ".." segments resolve into WEB-INF even though the raw, un-resolved
++                        // path does not start with "WEB-INF" (CWE-022 path traversal).
++                        {"folder/../WEB-INF/web.xml"},
++                        {"folder/../../WEB-INF/web.xml"},
++                        // Windows-style backslash separators are not split by "/" and must be
++                        // normalized before ".." resolution, otherwise they bypass it entirely.
++                        {"folder\\..\\WEB-INF\\web.xml"},
++                        {"..\\WEB-INF\\web.xml"}};
++    }
++
++    @Test(dataProvider = "blacklist_bypass_paths")
++    public void ensure_dot_dot_and_backslash_bypasses_of_blacklist_are_rejected(String path) throws IOException
++    {
++        Context context = newMock(Context.class);
++
++        replay();
++
++        // Matches production wiring (see ContextAssetFactory), where the root resource is the
++        // context root itself.
++        Resource root = new ContextResource(context, "/");
++
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(null, root);
++
++        assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
++                "Handler should reject paths that resolve into WEB-INF, even via '..' or backslash separators.");
++
++        verify();
++    }
+ }
+diff --git a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
+index 2ead75e..136489b 100644
+--- a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
++++ b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
+@@ -101,7 +101,12 @@ public abstract class AbstractResource extends LockSupport implements Resource
+             terms.add(term);
+         }
+ 
+-        for (String term : relativePath.split("/"))
++        // Normalize alternate path separators (e.g., Windows-style backslashes) to "/" first.
++        // Otherwise a segment such as "..\..\..\WEB-INF\web.xml" is treated as a single opaque
++        // path term (since it contains no "/"), bypassing the ".." collapsing/bounds-checking
++        // below and reaching the filesystem largely unnormalized, which the underlying OS or
++        // servlet container may still interpret as real traversal.
++        for (String term : relativePath.replace('\\', '/').split("/"))
+         {
+             // This will occur if the relative path contains sequential slashes
+ 

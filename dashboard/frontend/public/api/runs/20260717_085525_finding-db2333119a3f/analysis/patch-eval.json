@@ -1,0 +1,116 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:59.103585+00:00",
+    "finished_at": "2026-07-17T15:46:29.547818+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Executable and args are now unconditionally single-quoted as POSIX literals and execute() bypasses the shell via getCommandline(), closing the whole injection class not just the payload.",
+        "evidence": "BourneShell setUnconditionalQuoting(true) + quoteOneItem wraps in single quotes escaping ' as '\"'\"'; Commandline.execute() now uses getCommandline()/getLiteralExecutable() instead of getShellCommandline()",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes at the quoting sink in Shell/BourneShell and neutralizes the raw executable path, matching the true trust boundary rather than a caller symptom.",
+        "evidence": "Shell.quoteOneItem uses unconditionallyQuote; getRawCommandLine calls quoteOneItem(getOriginalExecutable(), true)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Both executable and argument paths quoted, execution preamble (cd dir) quoted, and execute() avoids shell entirely; covers metacharacter variants ($,;,&,|,backtick,spaces).",
+        "evidence": "BourneShell.getExecutionPreamble quoteOneItem(dir,false); Shell arg branch quoteOneItem(arguments[i],false)",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Production diff is line-for-line the official fix (unconditional quoting + literal executable getters + non-shell exec).",
+        "evidence": "jaccard 1.0, covers_all_official; identical getLiteralExecutable, setUnconditionalQuoting, quoteOneItem across Commandline/Shell/BourneShell",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Tests updated to match new quoting semantics consistent with official; but regressions_ran=0 and pov_before did not reproduce, so runtime confirmation is thin.",
+        "evidence": "CommandlineTest/BourneShellTest expected strings updated to '/bin/echo' 'hello world' form; execution results regressions_ran:0",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe POSIX single-quote wrapping with correct '\"'\"' escaping; no shell metachar interpretation, no ReDoS/TOCTOU introduced.",
+        "evidence": "quoteOneItem StringBuilder single-quote wrap; execute() uses exec(getCommandline(),env,workingDir)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized changes mirroring the official patch scope; only relevant methods touched plus corresponding test updates.",
+        "evidence": "Changes confined to Commandline.java, Shell.java, BourneShell.java and their tests",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Treats executable/args as single literals (defense-of-record: don't hand attacker data to a shell) rather than blocklisting metacharacters.",
+        "evidence": "Removed BASH_QUOTING_TRIGGER_CHARS conditional logic; unconditional single-quote quoting + getCommandline() non-shell exec path",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Execution evidence is weak: pov_before_reproduced=false and regressions_ran=0, so correctness rests on structural equivalence to the official fix rather than observed runtime behavior."
+      }
+    ],
+    "root_cause": "Untrusted executable/argument strings were passed through a shell with conditional, bypassable quoting, allowing shell metacharacters (e.g. backticks) to be interpreted as OS commands.",
+    "summary": "Our patch is production-identical to the official reference fix (jaccard 1.0, all official files covered). It enables unconditional POSIX single-quote quoting of the executable and arguments, adds getLiteralExecutable/getOriginalExecutable so the raw executable is never shell-munged, and switches execute() to the non-shell getCommandline() exec path. This neutralizes the CWE-078 injection class at the sink, not just the observed payload. Only weakness is thin runtime evidence (POV didn't reproduce pre-patch, zero regressions run), but the semantic equivalence to the developer fix is strong.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "BourneShell.java",
+        "Commandline.java",
+        "Shell.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+      ],
+      "commits": [
+        "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41"
+      ]
+    }
+  }
+}

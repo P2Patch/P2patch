@@ -1,0 +1,100 @@
+diff --git a/util/src/main/java/io/kubernetes/client/Copy.java b/util/src/main/java/io/kubernetes/client/Copy.java
+index 72e02bc..cb06ede 100644
+--- a/util/src/main/java/io/kubernetes/client/Copy.java
++++ b/util/src/main/java/io/kubernetes/client/Copy.java
+@@ -137,7 +137,7 @@ public class Copy extends Exec {
+           log.error("Can't read: " + entry);
+           continue;
+         }
+-        File f = new File(destination.toFile(), entry.getName());
++        File f = resolveArchiveEntry(destination.toFile(), entry.getName());
+         if (entry.isDirectory()) {
+           if (!f.isDirectory() && !f.mkdirs()) {
+             throw new IOException("create directory failed: " + f);
+@@ -164,6 +164,29 @@ public class Copy extends Exec {
+     }
+   }
+ 
++  /**
++   * Resolves a tar archive entry's target file against the destination directory, rejecting
++   * entries whose name would cause the resulting file to escape that directory (e.g. via {@code
++   * ../} sequences or absolute paths), preventing path/zip-slip traversal when extracting
++   * untrusted archives received from a pod.
++   *
++   * @param destinationDir the directory extraction is confined to
++   * @param entryName the raw name of the archive entry
++   * @return the resolved, validated destination file
++   * @throws IOException if the entry would resolve outside of {@code destinationDir}
++   */
++  static File resolveArchiveEntry(File destinationDir, String entryName) throws IOException {
++    File f = new File(destinationDir, entryName);
++    String destDirCanonicalPath = destinationDir.getCanonicalPath();
++    String targetCanonicalPath = f.getCanonicalPath();
++    if (!targetCanonicalPath.equals(destDirCanonicalPath)
++        && !targetCanonicalPath.startsWith(destDirCanonicalPath + File.separator)) {
++      throw new IOException(
++          "Entry with illegal path (path traversal) in tar archive: " + entryName);
++    }
++    return f;
++  }
++
+   public static void copyFileFromPod(String namespace, String pod, String srcPath, Path dest)
+       throws ApiException, IOException {
+     Copy c = new Copy();
+diff --git a/util/src/test/java/io/kubernetes/client/CopyTest.java b/util/src/test/java/io/kubernetes/client/CopyTest.java
+index f7084d0..dbedbad 100644
+--- a/util/src/test/java/io/kubernetes/client/CopyTest.java
++++ b/util/src/test/java/io/kubernetes/client/CopyTest.java
+@@ -18,6 +18,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
+ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.fail;
+ 
+ import com.github.tomakehurst.wiremock.junit.WireMockRule;
+ import com.github.tomakehurst.wiremock.matching.AnythingPattern;
+@@ -29,6 +31,7 @@ import io.kubernetes.client.util.ClientBuilder;
+ import java.io.File;
+ import java.io.IOException;
+ import java.io.InputStream;
++import java.nio.file.Files;
+ import java.nio.file.Paths;
+ import org.junit.Before;
+ import org.junit.Rule;
+@@ -139,4 +142,35 @@ public class CopyTest {
+             .withQueryParam("command", equalTo("-c"))
+             .withQueryParam("command", equalTo("base64 -d | tar -xmf - -C /")));
+   }
++
++  @Test
++  public void testResolveArchiveEntryRejectsPathTraversal() throws IOException {
++    File destinationDir = Files.createTempDirectory("copy-test-dest").toFile();
++    destinationDir.deleteOnExit();
++
++    String[] maliciousEntryNames = {
++      "../evil.txt",
++      "../../etc/evil.txt",
++      "nested/../../evil.txt",
++    };
++
++    for (String entryName : maliciousEntryNames) {
++      try {
++        Copy.resolveArchiveEntry(destinationDir, entryName);
++        fail("Expected IOException for path traversal entry name: " + entryName);
++      } catch (IOException expected) {
++        // expected: entry escapes the destination directory
++      }
++    }
++  }
++
++  @Test
++  public void testResolveArchiveEntryAllowsEntriesWithinDestination() throws IOException {
++    File destinationDir = Files.createTempDirectory("copy-test-dest").toFile();
++    destinationDir.deleteOnExit();
++
++    File resolved = Copy.resolveArchiveEntry(destinationDir, "subdir/file.txt");
++    assertEquals(
++        new File(destinationDir, "subdir/file.txt").getCanonicalPath(), resolved.getCanonicalPath());
++  }
+ }

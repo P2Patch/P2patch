@@ -1,0 +1,122 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:37:10.977254+00:00",
+    "finished_at": "2026-07-17T08:43:37.007730+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "POV is blocked and the whole zip-slip class is closed at every sink — the check is unconditional, not payload-specific.",
+        "evidence": "docker/pov_after_patch.log: 'ZipUtil.unpack threw: ZipException: Zip entry '../../../../tmp/zipslip-pov-escaped-marker/pwned.txt' is outside of the target directory'. checkEntryDestination() (ZipUtil.java +1152..1160) canonicalizes both sides and requires equality or a File.separator-bounded prefix, with no name.indexOf(\"..\") gate, so ..-free variants are also covered.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at each sink where the entry name is resolved into a File, before any filesystem write.",
+        "evidence": "Replaces `new File(outputDir, name)` with resolveEntryDestination() at Unpacker.process (ZipUtil.java:1180), BackslashUnpacker both branches (:1242, :1249, :1253), Unwraper.process (:1288), and Zips$UnpackingCallback.process (Zips.java:683) — each check precedes FileUtils.forceMkdir/FileUtils.copy.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers all three official sites plus a sibling sink the official fix missed, and blocks two bypass variants that defeat the official fix.",
+        "evidence": "Verified in Docker (image simpleautosec-finding-9cd89dec9b04): entry '../out-evil/pwned.txt' into outputDir /tmp/ztbypass/out — official variant 'NO EXCEPTION / escaped: true (BYPASS SUCCEEDED)', ours 'BLOCKED: ZipException / escaped: false'. BackslashUnpacker entry '..\\evil-created-dir\\..\\out\\ok.txt' — official created a directory outside outputDir (checks only destFile after the mkdir loop); ours blocks inside the loop (ZipUtil.java:1242). Also covers Zips.java:683 (UnpackingCallback), untouched by the official fix.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Identical defensive strategy (canonical containment check throwing ZipException) at the same locations, and a strict superset of the official fix.",
+        "evidence": "Official injects `if (name.indexOf(\"..\") != -1 && !file.getCanonicalPath().startsWith(outputDir.getCanonicalPath())) throw new ZipException(...)` at 3 sites; ours applies the same canonicalize-then-verify + ZipException at those same 3 sites, minus the '..' gate and plus the File.separator boundary (ZipUtil.java:1152-1160).",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "No real regressions — the single reported test failure is a pre-existing root-in-Docker artifact, proven to reproduce on pristine unpatched code.",
+        "evidence": "Full suite on patched tree: 'Tests run: 120, Failures: 1' — only testPreserveWriteFlag(FilePermissionsTest). Same test fails identically on an unpatched baseline copy ('Tests run: 3, Failures: 1'); container runs as root (whoami=root, id -u=0) so setWritable(false) is bypassed, and it fails at FilePermissionsTest.java:115 assertFalse(canWrite(fileB)) — a pre-condition assert BEFORE the zip call on line 117, so ZipUtil is never reached. ZipUtilTest 49/49 (45 baseline + 4 new), ZipsTest 26/26.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No new weakness or crash; two minor, secure-direction edge effects.",
+        "evidence": "Uses java.io.File.getCanonicalPath() (safe primitive, resolves symlinks) — no regex/ReDoS, no blocklist. Minor: unconditional canonicalization adds 2 getCanonicalPath() calls per entry vs the official '..'-gated check; and an entry resolving through a symlinked subdir pointing outside outputDir is now rejected (ZipUtil.java:1155). The check-then-write TOCTOU window is inherent to the official approach too, not newly introduced.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production diff is tight and well-factored, but reaches slightly beyond the official scope (justifiably) and adds ~110 lines of tests.",
+        "evidence": "Two small helpers (resolveEntryDestination/checkEntryDestination, ZipUtil.java +1134..1161) replace 5 call sites as one-line substitutions; Zips.java is a single-line change (:683). Extra surface: a package-private static helper exposed for Zips.java, plus 4 new tests in ZipUtilTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Textbook CWE-022 defense-of-record: canonicalize to the real absolute path, then verify containment in the base dir with a correct separator boundary.",
+        "evidence": "checkEntryDestination (ZipUtil.java:1152-1160): `canonicalDestPath.equals(canonicalOutputPath) || canonicalDestPath.startsWith(canonicalOutputPath + File.separator)` else throw ZipException. getCanonicalPath() resolves symlinks and normalizes '..' — no blocklisting of '../' anywhere; the File.separator suffix closes the sibling-prefix hole the official fix leaves open.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Performance: the containment check is unconditional, so every zip entry incurs two getCanonicalPath() calls (syscall-heavy, resolves symlinks), whereas the official fix only pays this when the name contains '..'. Measurable on very large archives. This is a deliberate and correct security tradeoff (the '..' gate is what makes the official fix weaker), but worth noting; outputDir.getCanonicalPath() could be hoisted/cached per Unpacker instance to recover most of the cost."
+      },
+      {
+        "severity": "low",
+        "description": "Behavior change vs. pre-patch: an entry that resolves through a symlinked subdirectory pointing outside outputDir is now rejected with ZipException, because getCanonicalPath() resolves symlinks. This is the secure choice (it closes a symlink-escape vector the official fix leaves open) and no existing test depends on it, but it is stricter than both the original and the official-fixed behavior."
+      },
+      {
+        "severity": "low",
+        "description": "Not a patch defect, but it invalidates the pipeline verdict: run_status 'rejected' / regressions_passed=false is a FALSE REJECT. The sole failing test (FilePermissionsTest.testPreserveWriteFlag) fails identically on pristine unpatched source because the container runs as root (uid 0), which bypasses the setWritable(false) permission bit. It fails at line 115, before ZipUtil is ever invoked. The run should be re-scored as accepted."
+      }
+    ],
+    "root_cause": "Every zip-extraction sink resolves an attacker-controlled entry name directly into a destination path (`new File(outputDir, name)`) and writes to it via FileUtils.forceMkdir/copy without canonicalizing the result and verifying it stays inside outputDir, letting traversal entry names escape the intended output directory.",
+    "summary": "This is an excellent fix and a strict superset of the official reference patch. It applies the CWE-022 defense-of-record — canonicalize, then verify containment against the base dir with a File.separator boundary — at all three official sink sites plus a sibling sink in Zips$UnpackingCallback that the official fix misses entirely; the POV is blocked with a ZipException. I empirically confirmed in Docker that our patch blocks two attacks that DEFEAT the official fix: a sibling-prefix escape ('../out-evil/pwned.txt' out of /tmp/ztbypass/out, which the official's separator-less startsWith() lets through) and BackslashUnpacker intermediate-directory creation outside outputDir. Critically, the pipeline's 'rejected' verdict is a false reject: the lone failing test (FilePermissionsTest.testPreserveWriteFlag) fails identically on pristine unpatched code because the container runs as root, and it fails on a pre-condition assert at line 115 before ZipUtil is ever called — the patched tree is otherwise 119/120 green with 49/49 ZipUtilTest and 26/26 ZipsTest.",
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ZipUtil.java"
+      ],
+      "ours_only": [
+        "Zips.java"
+      ],
+      "official_only": [],
+      "jaccard": 0.5,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 4,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+      ],
+      "commits": [
+        "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff"
+      ]
+    }
+  }
+}

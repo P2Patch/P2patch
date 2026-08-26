@@ -1,0 +1,134 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:07.014233+00:00",
+    "finished_at": "2026-07-17T08:47:30.246148+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "POV payload is blocked, but I executed the patched build and confirmed the same CWE-022 disclosure of the same out-of-root file via a trivial variant.",
+        "evidence": "Patched run: handler.getResource(\"/x:/..\\\\..\\\\public-jar.zip\") → GUARD PASSED, path=public/x:/../../public-jar.zip, getInputStream() disclosed file:/workspace/repo/target/test-classes/public-jar.zip (identical file the POV proves). DirectoryTraversal.java:13 isStrictlyWithin accepts it because it startsWith(\"public/\").",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Fixes a real secondary flaw (boundary-free prefix check) at the guard, but not the underlying flaw: the string handed to the containment check is not canonical, so '../' survives into the classloader sink.",
+        "evidence": "DirectoryTraversal.java:32-45 isStrictlyWithin operates on ClassPathResource.getPath(); StringUtils.cleanPath (StringUtils.java:218-266) stops normalizing at the first ':' (prefixIndex logic), so cleanPath(\"/public/x:/..\\..\\public-jar.zip\") = \"/public/x:/../../public-jar.zip\" — '../' retained. Untouched by the patch.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Covers both guard siblings (classpath + external) for the prefix-boundary variant, but leaves the colon-prefix/backslash normalization bypass and URL-ish ('file:') paths open.",
+        "evidence": "Patch touches only protectAgainstInClassPath (DirectoryTraversal.java:13) and protectAgainstForExternal (:20). No change to ClassPathResource ctor (ClassPathResource.java:75-83), UriPath.canonical (UriPath.java:32) or StringUtils.cleanPath. Confirmed bypass /x:/..\\..\\public-jar.zip still serves bytes.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same defensive intent (stop escape from the configured static root) but a different mechanism at a different location, and it omits the official fix's operative check.",
+        "evidence": "Ours: separator-boundary containment in spark/staticfiles/DirectoryTraversal.java. Official (030e9d0): Assert.isTrue(isValid(path)) + isInvalidPath() in ClassPathResource(String,ClassLoader) rejecting WEB-INF/META-INF, ResourceUtils.isUrl(...)/':/' and cleanPath(path).contains(\"../\"). Overlap jaccard 0.0.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "No genuine regressions: 303/304 tests pass; the only error is the POV test itself asserting vulnerable behavior (expected to invert post-fix). One small edge-case behavior change.",
+        "evidence": "docker/regression_1.log: 'Tests run: 304, Failures: 0, Errors: 1' with the sole entry 'PathTraversalPovTest.backslashObfuscatedTraversalEscapesConfiguredStaticFolder:75 » DirectoryTraversalDetection'. StaticFilesTest 8/8, StaticFilesMemberTest 7/7, StaticFilesFromArchiveTest 1/1, DirectoryTraversalTest 6/6 pass. Edge: folder==null now returns false (→ 400) instead of NPE (→ caught, 404) at DirectoryTraversal.java:33-35.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Strictly tightens the previous check; plain string comparisons, no ReDoS/TOCTOU/new injection. Only a minor null-handling behavior shift.",
+        "evidence": "isStrictlyWithin (DirectoryTraversal.java:32-45) = equals(folder) || startsWith(folder + \"/\"); previously \"x\".startsWith(null) would NPE, now returns false → DirectoryTraversalDetection rethrown at ClassPathResourceHandler.java:89-90 → HTTP 400 instead of 404.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is tight and well-placed (one file, one private helper); test additions are somewhat redundant.",
+        "evidence": "Only src/main/java/spark/staticfiles/DirectoryTraversal.java changed (+18/-2). DirectoryTraversalTest.rejectsSiblingWithSamePrefix and rejectsSiblingReachedViaBackslashTraversal are byte-identical calls (protectAgainstInClassPath(\"public-jar.zip\")).",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Uses the right CWE-022 primitive (containment check with a separator boundary) but applies it to a non-canonical path, so the 'canonicalize THEN verify' contract is broken — it is not a blocklist, but the canonicalization half is missing.",
+        "evidence": "isStrictlyWithin trusts ClassPathResource.getPath() as canonical; probe shows getPath()=\"public/x:/../../public-jar.zip\" passing containment, then classLoader resolving it to target/test-classes/public-jar.zip. No resolution of the actual URL/real path before the check.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Confirmed live bypass on the patched build: GET-equivalent path \"/x:/..\\..\\public-jar.zip\" resolves to ClassPathResource path \"public/x:/../../public-jar.zip\", passes the new isStrictlyWithin check (startsWith \"public/\"), and getInputStream()/getURL() disclose file:/workspace/repo/target/test-classes/public-jar.zip — the identical out-of-root file the POV proves. StringUtils.cleanPath does not normalize past the first ':' (prefixIndex logic at StringUtils.java:224-233), so '../' survives into the classloader sink. The official fix rejects this at ClassPathResource's constructor via isInvalidPath()'s cleanPath(path).contains(\"../\") branch."
+      },
+      {
+        "severity": "medium",
+        "description": "The official fix's operative checks are entirely absent: no rejection of 'file:'/URL-style paths (ce9e11517e's doesNotContainFileColon; 030e9d00's ResourceUtils.isUrl + ':/' check) and no WEB-INF/META-INF rejection. The patch does not modify ClassPathResource at all (0% file overlap with the reference fix)."
+      },
+      {
+        "severity": "low",
+        "description": "Behavior change when StaticFilesFolder.local()/external() is null: previously String.startsWith(null) threw NPE, which ClassPathResourceHandler.getResource caught (catch (Exception e)) and returned null → 404. Now isStrictlyWithin returns false → DirectoryTraversalDetection is rethrown (ClassPathResourceHandler.java:89-90) → StaticFilesConfiguration.consume responds 400 'Bad request'. Not reachable via configure() but is an unguarded API-contract shift."
+      },
+      {
+        "severity": "low",
+        "description": "isStrictlyWithin explicitly returns true for an empty folder, codifying the pre-existing hole where staticFiles.location(\"/\") (local() == \"\") disables the traversal guard entirely. This matches old startsWith(\"\") behavior, so it is not a regression, but the fix comments it as intentional rather than closing it."
+      },
+      {
+        "severity": "low",
+        "description": "Test hygiene: DirectoryTraversalTest.rejectsSiblingWithSamePrefix and rejectsSiblingReachedViaBackslashTraversal are identical assertions; both new tests mutate the static global StaticFilesFolder without restoring it, risking JVM-ordering pollution for other tests in the same surefire fork."
+      }
+    ],
+    "root_cause": "The path used to decide static-file containment is never truly canonicalized before it reaches the classloader sink — UriPath.canonical only collapses '/'-delimited '..' and StringUtils.cleanPath stops normalizing at the first ':' — so traversal tokens survive into ClassPathResource.getInputStream()/getURL(), and the DirectoryTraversal guard's prefix comparison (boundary-free before the patch) is performed on a non-canonical string.",
+    "summary": "Our patch correctly fixes one real flaw — the boundary-free String.startsWith() containment check in DirectoryTraversal — and it does so at the right place with the right primitive, blocking the POV and passing 303/304 tests (the sole failure is the POV test itself inverting, so there are no genuine regressions). But it is not a fix for the vulnerability class: I ran the patched build and confirmed that \"/x:/..\\..\\public-jar.zip\" still passes the new guard and streams the exact same out-of-root file the POV discloses, because StringUtils.cleanPath leaves '../' intact after a ':' prefix and the guard trusts that non-canonical path. The official fix rejects this variant at the ClassPathResource constructor (isInvalidPath's cleanPath(path).contains(\"../\") branch, plus 'file:'/URL and WEB-INF/META-INF rejection), none of which our patch implements. This is a strictly weaker, symptom-level fix that neutralizes the observed payload while leaving the class reachable.",
+    "overall": {
+      "mean": 3.0,
+      "score": 60,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "DirectoryTraversal.java"
+      ],
+      "official_only": [
+        "ClassPathResource.java",
+        "pom.xml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/spark/resource/ClassPathResource.java"
+      ],
+      "commits": [
+        "030e9d00125cbd1ad759668f85488aba1019c668",
+        "a221a864db28eb736d36041df2fa6eb8839fc5cd",
+        "ce9e11517eca69e58ed4378d1e47a02bd06863cc"
+      ]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "finding_id": "finding-eff26c0d176b",
+  "cve_id": "CVE-2022-25842",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "alibaba__one-java-agent_CVE-2022-25842_0.0.1",
+  "alert_file": "ALIBABA__ONE-JAVA-AGENT_CVE-2022-25842_0.0.1.json",
+  "github_url": "https://github.com/alibaba/one-java-agent",
+  "repo": "alibaba/one-java-agent",
+  "github_tag": "0.0.1",
+  "advisory_id": "GHSA-9hr3-j9mc-xmq2",
+  "buggy_commit_id": "b911af2bb779917c84a016350700745dc31c642a",
+  "fix_commit_ids": [
+    "359603b63fc6c59d8b57e061c171954bab3433bf",
+    "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "359603b63fc6c59d8b57e061c171954bab3433bf",
+      "file": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+      "class": "IOUtils",
+      "class_start": "24.0",
+      "class_end": "106.0",
+      "method": "unzip",
+      "method_start": "",
+      "method_end": "",
+      "signature": "unzip(String zipFile, String extractFolder)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-25842",
+    "advisory": "https://github.com/advisories/GHSA-9hr3-j9mc-xmq2",
+    "repo": "https://github.com/alibaba/one-java-agent",
+    "buggy_commit": "https://github.com/alibaba/one-java-agent/commit/b911af2bb779917c84a016350700745dc31c642a"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "359603b63fc6c59d8b57e061c171954bab3433bf",
+      "url": "https://github.com/alibaba/one-java-agent/commit/359603b63fc6c59d8b57e061c171954bab3433bf.diff",
+      "diff": "diff --git a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\nindex fb42dc1..eaf2f97 100644\n--- a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\n+++ b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\n@@ -103,60 +103,4 @@ public static IOException close(URLClassLoader urlClassLoader) {\n \t\treturn null;\n \t}\n \n-\tpublic static void unzip(String zipFile, String extractFolder) throws IOException {\n-\t\tFile file = new File(zipFile);\n-\t\tZipFile zip = null;\n-\t\ttry {\n-\t\t\tint BUFFER = 1024 * 8;\n-\n-\t\t\tzip = new ZipFile(file);\n-\t\t\tString newPath = extractFolder;\n-\n-\t\t\tnew File(newPath).mkdir();\n-\t\t\tEnumeration<? extends ZipEntry> zipFileEntries = zip.entries();\n-\n-\t\t\t// Process each entry\n-\t\t\twhile (zipFileEntries.hasMoreElements()) {\n-\t\t\t\t// grab a zip file entry\n-\t\t\t\tZipEntry entry = (ZipEntry) zipFileEntries.nextElement();\n-\t\t\t\tString currentEntry = entry.getName();\n-\n-\t\t\t\tFile destFile = new File(newPath, currentEntry);\n-\t\t\t\t// destFile = new File(newPath, destFile.getName());\n-\t\t\t\tFile destinationParent = destFile.getParentFile();\n-\n-\t\t\t\t// create the parent directory structure if needed\n-\t\t\t\tdestinationParent.mkdirs();\n-\n-\t\t\t\tif (!entry.isDirectory()) {\n-\t\t\t\t\tBufferedInputStream is = null;\n-\t\t\t\t\tBufferedOutputStream dest = null;\n-\t\t\t\t\ttry {\n-\t\t\t\t\t\tis = new BufferedInputStream(zip.getInputStream(entry));\n-\t\t\t\t\t\tint currentByte;\n-\t\t\t\t\t\t// establish buffer for writing file\n-\t\t\t\t\t\tbyte data[] = new byte[BUFFER];\n-\n-\t\t\t\t\t\t// write the current file to disk\n-\t\t\t\t\t\tFileOutputStream fos = new FileOutputStream(destFile);\n-\t\t\t\t\t\tdest = new BufferedOutputStream(fos, BUFFER);\n-\n-\t\t\t\t\t\t// read and write until last byte is encountered\n-\t\t\t\t\t\twhile ((currentByte = is.read(data, 0, BUFFER)) != -1) {\n-\t\t\t\t\t\t\tdest.write(data, 0, currentByte);\n-\t\t\t\t\t\t}\n-\t\t\t\t\t\tdest.flush();\n-\t\t\t\t\t} finally {\n-\t\t\t\t\t\tclose(dest);\n-\t\t\t\t\t\tclose(is);\n-\t\t\t\t\t}\n-\n-\t\t\t\t}\n-\n-\t\t\t}\n-\t\t} finally {\n-\t\t\tclose(zip);\n-\t\t}\n-\n-\t}\n }\n",
+      "cached": true
+    },
+    {
+      "sha": "e0149bb36488fede2a12cb1ab3c2095e56dd7571",
+      "url": "https://github.com/alibaba/one-java-agent/commit/e0149bb36488fede2a12cb1ab3c2095e56dd7571.diff",
+      "diff": "diff --git a/bytekit-demo-plugin/pom.xml b/bytekit-demo-plugin/pom.xml\nindex 26180b8..985baca 100644\n--- a/bytekit-demo-plugin/pom.xml\n+++ b/bytekit-demo-plugin/pom.xml\n@@ -6,7 +6,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>bytekit-demo-plugin</artifactId>\ndiff --git a/demo-agent/pom.xml b/demo-agent/pom.xml\nindex 58c3d0c..d79af8c 100644\n--- a/demo-agent/pom.xml\n+++ b/demo-agent/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>demo-agent</artifactId>\ndiff --git a/demo-plugin/pom.xml b/demo-plugin/pom.xml\nindex 09c87b4..aa3f0b0 100644\n--- a/demo-plugin/pom.xml\n+++ b/demo-plugin/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>demo-plugin</artifactId>\ndiff --git a/dubbo-test-instrument/pom.xml b/dubbo-test-instrument/pom.xml\nindex a397fc6..d254145 100644\n--- a/dubbo-test-instrument/pom.xml\n+++ b/dubbo-test-instrument/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>dubbo-test-instrument</artifactId>\ndiff --git a/dubbo-test-plugin-common/pom.xml b/dubbo-test-plugin-common/pom.xml\nindex 02f97fd..3b85bcd 100644\n--- a/dubbo-test-plugin-common/pom.xml\n+++ b/dubbo-test-plugin-common/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>dubbo-test-plugin-common</artifactId>\ndiff --git a/dubbo-test-plugin/pom.xml b/dubbo-test-plugin/pom.xml\nindex 7bf7a91..70be434 100644\n--- a/dubbo-test-plugin/pom.xml\n+++ b/dubbo-test-plugin/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>dubbo-test-plugin</artifactId>\ndiff --git a/fastjson-demo-plugin/pom.xml b/fastjson-demo-plugin/pom.xml\nindex b651464..bc21a1a 100644\n--- a/fastjson-demo-plugin/pom.xml\n+++ b/fastjson-demo-plugin/pom.xml\n@@ -6,7 +6,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>fastjson-demo-plugin</artifactId>\ndiff --git a/one-java-agent-plugin/pom.xml b/one-java-agent-plugin/pom.xml\nindex fc36806..8375ea7 100644\n--- a/one-java-agent-plugin/pom.xml\n+++ b/one-java-agent-plugin/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>one-java-agent-plugin</artifactId>\ndiff --git a/one-java-agent-spy/pom.xml b/one-java-agent-spy/pom.xml\nindex 1c9a07e..7e9f052 100644\n--- a/one-java-agent-spy/pom.xml\n+++ b/one-java-agent-spy/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>one-java-agent-spy</artifactId>\ndiff --git a/one-java-agent/pom.xml b/one-java-agent/pom.xml\nindex 6484b5c..47d0df5 100644\n--- a/one-java-agent/pom.xml\n+++ b/one-java-agent/pom.xml\n@@ -4,7 +4,7 @@\n     <parent>\n         <groupId>com.alibaba.oneagent</groupId>\n         <artifactId>one-java-agent-parent</artifactId>\n-        <version>0.0.2-SNAPSHOT</version>\n+        <version>0.0.2</version>\n         <relativePath>../pom.xml</relativePath>\n     </parent>\n     <artifactId>one-java-agent</artifactId>\ndiff --git a/pom.xml b/pom.xml\nindex 55f08bf..aef5cb0 100644\n--- a/pom.xml\n+++ b/pom.xml\n@@ -32,7 +32,7 @@\n \n     <groupId>com.alibaba.oneagent</groupId>\n     <artifactId>one-java-agent-parent</artifactId>\n-    <version>0.0.2-SNAPSHOT</version>\n+    <version>0.0.2</version>\n     <packaging>pom</packaging>\n \n     <name>one-java-agent-parent</name>\n",
+      "cached": true
+    }
+  ]
+}

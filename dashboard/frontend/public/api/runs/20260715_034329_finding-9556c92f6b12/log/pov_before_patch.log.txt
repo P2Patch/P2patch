@@ -1,0 +1,9 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-9556c92f6b12:66b0ccbb42f3 bash -lc mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov
+exit_code=0
+timed_out=false
+
+--- stdout ---
+VULNERABLE: Zip Slip wrote file outside dest at /tmp/zipslip-pov7158200285300949437/escaped.txt
+
+--- stderr ---
+

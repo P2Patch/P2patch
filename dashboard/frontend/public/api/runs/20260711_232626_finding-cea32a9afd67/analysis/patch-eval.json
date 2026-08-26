@@ -1,0 +1,279 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:23:25.840585+00:00",
+    "finished_at": "2026-07-11T23:30:23.127288+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Callback JSONP XSS is provably closed at every wrapping sink via an allowlist regex; but the sibling mimeType content-type vector the official fix also closed remains open.",
+        "evidence": "IoUtil.validateCallback + guard in streamResponseAndClose; AgentServlet.sendResponse and JolokiaHttpHandler.sendStreamingResponse/sendAllJSON all sanitized; getMimeType() left unsanitized",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw exactly where the callback is written into the response (central IoUtil sink) plus at each entry, not a symptom/error message.",
+        "evidence": "IoUtil.streamResponseAndClose uses safeCallback=validateCallback(callback) before pWriter.write(safeCallback)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "All four JSONP callback paths (core streaming+non-streaming, jvm streaming+non-streaming) covered; the mimeType=text/html sibling vector addressed by official MimeTypeUtil.sanitize is not.",
+        "evidence": "validated callback flows into AgentServlet.sendAllJSON via sendResponse; ours_only=IoUtil, official_only=MimeTypeUtil not touched",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy (validate callback against JS-function-name regex) as official; differs by dropping to plain JSON instead of throwing 400, and omits mimeType hardening.",
+        "evidence": "CALLBACK_PATTERN vs official isValidCallback regex; official throws IllegalArgumentException, ours returns null",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Valid callbacks (including dotted namespaces) preserved; invalid ones degrade to plain JSON rather than error. No regressions were executed to confirm.",
+        "evidence": "validateCallbackAcceptsValidNames test; regressions_ran=0, regressions_passed=null",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Simple linear anchored regex (no catastrophic backtracking), null-safe, no new crash or injection introduced.",
+        "evidence": "CALLBACK_PATTERN=^[A-Za-z_$][A-Za-z0-9_$.]*$ with null guard in validateCallback",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized: one helper plus call-site edits at the exact sinks; no unrelated churn.",
+        "evidence": "IoUtil.validateCallback added; three one-line call-site changes in AgentServlet/JolokiaHttpHandler",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Allowlist validation is the correct defense-of-record for JSONP callbacks, not a fragile blocklist; docked because content-type (mimeType) hardening—part of the XSS defense—is missing.",
+        "evidence": "regex allowlist rejects <,>,(,),\",',;,space; getMimeType() still returns raw request mimeType param",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The mimeType request parameter is not sanitized (official fix added MimeTypeUtil.sanitize restricting to application/json/text/plain). getMimeType() still returns the raw attacker-controlled mimeType, so mimeType=text/html with reflected JSON body remains a sibling XSS vector the official fix closed."
+      },
+      {
+        "severity": "low",
+        "description": "Invalid callbacks are silently dropped to plain JSON rather than rejected with an error (official throws IllegalArgumentException). Behavioral difference only; not a security weakness."
+      },
+      {
+        "severity": "low",
+        "description": "No regression tests were executed (regressions_ran=0), so functional preservation of legitimate callback/mime behavior is not empirically confirmed."
+      }
+    ],
+    "summary": "Our patch correctly and completely closes the traced JSONP-callback XSS by validating the callback against a JS-function-name allowlist at every wrapping sink—core AgentServlet (streaming and non-streaming via the sanitized callback flowing into sendAllJSON) and both JVM handler paths—plus a central guard in IoUtil.streamResponseAndClose that is arguably stronger than the official call-site checks. The allowlist regex is the sound defense-of-record for JSONP and introduces no new defects. It falls short of the official commit only by omitting MimeTypeUtil's sanitization of the mimeType parameter, leaving a related mimeType=text/html rendering vector open. The specific CWE-079 callback vector is eliminated; a sibling content-type vector remains.",
+    "root_cause": "Untrusted callback (and mimeType) request parameters are reflected into the response—the callback is wrapped around JSON output without validating it is a legitimate JavaScript identifier—allowing arbitrary markup/script injection at the response-writing sink.",
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 88,
+        "score_mean": 84.7,
+        "score_min": 78,
+        "score_max": 88,
+        "score_stdev": 4.71,
+        "mean_median": 4.38,
+        "band_mode": "good",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.23
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 88,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 78,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 88,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AgentServlet.java",
+        "JolokiaHttpHandler.java"
+      ],
+      "ours_only": [
+        "IoUtil.java"
+      ],
+      "official_only": [
+        "MimeTypeUtil.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "agent/core/src/main/java/org/jolokia/util/MimeTypeUtil.java",
+        "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+      ],
+      "commits": [
+        "5895d5c137c335e6b473e9dcb9baf748851bbc5f"
+      ]
+    }
+  }
+}

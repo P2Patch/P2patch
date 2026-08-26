@@ -1,0 +1,138 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:56.175460+00:00",
+    "finished_at": "2026-07-17T08:50:25.033560+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalize-then-contain check at the sink provably blocks the whole zip-slip class, not just the reported payload; verified empirically across four traversal variants.",
+        "evidence": "IOUtils.java:116 destinationDirCanonical = new File(newPath).getCanonicalPath(); IOUtils.java:130-134 guard. Harness: unpatched -> NO_EXCEPTION + wrote evil.txt outside dest at /tmp/zs/traversal_relative/evil.txt; patched -> BLOCKED for rel_dotdot, deep_mixed, prefix-confusion, symlink_pivot; BENIGN_EXTRACTED_OK=true.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the trust boundary inside unzip itself, and the guard precedes the mkdirs() side-effect the taint trace flagged, so no tainted path reaches either sink.",
+        "evidence": "Guard at IOUtils.java:130-134 sits after destFile construction (line 125) and BEFORE destinationParent.mkdirs() (line 140) and FileOutputStream(destFile) (line 152) — covering trace nodes at lines 124, 126 and 129.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "unzip is the sole zip-extraction-to-disk sink in the repo; the single guard covers every entry in the loop, and all bypass variants tested are closed.",
+        "evidence": "grep for ZipEntry/ZipInputStream/JarFile: JarUtils.java only 'new JarFile(jarFile)' manifest read; AgentImpl.java:110 writes a fixed tempFile from a resource stream; TraditionalPlugin.java:98 reads a jar. No other entry-name->disk path. unzip itself has zero callers repo-wide.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive goal as the alert/official intent (extracted paths must stay under the destination) applied at the exact flagged sink, but mechanism differs: upstream deleted the dead method rather than hardening it.",
+        "evidence": "Official diff 359603b63f removes the entire unzip() body from IOUtils.java; ours retains it with a containment guard at IOUtils.java:130-134. Alert note: 'Extracted paths must remain under the configured destination.' official_only pom.xml entries are only 0.0.2-SNAPSHOT -> 0.0.2 release bumps, not security content.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Benign extraction preserved, plugin module fully green, and the only failing tests were proven pre-existing on the unpatched baseline.",
+        "evidence": "one-java-agent-plugin: Tests run 7, Failures 0 (incl. IOUtilsTest 2/2). BootstrapAgentNewProcessTest 2 failures reproduce identically after `git stash` of IOUtils.java — cause is 'Error opening zip file or JAR manifest missing : .../one-java-agent.jar' (mvn test never builds the agent jar). unzip has zero callers, so no caller behavior changes.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Safe primitives, no regex/ReDoS, and no exploitable TOCTOU since this code never creates symlinks and canonicalization immediately precedes the write.",
+        "evidence": "getCanonicalPath() resolves symlinks — symlink_pivot trial (pre-planted dest/link -> /tmp/z2/outside, entry 'link/pwn.txt') returned BLOCKED, wroteOutsideDest=false. destinationDirCanonical computed once after mkdir (line 116). IOException already declared on unzip signature.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Two tight hunks in production code (one canonical-path line plus a five-line guard) localized at the flagged sink; the rest is an additive test file.",
+        "evidence": "Production diff = IOUtils.java:116 (+1 line) and IOUtils.java:127-134 (+8 incl. comment). No unrelated edits; ours_only is empty.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks), then verify containment under the base dir — no '../' blocklisting.",
+        "evidence": "IOUtils.java:131-132 uses equals(destinationDirCanonical) || startsWith(destinationDirCanonical + File.separator). The separator terminator defeats prefix confusion: trial 'dotdot_suffix_trick' (../destevil/x.txt against .../dest) -> BLOCKED. Symlink resolution confirmed by symlink_pivot -> BLOCKED.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The pipeline supplied essentially no verification evidence: profile is 'baseline' with stages [worktree, docker_build, patcher] only, so pov_before_reproduced=false means no POV was ever generated (not that the vuln was absent), pov_after_present=false is expected, and regressions_ran=0. The reported 'accepted' status therefore rests on the patcher alone. All confirmation in this review (vuln reality, class closure, symlink/prefix variants, regression baseline) came from independent execution, not the pipeline."
+      },
+      {
+        "severity": "low",
+        "description": "The added test's secondary assertion checks the wrong path and is vacuous. destDir is tmpDir/dest, so entry '../../evil.txt' resolves two levels up to java.io.tmpdir/evil.txt, but IOUtilsTest asserts new File(tmpDir, \"evil.txt\") does not exist — that assertFalse would pass even if traversal succeeded. The primary Assert.fail() IS a sound discriminator (unpatched unzip returns with no exception, verified), so the test still catches regressions; only the belt-and-braces check is dead. Secondary effect: were the guard removed, the test would silently litter the shared java.io.tmpdir."
+      },
+      {
+        "severity": "low",
+        "description": "Divergence from upstream: the official fix deleted unzip() entirely because it is dead code (confirmed zero callers repo-wide), whereas our patch retains it as a hardened public static API. Security outcome is equivalent, but it keeps an attack-surface-bearing API upstream chose to remove and will conflict on merge with the upstream deletion."
+      },
+      {
+        "severity": "low",
+        "description": "Structural-overlap signal is misleading and should not be weighed: jaccard 0.5 / covers_all_official=false is driven solely by official_only=[pom.xml], whose diffs are pure 0.0.2-SNAPSHOT -> 0.0.2 release version bumps across 11 modules with no security content. Coverage of the security-relevant file (IOUtils.java) is complete."
+      }
+    ],
+    "root_cause": "IOUtils.unzip resolved attacker-controlled ZipEntry names directly against the extraction directory (new File(newPath, currentEntry)) and then created parent directories and wrote the file without ever verifying that the resolved path stays inside that directory, so entries containing '..' segments escape the destination and write arbitrary files (zip slip).",
+    "summary": "This is a correct and well-placed fix. It applies the CWE-022 defense-of-record — canonicalize both the destination and the resolved entry, then enforce containment with a separator-terminated prefix check — at the exact sink the taint trace flags, and crucially before destinationParent.mkdirs(), so both the write and the directory-creation side-effect are covered. I verified independently rather than trusting the pipeline (which ran no POV and no regressions): unpatched code writes outside the destination with no exception, while the patched code blocks relative traversal, deep mixed segments, prefix-confusion (../destevil vs dest), and a pre-planted symlink pivot, all while still extracting benign nested entries; the two BootstrapAgentNewProcessTest failures reproduce identically on the stashed baseline and are a mvn-test packaging artifact, not a regression. It differs from upstream, which deleted unzip() outright as dead code (zero callers) — both fully close the class, so this is different_valid rather than equivalent. Only real blemish is a vacuous secondary assertion in the added test (wrong escape depth); the test's fail() path is still a genuine discriminator.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "IOUtils.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "bytekit-demo-plugin/pom.xml",
+        "demo-agent/pom.xml",
+        "demo-plugin/pom.xml",
+        "dubbo-test-instrument/pom.xml",
+        "dubbo-test-plugin-common/pom.xml",
+        "dubbo-test-plugin/pom.xml",
+        "fastjson-demo-plugin/pom.xml",
+        "one-java-agent-plugin/pom.xml",
+        "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+        "one-java-agent-spy/pom.xml",
+        "one-java-agent/pom.xml",
+        "pom.xml"
+      ],
+      "commits": [
+        "359603b63fc6c59d8b57e061c171954bab3433bf",
+        "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+      ]
+    }
+  }
+}

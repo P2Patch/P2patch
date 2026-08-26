@@ -1,0 +1,444 @@
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+index 7e45661..3d7e630 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+@@ -135,7 +135,16 @@ public class StaticHandlerImpl implements StaticHandler {
+       if (log.isTraceEnabled()) log.trace("Not GET or HEAD so ignoring request");
+       context.next();
+     } else {
+-      String path = Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false));
++      String path = Utils.urlDecode(context.normalisedPath(), false);
++      // Normalize Windows-style backslash separators to forward slashes before
++      // dot-segment removal. Otherwise backslash-based traversal sequences (e.g.
++      // "\..\..\") survive removeDots (which only collapses forward-slash "../"),
++      // and can escape the web root on platforms where '\' is a path separator
++      // (CWE-022 path traversal).
++      if (path != null) {
++        path = path.replace('\\', '/');
++      }
++      path = Utils.removeDots(path);
+       // if the normalized path is null it cannot be resolved
+       if (path == null) {
+         log.warn("Invalid path: " + context.request().path());
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+index cbd8abc..0669db0 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+@@ -107,6 +107,23 @@ public class StaticHandlerTest extends WebTestBase {
+     testRequest(HttpMethod.GET, "otherpage.html", 404, "Not Found");
+   }
+ 
++  @Test
++  public void testCantEscapeWebRootWithEncodedBackslash() throws Exception {
++    // Percent-encoded backslashes (%5C == '\') must be normalized like forward
++    // slashes before dot-segment removal, otherwise backslash-based traversal
++    // survives normalization and can escape the web root on platforms where '\'
++    // is a path separator (CWE-022 path traversal).
++    testRequest(HttpMethod.GET, "/%5C..%5C..%5C..%5C..%5Cwindows%5Cwin.ini", 404, "Not Found");
++  }
++
++  @Test
++  public void testEncodedBackslashSeparatorsAreNormalized() throws Exception {
++    // The backslash separators are collapsed within the web root so this
++    // resolves to /otherpage.html. Without normalization the literal backslash
++    // path would not exist (404) and, on Windows, could reach outside the root.
++    testRequest(HttpMethod.GET, "/somedir%5C..%5Cotherpage.html", 200, "OK", "<html><body>Other page</body></html>");
++  }
++
+   @Test
+   public void testGetHiddenPage() throws Exception {
+     testRequest(HttpMethod.GET, "/.hidden.html", 200, "OK", "<html><body>Hidden page</body></html>");
+diff --git a/.security-pipeline/pov/Explore.java b/.security-pipeline/pov/Explore.java
+new file mode 100644
+index 0000000..c3112b8
+--- /dev/null
++++ b/.security-pipeline/pov/Explore.java
+@@ -0,0 +1,20 @@
++import io.vertx.ext.web.impl.Utils;
++
++public class Explore {
++  static void show(String req) {
++    String normalised = Utils.normalizePath(req);         // what RoutingContextImpl.normalisedPath() returns
++    String path = Utils.removeDots(Utils.urlDecode(normalised, false)); // StaticHandlerImpl.handle line 138
++    System.out.println("req=" + req);
++    System.out.println("   normalisedPath=" + normalised);
++    System.out.println("   handlerPath   =" + path);
++    System.out.println("   webRoot+path  =webroot" + path);
++    System.out.println();
++  }
++  public static void main(String[] a) {
++    show("/%5C..%5C..%5C..%5C..%5Cwindows%5Cwin.ini");
++    show("/static/%5C..%5C..%5Csecret.txt");
++    show("/..%5C..%5Csecret.txt");
++    show("/%2e%2e/%2e%2e/secret.txt");
++    show("/../../secret.txt");
++  }
++}
+diff --git a/.security-pipeline/pov/PovStaticHandlerTraversal.java b/.security-pipeline/pov/PovStaticHandlerTraversal.java
+new file mode 100644
+index 0000000..bf26cff
+--- /dev/null
++++ b/.security-pipeline/pov/PovStaticHandlerTraversal.java
+@@ -0,0 +1,195 @@
++import io.vertx.core.Future;
++import io.vertx.core.Handler;
++import io.vertx.core.http.HttpMethod;
++import io.vertx.ext.web.RoutingContext;
++import io.vertx.ext.web.handler.StaticHandler;
++
++import java.lang.reflect.InvocationHandler;
++import java.lang.reflect.Method;
++import java.lang.reflect.Proxy;
++
++/**
++ * Proof of Vulnerability for CWE-022 (Path Traversal) in
++ * io.vertx.ext.web.handler.impl.StaticHandlerImpl.
++ *
++ * A remote client can request a URL that percent-encodes Windows path
++ * separators (%5C == '\'). The StaticHandler normalization chain
++ *
++ *     Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false))
++ *
++ * only strips "../" sequences that use the forward slash. Back-slash based
++ * traversal ("\..\..\") passes through untouched, so the string that
++ * StaticHandlerImpl finally hands to the file system
++ *
++ *     webRoot + Utils.pathOffset(path)
++ *
++ * still contains ".." components. On a Windows host (where '\' is the path
++ * separator) that path escapes the configured web root and discloses
++ * arbitrary files.
++ *
++ * This POV drives the REAL StaticHandlerImpl.handle() with an attacker
++ * controlled request path and intercepts the exact file path the handler
++ * asks the file system to open (fs.exists(file, ...)). It then interprets
++ * that path the way a Windows file system would (treating both '/' and '\'
++ * as separators, resolving "..") and asserts that it escapes the web root.
++ *
++ * Exit 0  -> vulnerable (resolved file escapes the web root)
++ * Exit 1  -> not vulnerable (traversal was neutralized / rejected)
++ */
++public class PovStaticHandlerTraversal {
++
++  // captured file path StaticHandlerImpl passes to FileSystem.exists(...)
++  static volatile String capturedFile = null;
++
++  public static void main(String[] args) {
++    final String WEB_ROOT = "webroot";
++    // Attacker request. After the server URL-normalizes the request line this
++    // is what RoutingContext.normalisedPath() returns (verified independently
++    // via io.vertx.ext.web.impl.Utils.normalizePath).
++    final String maliciousNormalisedPath =
++        "/%5C..%5C..%5C..%5C..%5Cwindows%5Cwin.ini";
++
++    StaticHandler handler = StaticHandler.create()
++        .setWebRoot(WEB_ROOT)
++        .setCachingEnabled(false)
++        .setIncludeHidden(true);
++
++    RoutingContext ctx = makeRoutingContext(maliciousNormalisedPath);
++
++    try {
++      handler.handle(ctx);
++    } catch (Throwable t) {
++      // A hardened handler may reject with an exception; that is a safe outcome.
++      System.out.println("[info] handler threw: " + t);
++    }
++
++    System.out.println("request normalisedPath : " + maliciousNormalisedPath);
++    System.out.println("configured webRoot     : " + WEB_ROOT);
++    System.out.println("file path opened by    : " + capturedFile);
++
++    if (capturedFile == null) {
++      System.out.println("RESULT: not vulnerable (handler never touched the file system for this path)");
++      System.exit(1);
++    }
++
++    boolean escapes = escapesWebRoot(capturedFile);
++    if (escapes) {
++      System.out.println("RESULT: VULNERABLE - resolved file escapes the web root '" + WEB_ROOT + "'");
++      System.out.println("        (on a Windows host this reads a file outside the served directory)");
++      System.exit(0);
++    } else {
++      System.out.println("RESULT: not vulnerable (resolved file stays within the web root)");
++      System.exit(1);
++    }
++  }
++
++  /**
++   * Interpret the resolved file string the way a Windows file system would:
++   * both '/' and '\' are separators and ".." pops a directory. Returns true if
++   * the path traverses above its first (web root) component.
++   */
++  static boolean escapesWebRoot(String file) {
++    String[] parts = file.split("[/\\\\]+");
++    int depth = 0;
++    for (String p : parts) {
++      if (p.isEmpty() || p.equals(".")) {
++        continue;
++      }
++      if (p.equals("..")) {
++        if (depth == 0) {
++          return true; // popped above the web root -> traversal
++        }
++        depth--;
++      } else {
++        depth++;
++      }
++    }
++    return false;
++  }
++
++  // ---- Minimal RoutingContext / Vertx / FileSystem test doubles ----------
++
++  static RoutingContext makeRoutingContext(final String normalisedPath) {
++    final Object request = proxy("io.vertx.core.http.HttpServerRequest", (m, a) -> {
++      switch (m.getName()) {
++        case "method": return HttpMethod.GET;
++        case "path":   return "/attack";
++        default:       return defaultValue(m);
++      }
++    });
++
++    final Object fileSystem = proxy("io.vertx.core.file.FileSystem", (m, a) -> {
++      if (m.getName().equals("exists") && a != null && a.length == 2) {
++        capturedFile = String.valueOf(a[0]);
++        @SuppressWarnings("unchecked")
++        Handler<Object> h = (Handler<Object>) a[1];
++        // report "does not exist" so the handler unwinds cleanly after we captured the path
++        h.handle(Future.succeededFuture(Boolean.FALSE));
++        return null;
++      }
++      return defaultValue(m);
++    });
++
++    final Object vertx = proxy("io.vertx.core.Vertx", (m, a) -> {
++      if (m.getName().equals("fileSystem")) return fileSystem;
++      return defaultValue(m);
++    });
++
++    final Object route = proxy("io.vertx.ext.web.Route", (m, a) -> {
++      if (m.getName().equals("getPath")) return null; // no route prefix
++      return defaultValue(m);
++    });
++
++    return (RoutingContext) proxy("io.vertx.ext.web.RoutingContext", (m, a) -> {
++      switch (m.getName()) {
++        case "request":        return request;
++        case "vertx":          return vertx;
++        case "normalisedPath": return normalisedPath;
++        case "mountPoint":     return null;
++        case "currentRoute":   return route;
++        case "next":           return null;
++        case "fail":           return null;
++        default:               return defaultValue(m);
++      }
++    });
++  }
++
++  interface Dispatch { Object invoke(Method m, Object[] a) throws Throwable; }
++
++  static Object proxy(String iface, final Dispatch d) {
++    final Class<?> c;
++    try {
++      c = Class.forName(iface);
++    } catch (ClassNotFoundException e) {
++      throw new RuntimeException(e);
++    }
++    return Proxy.newProxyInstance(
++        PovStaticHandlerTraversal.class.getClassLoader(),
++        new Class<?>[]{c},
++        new InvocationHandler() {
++          @Override public Object invoke(Object p, Method m, Object[] a) throws Throwable {
++            switch (m.getName()) {
++              case "toString": return iface + "$proxy";
++              case "hashCode": return System.identityHashCode(p);
++              case "equals":   return p == (a == null ? null : a[0]);
++            }
++            return d.invoke(m, a);
++          }
++        });
++  }
++
++  static Object defaultValue(Method m) {
++    Class<?> r = m.getReturnType();
++    if (!r.isPrimitive()) return null;
++    if (r == boolean.class) return Boolean.FALSE;
++    if (r == void.class)    return null;
++    if (r == char.class)    return (char) 0;
++    if (r == byte.class)    return (byte) 0;
++    if (r == short.class)   return (short) 0;
++    if (r == int.class)     return 0;
++    if (r == long.class)    return 0L;
++    if (r == float.class)   return 0f;
++    if (r == double.class)  return 0d;
++    return null;
++  }
++}
+diff --git a/.security-pipeline/pov/compile.log b/.security-pipeline/pov/compile.log
+new file mode 100644
+index 0000000..a8c6bd8
+--- /dev/null
++++ b/.security-pipeline/pov/compile.log
+@@ -0,0 +1,114 @@
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded data_object_converters code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded cheatsheet code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded cheatsheet code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded Groovy code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded Groovy code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded Groovy code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded Kotlin code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded Ruby code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded JavaScript code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded RxJava code generator 
++INFO: io.vertx.codegen.CodeGenProcessor - Loaded RxJava2 code generator 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.JWTAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.JWTAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.DigestAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.DigestAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.ChainAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.ChainAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.OAuth2AuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.OAuth2AuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.sockjs.BridgeEvent does not redeclare the @Fluent return type  of method setHandler(io.vertx.core.Handler<io.vertx.core.AsyncResult<T>>) declared by io.vertx.core.Future 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.BasicAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.BasicAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.RedirectAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
++WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.RedirectAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.UserSessionHandler: vertx-web-js/user_session_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Locale: vertx-web/locale.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.StaticHandler: vertx-web/static_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.RoutingContext: vertx-web-js/routing_context.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.LanguageHeader: vertx-web/language_header.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.OAuth2AuthHandler: vertx-web-js/o_auth2_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Route: vertx-web/route.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.BodyHandler: vertx-web/body_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.RedirectAuthHandler: vertx-web/redirect_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.SockJSSocket: vertx-web-js/sock_js_socket.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.DigestAuthHandler: vertx-web-js/digest_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.SessionHandler: vertx-web/session_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.BasicAuthHandler: vertx-web-js/basic_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.FaviconHandler: vertx-web-js/favicon_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.FaviconHandler: vertx-web/favicon_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.AuthHandler: vertx-web/auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.SockJSHandler: vertx-web-js/sock_js_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ErrorHandler: vertx-web-js/error_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CookieHandler: vertx-web-js/cookie_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.AuthHandler: vertx-web-js/auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.ParsedHeaderValue: vertx-web-js/parsed_header_value.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.VirtualHostHandler: vertx-web/virtual_host_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.JWTAuthHandler: vertx-web-js/jwt_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.ClusteredSessionStore: vertx-web-js/clustered_session_store.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.DigestAuthHandler: vertx-web/digest_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Session: vertx-web-js/session.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.OAuth2AuthHandler: vertx-web/o_auth2_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.FormLoginHandler: vertx-web/form_login_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.TimeoutHandler: vertx-web/timeout_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.LoggerHandler: vertx-web/logger_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CookieHandler: vertx-web/cookie_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Router: vertx-web/router.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.RedirectAuthHandler: vertx-web-js/redirect_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.BodyHandler: vertx-web-js/body_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ErrorHandler: vertx-web/error_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.SockJSHandler: vertx-web/sock_js_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.TemplateHandler: vertx-web/template_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.LoggerHandler: vertx-web-js/logger_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Cookie: vertx-web/cookie.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.FileUpload: vertx-web/file_upload.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ChainAuthHandler: vertx-web/chain_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.BridgeEvent: vertx-web-js/bridge_event.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Route: vertx-web-js/route.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CSRFHandler: vertx-web-js/csrf_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.SessionStore: vertx-web/session_store.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.TemplateHandler: vertx-web-js/template_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.UserSessionHandler: vertx-web/user_session_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.ParsedHeaderValues: vertx-web/parsed_header_values.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Cookie: vertx-web-js/cookie.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ChainAuthHandler: vertx-web-js/chain_auth_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ResponseTimeHandler: vertx-web-js/response_time_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.StaticHandler: vertx-web-js/static_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Session: vertx-web/session.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Locale: vertx-web-js/locale.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.FormLoginHandler: vertx-web-js/form_login_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.FileUpload: vertx-web-js/file_upload.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.templ.TemplateEngine: vertx-web-js/template_engine.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CorsHandler: vertx-web/cors_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.ClusteredSessionStore: vertx-web/clustered_session_store.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.TimeoutHandler: vertx-web-js/timeout_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.MIMEHeader: vertx-web/mime_header.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.SockJSSocket: vertx-web/sock_js_socket.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.BasicAuthHandler: vertx-web/basic_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CorsHandler: vertx-web-js/cors_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ResponseContentTypeHandler: vertx-web-js/response_content_type_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.SessionStore: vertx-web-js/session_store.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.LocalSessionStore: vertx-web-js/local_session_store.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.LanguageHeader: vertx-web-js/language_header.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.ParsedHeaderValues: vertx-web-js/parsed_header_values.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Router: vertx-web-js/router.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ResponseTimeHandler: vertx-web/response_time_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.VirtualHostHandler: vertx-web-js/virtual_host_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.CSRFHandler: vertx-web/csrf_handler.rb 
++Unhandled kind FIELD for io.vertx.ext.web.handler.ResponseContentTypeHandler
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.ResponseContentTypeHandler: vertx-web/response_content_type_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.ParsedHeaderValue: vertx-web/parsed_header_value.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.JWTAuthHandler: vertx-web/jwt_auth_handler.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.SessionHandler: vertx-web-js/session_handler.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.sstore.LocalSessionStore: vertx-web/local_session_store.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.BridgeEvent: vertx-web/bridge_event.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.MIMEHeader: vertx-web-js/mime_header.js 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.RoutingContext: vertx-web/routing_context.rb 
++Untranslated type io.vertx.ext.web.impl.Utils with kind OTHER
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.templ.TemplateEngine: vertx-web/template_engine.rb 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.BridgeOptions: asciidoc/dataobjects.adoc 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.SockJSHandlerOptions: kotlin/io/vertx/kotlin/ext/web/handler/sockjs/SockJSHandlerOptions.kt 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.LoggerFormat: asciidoc/enums.adoc 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.Http2PushMapping: kotlin/io/vertx/kotlin/ext/web/Http2PushMapping.kt 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.PermittedOptions: kotlin/io/vertx/kotlin/ext/web/handler/sockjs/PermittedOptions.kt 
++INFO: io.vertx.codegen.CodeGenProcessor - Generated model io.vertx.ext.web.handler.sockjs.BridgeOptions: kotlin/io/vertx/kotlin/ext/web/handler/sockjs/BridgeOptions.kt 
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..f8105fa
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/io/vertx/vertx-auth-common/3.5.3.CR1/vertx-auth-common-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-bridge-common/3.5.3.CR1/vertx-bridge-common-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-auth-jwt/3.5.3.CR1/vertx-auth-jwt-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-jwt/3.5.3.CR1/vertx-jwt-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-auth-oauth2/3.5.3.CR1/vertx-auth-oauth2-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-auth-htdigest/3.5.3.CR1/vertx-auth-htdigest-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-unit/3.5.3.CR1/vertx-unit-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-auth-shiro/3.5.3.CR1/vertx-auth-shiro-3.5.3.CR1.jar:/root/.m2/repository/org/apache/shiro/shiro-core/1.2.6/shiro-core-1.2.6.jar:/root/.m2/repository/commons-beanutils/commons-beanutils/1.8.3/commons-beanutils-1.8.3.jar:/root/.m2/repository/org/slf4j/slf4j-api/1.7.21/slf4j-api-1.7.21.jar:/root/.m2/repository/io/vertx/vertx-web-client/3.5.3.CR1/vertx-web-client-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-web-common/3.5.3.CR1/vertx-web-common-3.5.3.CR1.jar:/root/.m2/repository/org/mockito/mockito-core/2.7.22/mockito-core-2.7.22.jar:/root/.m2/repository/net/bytebuddy/byte-buddy/1.6.11/byte-buddy-1.6.11.jar:/root/.m2/repository/net/bytebuddy/byte-buddy-agent/1.6.11/byte-buddy-agent-1.6.11.jar:/root/.m2/repository/org/objenesis/objenesis/2.5/objenesis-2.5.jar:/root/.m2/repository/io/vertx/vertx-core/3.5.3.CR1/vertx-core-3.5.3.CR1.jar:/root/.m2/repository/io/netty/netty-common/4.1.19.Final/netty-common-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-buffer/4.1.19.Final/netty-buffer-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-transport/4.1.19.Final/netty-transport-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-handler/4.1.19.Final/netty-handler-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-codec/4.1.19.Final/netty-codec-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-handler-proxy/4.1.19.Final/netty-handler-proxy-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-codec-socks/4.1.19.Final/netty-codec-socks-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-codec-http/4.1.19.Final/netty-codec-http-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-codec-http2/4.1.19.Final/netty-codec-http2-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-resolver/4.1.19.Final/netty-resolver-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-resolver-dns/4.1.19.Final/netty-resolver-dns-4.1.19.Final.jar:/root/.m2/repository/io/netty/netty-codec-dns/4.1.19.Final/netty-codec-dns-4.1.19.Final.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.9.5/jackson-core-2.9.5.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.9.5/jackson-databind-2.9.5.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.9.5/jackson-annotations-2.9.5.jar:/root/.m2/repository/io/vertx/vertx-codegen/3.5.3.CR1/vertx-codegen-3.5.3.CR1.jar:/root/.m2/repository/org/mvel/mvel2/2.3.1.Final/mvel2-2.3.1.Final.jar:/root/.m2/repository/io/vertx/vertx-docgen/0.9.1/vertx-docgen-0.9.1.jar:/root/.m2/repository/io/vertx/vertx-codetrans/3.5.3.CR1/vertx-codetrans-3.5.3.CR1.jar:/root/.m2/repository/org/jetbrains/kotlin/kotlin-stdlib/1.2.20/kotlin-stdlib-1.2.20.jar:/root/.m2/repository/org/jetbrains/annotations/13.0/annotations-13.0.jar:/root/.m2/repository/io/vertx/vertx-lang-groovy/3.5.3.CR1/vertx-lang-groovy-3.5.3.CR1.jar:/root/.m2/repository/org/codehaus/groovy/groovy-all/2.4.15/groovy-all-2.4.15.jar:/root/.m2/repository/io/vertx/vertx-lang-kotlin/3.5.3.CR1/vertx-lang-kotlin-3.5.3.CR1.jar:/root/.m2/repository/org/jetbrains/kotlin/kotlin-stdlib-jre8/1.2.20/kotlin-stdlib-jre8-1.2.20.jar:/root/.m2/repository/org/jetbrains/kotlin/kotlin-stdlib-jre7/1.2.20/kotlin-stdlib-jre7-1.2.20.jar:/root/.m2/repository/io/vertx/vertx-lang-ruby/3.5.3.CR1/vertx-lang-ruby-3.5.3.CR1.jar:/root/.m2/repository/org/jruby/jruby-complete/9.1.13.0/jruby-complete-9.1.13.0.jar:/root/.m2/repository/io/vertx/vertx-lang-js/3.5.3.CR1/vertx-lang-js-3.5.3.CR1.jar:/root/.m2/repository/io/vertx/vertx-rx-java/3.5.3.CR1/vertx-rx-java-3.5.3.CR1.jar:/root/.m2/repository/io/reactivex/rxjava/1.3.5/rxjava-1.3.5.jar:/root/.m2/repository/io/vertx/vertx-rx-java2/3.5.3.CR1/vertx-rx-java2-3.5.3.CR1.jar:/root/.m2/repository/io/reactivex/rxjava2/rxjava/2.1.9/rxjava-2.1.9.jar:/root/.m2/repository/org/reactivestreams/reactive-streams/1.0.2/reactive-streams-1.0.2.jar:/root/.m2/repository/junit/junit/4.12/junit-4.12.jar:/root/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/root/.m2/repository/io/vertx/vertx-core/3.5.3.CR1/vertx-core-3.5.3.CR1-tests.jar:/root/.m2/repository/io/netty/netty-tcnative-boringssl-static/2.0.7.Final/netty-tcnative-boringssl-static-2.0.7.Final.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..c87e440
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,33 @@
++#!/usr/bin/env bash
++# Proof-of-Vulnerability runner for CWE-022 path traversal in StaticHandlerImpl.
++# Recompiles the (possibly patched) vertx-web module from source, then drives the
++# real StaticHandlerImpl.handle() with a malicious request and checks whether the
++# resolved file escapes the configured web root.
++#
++# Exit 0 => vulnerable (unpatched).  Exit non-zero => patched / not reproducible.
++set -u
++REPO=/workspace/repo
++POV="$REPO/.security-pipeline/pov"
++CP_FILE="$POV/cp.txt"
++
++cd "$REPO/vertx-web" || exit 3
++
++# Recompile the module from current (possibly patched) sources.
++mvn -q -B -o -DskipTests compile >"$POV/compile.log" 2>&1 \
++  || mvn -q -B -DskipTests compile >"$POV/compile.log" 2>&1
++if [ ! -f "$REPO/vertx-web/target/classes/io/vertx/ext/web/impl/Utils.class" ]; then
++  echo "[pov] failed to compile vertx-web; see compile.log"; tail -20 "$POV/compile.log"; exit 3
++fi
++
++# (Re)build the dependency classpath.
++if [ ! -s "$CP_FILE" ]; then
++  mvn -q -B -o dependency:build-classpath -Dmdep.outputFile="$CP_FILE" >>"$POV/compile.log" 2>&1 \
++    || mvn -q -B dependency:build-classpath -Dmdep.outputFile="$CP_FILE" >>"$POV/compile.log" 2>&1
++fi
++
++CP="$(cat "$CP_FILE"):$REPO/vertx-web/target/classes"
++
++cd "$POV" || exit 3
++javac -cp "$CP" PovStaticHandlerTraversal.java || exit 3
++java -cp "$CP:." PovStaticHandlerTraversal
++exit $?

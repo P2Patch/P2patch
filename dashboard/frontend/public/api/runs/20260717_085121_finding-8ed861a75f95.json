@@ -1,0 +1,379 @@
+{
+  "run_id": "20260717_085121_finding-8ed861a75f95",
+  "finding_id": "finding-8ed861a75f95",
+  "timestamp": "2026-07-17T08:51:21",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_085121_finding-8ed861a75f95",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-8ed861a75f95",
+    "cve_id": "CVE-2014-7816",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "undertow-io__undertow_CVE-2014-7816_1.0.16.Final",
+    "alert_file": "UNDERTOW_IO_UNDERTOW_CVE_2014_7816.json",
+    "github_url": "https://github.com/undertow-io/undertow",
+    "repo": "undertow-io/undertow",
+    "github_tag": "1.0.16.Final",
+    "advisory_id": "GHSA-h6p6-fc4w-cqhx",
+    "buggy_commit_id": "4aa98c80fa9962235c94f8666c30793d0018f95d",
+    "fix_commit_ids": [
+      "28f244e63f558ba99a197813cfd5eee461b52b4c"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+        "file": "core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java",
+        "class": "ResourceHandler",
+        "class_start": "56.0",
+        "class_end": "416.0",
+        "method": "serveResource",
+        "method_start": "123.0",
+        "method_end": "263.0",
+        "signature": "void serveResource(HttpServerExchange,boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+        "file": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java",
+        "class": "DefaultServlet",
+        "class_start": "69.0",
+        "class_end": "321.0",
+        "method": "doGet",
+        "method_start": "128.0",
+        "method_end": "160.0",
+        "signature": "void doGet(HttpServletRequest,HttpServletResponse)",
+        "is_test": false
+      },
+      {
+        "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+        "file": "servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java",
+        "class": "ServletPathMatches",
+        "class_start": "54.0",
+        "class_end": "444.0",
+        "method": "findWelcomeFile",
+        "method_start": "128.0",
+        "method_end": "140.0",
+        "signature": "ServletPathMatch findWelcomeFile(String,boolean)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java",
+      "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java",
+      "servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2014-7816",
+      "advisory": "https://github.com/advisories/GHSA-h6p6-fc4w-cqhx",
+      "repo": "https://github.com/undertow-io/undertow",
+      "buggy_commit": "https://github.com/undertow-io/undertow/commit/4aa98c80fa9962235c94f8666c30793d0018f95d"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 80,
+              "message": "p : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 90,
+              "message": "file",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            }
+          ],
+          [
+            {
+              "line": 30,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/util/CanonicalPathUtils.java"
+            },
+            {
+              "line": 59,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/util/CanonicalPathUtils.java"
+            },
+            {
+              "line": 313,
+              "message": "canonicalize(...) : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/spec/ServletContextImpl.java"
+            },
+            {
+              "line": 316,
+              "message": "canonicalPath : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/spec/ServletContextImpl.java"
+            },
+            {
+              "line": 80,
+              "message": "p : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 90,
+              "message": "file",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            }
+          ],
+          [
+            {
+              "line": 298,
+              "message": "getAttribute(...) : Object",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 298,
+              "message": "(...)... : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 314,
+              "message": "result : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 129,
+              "message": "getPath(...) : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 134,
+              "message": "path : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 80,
+              "message": "p : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 90,
+              "message": "file",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            }
+          ],
+          [
+            {
+              "line": 299,
+              "message": "getAttribute(...) : Object",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 299,
+              "message": "(...)... : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 314,
+              "message": "result : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 129,
+              "message": "getPath(...) : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 134,
+              "message": "path : String",
+              "uri": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java"
+            },
+            {
+              "line": 80,
+              "message": "p : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "path : String",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 89,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            },
+            {
+              "line": 90,
+              "message": "file",
+              "uri": "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-8ed861a75f95",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_085121_finding-8ed861a75f95/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-8ed861a75f95:bc82b1e162b1",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/undertow-io__undertow_[redacted]_1.0.16.Final/28/Dockerfile",
+        "-t",
+        "simpleautosec-finding-8ed861a75f95:bc82b1e162b1",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/undertow-io__undertow_[redacted]_1.0.16.Final/28"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 236268,
+        "duration_api_ms": 185124,
+        "num_turns": 31,
+        "cost_usd": 0.9776237999999999,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 56,
+          "output": 14139,
+          "cache_read": 1503936,
+          "cache_creation": 52365
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java",
+          "core/src/test/java/io/undertow/server/handlers/resource/FileResourceManagerTestCase.java"
+        ],
+        "patch_notes": "Added a containment check in FileResourceManager.getResource(): compute the canonical path of the configured base directory and the canonical path of the resolved candidate file, and reject (return null) unless the candidate's canonical path equals the base's canonical path or starts with `canonicalBase + File.separatorChar`. This is evaluated before the existing case-sensitivity check and wraps the existing try/catch (IOException from getCanonicalPath() is already handled by the surrounding catch(Exception) block, consistent with the existing getCanonicalFile() call just below). Added FileResourceManagerTestCase with three tests: a normal in-base resource is still served, a \"../secret.txt\" traversal attempt is blocked (verified this test fails without the fix — it returned the escaped file previously), and a backslash-based \"..\" traversal attempt (relevant on Windows where File treats '\\' as a separator) is also blocked.",
+        "regression_commands": [
+          "mvn -B -pl core -am test -Dtest=FileResourceManagerTestCase,CanonicalPathUtilsTestCase",
+          "mvn -B -pl core -am test",
+          "mvn -B -pl servlet -am -DskipTests package"
+        ],
+        "risk_notes": "Low risk: the check only tightens getResource() to require the resolved file be within the base directory, which is the manager's documented contract; legitimate in-base resource access (including symlinks that point inside the base, since getCanonicalPath() resolves symlinks) is unaffected, as verified by the passing existing FileHandler/resource test suite. One behavioral note: symlinks inside the base directory that point *outside* it will now also be blocked (previously they may have been servable) — this is a hardening side-effect consistent with the intent of a resource manager scoped to a base directory, not a regression of intended functionality. Pre-existing, unrelated test failures (DigestAuthenticationAuthTestCase.testNonceCountReUse, ClientCertRenegotiationTestCase x3) were confirmed present both with and without this patch (environment/SSL-renegotiation related in the Docker test environment) and are not caused by this change.",
+        "status": "patched",
+        "summary": "Fixed CWE-022 path traversal in FileResourceManager.getResource(), the common sink for all four traces in the alert (direct calls, ServletContextImpl.getRealPath via CanonicalPathUtils, and DefaultServlet's two getPath()-derived call sites). Previously, getResource() resolved `new File(base, path)` and only checked filename case-sensitivity — it never verified the resolved file actually stayed inside the configured base directory. On Windows, java.io.File treats both '/' and '\\' as path separators, but CanonicalPathUtils.canonicalize() (used upstream in ServletContextImpl) only recognizes '/' when stripping \"../\" segments, so a request path containing backslash-based \"..\" sequences (or any \"..\" sequence reaching getResource() directly) could resolve outside the base directory and be served. Added a canonical-path containment check: after resolving the candidate File, its canonical path must equal the base's canonical path or be a canonical descendant of it; otherwise the resource lookup returns null. This blocks traversal regardless of separator style or encoding, closing all four reported paths and same-class bypass variants at the single trust boundary."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.9776,
+    "num_turns": 31,
+    "agent_duration_ms": 236268
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

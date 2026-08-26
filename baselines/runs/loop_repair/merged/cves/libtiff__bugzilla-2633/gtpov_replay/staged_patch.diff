@@ -1,0 +1,35 @@
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2467,12 +2467,13 @@
+ 				 *    Cback * (1 - Aimage)
+ 				 * where Cback = 1.
+ 				 */
++				if (nc < 1 || nc > 4) break;
+ 				adjust = 255 - cp[nc];
+ 				switch (nc) {
+-				case 4: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 3: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 2: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++				case 4: c = *cp++ + adjust; PUTHEX(c,fd); break;
++				case 3: c = *cp++ + adjust; PUTHEX(c,fd); break;
++				case 2: c = *cp++ + adjust; PUTHEX(c,fd); break;
++				case 1: c = *cp++ + adjust; PUTHEX(c,fd); break;
+ 				}
+ 				cp += es;
+ 			}
+@@ -2481,10 +2482,10 @@
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+-				case 4: c = *cp++; PUTHEX(c,fd);
+-				case 3: c = *cp++; PUTHEX(c,fd);
+-				case 2: c = *cp++; PUTHEX(c,fd);
+-				case 1: c = *cp++; PUTHEX(c,fd);
++				case 4: c = *cp++; PUTHEX(c,fd); break;
++				case 3: c = *cp++; PUTHEX(c,fd); break;
++				case 2: c = *cp++; PUTHEX(c,fd); break;
++				case 1: c = *cp++; PUTHEX(c,fd); break;
+ 				}
+ 				cp += es;
+ 			}

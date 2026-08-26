@@ -1,0 +1,124 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:36.952967+00:00",
+    "finished_at": "2026-07-17T08:44:44.390833+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a correct, well-placed fix that is strictly stronger than the official one. It replaces the tainted `new File(destination.toFile(), entry.getName())` at Copy.java:140 — the single choke point from which both reported taint traces derive — with `resolveEntry()`, which canonicalizes both the destination and the resolved entry and rejects anything not equal to or beneath the destination. This is the CWE-22 defense-of-record (canonicalize-then-contain), not a blocklist, and the separator-suffixed prefix check correctly avoids the sibling-prefix (`/tmp/dest-evil`) bug. POV after patch reports `RESULT: SAFE` with the escaped file and dir both absent; regressions pass clean (exit_code=0, BUILD SUCCESS, CopyTest 3/3 plus the full util suite). The only residual is a check-then-write TOCTOU inherent to the java.io.File API, which the official fix shares.",
+    "root_cause": "Attacker-controlled tar entry names returned by a malicious/compromised pod's `tar cz` exec are joined to the extraction destination at Copy.java:140 without any containment check, so entries like `../evil` resolve outside the caller-supplied destination directory before reaching the `mkdirs`/`FileOutputStream` sinks.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "The sink is provably safe for the whole traversal class, not just the observed payload: containment is enforced on canonical paths, so any number of `../`, mixed `a/../../b`, or absolute entry names are rejected.",
+        "evidence": "Copy.java:177-193 `resolveEntry()` compares `f.getCanonicalPath()` against `destinationDir.getCanonicalPath()`; POV log: `RESULT: SAFE ... escaped file exists = false / escaped dir exists = false`, IOException `Entry ../pov-tarslip-escaped-file.txt is outside of the target destination directory`.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixed at the exact trust boundary where the tainted entry name is converted into a File, before any filesystem sink is reached — not at a caller or on an error path.",
+        "evidence": "Copy.java:140 `File f = resolveEntry(destination.toFile(), entry.getName());` replaces the vulnerable `new File(destination.toFile(), entry.getName())` cited as the origin of both taint traces.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Both reported traces plus all entry paths are covered by a single choke point; no sibling extraction loop exists and every overload funnels through the patched method.",
+        "evidence": "grep of Copy.java shows one `getNextEntry` loop; overloads at :96, :101, :111 delegate to the 5-arg method at :116. Guarded `f` feeds the dir sink (:142 mkdirs) and file sink (:146-150 getParentFile/mkdirs/FileOutputStream). Absolute entries are additionally neutralized by UnixFileSystem.resolve semantics of `new File(parent, child)`.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same location, same defensive strategy (reject escaping entries with IOException, aborting extraction), via a strictly stronger mechanism — a semantic superset of the official fix.",
+        "evidence": "Official patches the same line (`File f = new File(destination.toFile(), normalName)` guarded by `if (normalName == null) throw new IOException`); ours guards the identical line with canonical containment. Official's lexical `FilenameUtils.normalize` misses symlink components under the destination that our canonicalization resolves.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "All tests pass and legitimate nested entries still resolve normally; the guard only rejects paths that genuinely escape the destination.",
+        "evidence": "docker/regression_1.log: `exit_code=0`, `Tests run: 3, Failures: 0, Errors: 0 - in io.kubernetes.client.CopyTest`, `BUILD SUCCESS`; regression_2.log: `exit_code=0`, full util suite green (KubeConfigTest 13, ClientBuilderTest 18, etc.).",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Safe primitives used correctly with no ReDoS/injection/crash risk; only a minor check-then-write TOCTOU window inherent to the java.io.File API, which the official fix shares.",
+        "evidence": "Canonical check at Copy.java:179-182 precedes the write at :150; a local attacker could theoretically swap a path component to a symlink in between. Prefix check uses `destinationCanonicalPath + File.separator`, correctly avoiding the sibling-prefix bypass.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight and localized: one call-site substitution plus one self-contained private helper in the same class; no unrelated edits and no new dependency.",
+        "evidence": "Production diff touches only Copy.java:140 and adds `resolveEntry` at :177-193 (28 lines incl. javadoc). Unlike the official fix, it needs no `commons-io` addition to pom.xml/util/pom.xml.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Textbook CWE-22 defense-of-record — canonicalize to the real absolute path (resolving symlinks), then verify it stays inside the allowed base dir; no blocklisting of `../` anywhere.",
+        "evidence": "Copy.java:179-182: `String destinationCanonicalPath = destinationDir.getCanonicalPath(); String targetCanonicalPath = f.getCanonicalPath(); if (!targetCanonicalPath.equals(destinationCanonicalPath) && !targetCanonicalPath.startsWith(destinationCanonicalPath + File.separator)) throw new IOException(...)`.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Check-then-write TOCTOU: `resolveEntry` canonicalizes and validates at Copy.java:179-182, but the write happens later at Copy.java:150 via `new FileOutputStream(f)` on the non-canonical File. A local attacker able to race the destination directory could swap a path component to a symlink between check and write. This is inherent to the java.io.File API and is equally present in the official fix; eliminating it would require java.nio with LinkOption.NOFOLLOW_LINKS."
+      },
+      {
+        "severity": "low",
+        "description": "Cosmetic edge case, not a traversal: an entry named \"\" or \".\" resolves to `f == destinationDir` (allowed by the equals branch), after which line 147 may call mkdirs on the destination's parent and line 150 attempts FileOutputStream on a directory, throwing IOException. No write occurs outside the caller-supplied destination, so this is benign."
+      },
+      {
+        "severity": "low",
+        "description": "Structural-overlap reports `covers_all_official: false` due to the official-only pom.xml/util/pom.xml changes. This is an artifact, not a gap: those hunks only add the `commons-io` dependency required by the official `FilenameUtils.normalize` approach, which our canonicalization-based fix does not use."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Copy.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "util/pom.xml",
+        "util/src/main/java/io/kubernetes/client/Copy.java"
+      ],
+      "commits": [
+        "858316ae8bc1145005a0310e1f65f95d2389a589"
+      ]
+    }
+  }
+}

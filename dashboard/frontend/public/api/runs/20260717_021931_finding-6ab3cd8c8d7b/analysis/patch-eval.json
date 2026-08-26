@@ -1,0 +1,132 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:40.166221+00:00",
+    "finished_at": "2026-07-17T15:44:02.647328+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch extends the project's existing `FileUtils.directoryTraversal(String)` (canonicalization + \"/\"-rejection) protection to the previously-unguarded `currentDir` request parameter by adding a `directoryTraversal(String[])` overload that validates each \"/\"-separated segment, and applies it in createDirectory, createResource, and onlineCreateResource (also checking fileSuffix). This is aligned with the official fix's strategy (input validation at the entry boundary via the same canonicalization helper) and is arguably stronger on `currentDir`, which the official fix does not explicitly guard. However, it does not mirror the official fix's `verifyFile` check on the uploaded file's original filename, and execution signal is weak (POV never reproduced pre-patch, 0 regression tests run), so efficacy is not empirically confirmed.",
+    "root_cause": "Untrusted `name`/`fileName`/`currentDir` request parameters flow unvalidated into HDFS path construction (`new Path(...)` in HadoopUtils), so `..` segments let an attacker escape the intended resource base directory; a correct fix must reject traversal sequences at the entry boundary (or canonicalize-and-confine at the sink).",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "currentDir + name/fileName validated with a canonicalization-based helper at the three creation entry points, closing the observed class; but not execution-verified and some entry points (verifyFile/updateResource) untouched.",
+        "evidence": "ResourcesServiceImpl createDirectory line 133 `|| directoryTraversal(currentDir.split(\"/\"))`; onlineCreateResource line 957 `directoryTraversal(fileName)||fileSuffix||currentDir`; FileUtils.directoryTraversal(String[])",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Validates tainted input at the trust boundary using the canonicalizing helper, same intent as official; not fixed at the HadoopUtils sink but consistent with the developer's chosen location.",
+        "evidence": "guards added in createDirectory/createResource/onlineCreateResource before fullName construction, delegating to directoryTraversal(String) per segment",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Covers the three creation paths + adds fileSuffix, but does not add the official fix's verifyFile check on file.getOriginalFilename(), and rename/update paths rely on unverified baseline coverage.",
+        "evidence": "official verifyFile adds `directoryTraversal(Objects.requireNonNull(file.getOriginalFilename()))`; our diff never touches verifyFile",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy (directoryTraversal at entry points via same helper); differs by adding a String[] segment overload to also cover currentDir, which official handles only indirectly.",
+        "evidence": "reuses FileUtils.directoryTraversal; new overload FileUtils.directoryTraversal(String[]) loops segments",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate multi-level paths pass (segments contain no '/' and canonical==absolute); added tests assert this, though regression suite was not actually executed.",
+        "evidence": "FileUtilsTest.testDirectoryTraversalOnPathSegments asserts `/aa/bb` false, `/../etc` true; regressions_ran=0",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "No injection/ReDoS introduced, but `currentDir.split(\"/\")` NPEs if currentDir is null; per-call canonicalization in a loop is benign.",
+        "evidence": "createDirectory/onlineCreateResource call `currentDir.split(\"/\")` with no null guard; overload only null-guards the array, not the split input",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized: one helper overload plus three guard additions, in the same files as the official fix.",
+        "evidence": "FileUtils.java +overload; ResourcesServiceImpl three small edits; overlap_files match official security files",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Uses canonicalization + '/'-rejection (defense-of-record) per segment rather than a raw '../' blocklist, but does not canonicalize the full resolved path and confine it under an allowed base dir.",
+        "evidence": "delegates to directoryTraversal(String) which compares getCanonicalFile vs getAbsoluteFile and rejects FOLDER_SEPARATOR; no base-dir containment check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "verifyFile is not patched: the official fix adds a directoryTraversal check on the uploaded file's original filename (file.getOriginalFilename()). If the provided baseline lacks it, an upload with a traversal-bearing original filename via createResource/updateResource could bypass validation."
+      },
+      {
+        "severity": "medium",
+        "description": "`currentDir.split(\"/\")` is called without a null guard in createDirectory and onlineCreateResource; a null currentDir would throw NPE (crash/500) rather than returning a clean validation error."
+      },
+      {
+        "severity": "low",
+        "description": "Execution evidence is uninformative: pov_before_reproduced=false (vuln/POV never demonstrated on baseline) and regressions_ran=0, so neither fix efficacy nor absence of regressions is empirically confirmed."
+      },
+      {
+        "severity": "low",
+        "description": "Per-segment canonicalization does not verify the fully-resolved path remains inside the intended resource base directory; it is a filter rather than canonical-under-base confinement, so it is somewhat more fragile than the ideal CWE-022 defense."
+      }
+    ],
+    "overall": {
+      "mean": 3.75,
+      "score": 75,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "FileUtils.java",
+        "ResourcesServiceImpl.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "Status.java",
+        "file-manage.md"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "docs/docs/en/guide/resource/file-manage.md",
+        "docs/docs/zh/guide/resource/file-manage.md",
+        "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java",
+        "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java"
+      ],
+      "commits": [
+        "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd"
+      ]
+    }
+  }
+}

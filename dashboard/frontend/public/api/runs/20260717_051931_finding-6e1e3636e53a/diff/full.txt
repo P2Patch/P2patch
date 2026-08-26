@@ -1,0 +1,467 @@
+diff --git a/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java b/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
+index b257c10..3794c9f 100644
+--- a/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
++++ b/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
+@@ -24,7 +24,6 @@ import java.io.IOException;
+  */
+ 
+ import java.io.InputStream;
+-import java.lang.reflect.Constructor;
+ import java.nio.charset.StandardCharsets;
+ import java.util.Arrays;
+ import java.util.HashMap;
+@@ -38,6 +37,7 @@ import org.ff4j.core.Feature;
+ import org.ff4j.core.FlippingStrategy;
+ import org.ff4j.property.Property;
+ import org.ff4j.property.PropertyString;
++import org.ff4j.property.util.PropertyFactory;
+ import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ 
+@@ -228,13 +228,9 @@ public class PropertiesParser implements FF4jConfigurationParser<FF4jConfigurati
+             if (null != optionalType) {
+                 // Substitution if relevant (e.g. 'int' -> 'org.ff4j.property.PropertyInt')
+                 optionalType = MappingUtil.mapPropertyType(optionalType);
+-                try {
+-                    // Constructor (String, String) is mandatory in Property interface
+-                    Constructor<?> constr = Class.forName(optionalType).getConstructor(String.class, String.class);
+-                    ap = (Property<?>) constr.newInstance(name, strValue);
+-                } catch (Exception e) {
+-                    throw new IllegalArgumentException("Cannot instantiate '" + optionalType + "' check default constructor", e);
+-                }
++                // Delegate to PropertyFactory so the base-type check (Property.class) is
++                // enforced before any reflective construction.
++                ap = PropertyFactory.createProperty(name, optionalType, strValue);
+             }
+             // Description
+             String description = mapConfigProperties.get(currentPropertyKey + "." + PROPERTY_PARAMDESCRIPTION);
+@@ -308,7 +304,7 @@ public class PropertiesParser implements FF4jConfigurationParser<FF4jConfigurati
+             if (null != flipStrategyClass && !"".equals(flipStrategyClass)) {
+                 FlippingStrategy flipStrategy = null;
+                 try {
+-                    flipStrategy = (FlippingStrategy) Class.forName(flipStrategyClass).newInstance();
++                    flipStrategy = MappingUtil.loadClass(flipStrategyClass, FlippingStrategy.class).newInstance();
+                 } catch (Exception e) {
+                     throw new IllegalArgumentException("Cannot parse flipStrategy for feature '" + f.getUid() + 
+                             "' -> check key [" + currentFeatureKey +  "." + TOGGLE_STRATEGY_TAG + "." + TOGGLE_STRATEGY_ATTCLASS + "]", e);
+diff --git a/ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java b/ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java
+index 11bafa5..ab6cdd3 100644
+--- a/ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java
++++ b/ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java
+@@ -23,7 +23,6 @@ import java.io.ByteArrayInputStream;
+  */
+ 
+ import java.io.InputStream;
+-import java.lang.reflect.Constructor;
+ import java.nio.charset.StandardCharsets;
+ import java.util.Date;
+ import java.util.HashMap;
+@@ -37,6 +36,7 @@ import org.ff4j.core.Feature;
+ import org.ff4j.core.FlippingStrategy;
+ import org.ff4j.property.Property;
+ import org.ff4j.property.PropertyString;
++import org.ff4j.property.util.PropertyFactory;
+ import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ import org.yaml.snakeyaml.Yaml;
+@@ -170,13 +170,9 @@ public class YamlParser implements FF4jConfigurationParser<FF4jConfiguration> {
+                 if (null != optionalType) {
+                     // Substitution if relevant (e.g. 'int' -> 'org.ff4j.property.PropertyInt')
+                     optionalType = MappingUtil.mapPropertyType(optionalType);
+-                    try {
+-                        // Constructor (String, String) is mandatory in Property interface
+-                        Constructor<?> constr = Class.forName(optionalType).getConstructor(String.class, String.class);
+-                        ap = (Property<?>) constr.newInstance(name, strValue);
+-                    } catch (Exception e) {
+-                        throw new IllegalArgumentException("Cannot instantiate '" + optionalType + "' check default constructor", e);
+-                    }
++                    // Delegate to PropertyFactory so the base-type check (Property.class) is
++                    // enforced before any reflective construction.
++                    ap = PropertyFactory.createProperty(name, optionalType, strValue);
+                 }
+                 // Description
+                 String description = (String) property.get(PROPERTY_PARAMDESCRIPTION);
+@@ -251,7 +247,7 @@ public class YamlParser implements FF4jConfigurationParser<FF4jConfiguration> {
+         try {
+             // Parse class
+             String clazzName = (String) toggleStrategy.get(TOGGLE_STRATEGY_ATTCLASS);
+-            FlippingStrategy flipStrategy = (FlippingStrategy) Class.forName(clazzName).newInstance();
++            FlippingStrategy flipStrategy = MappingUtil.loadClass(clazzName, FlippingStrategy.class).newInstance();
+             // Parse Params
+             List<Map<String, Object>> mapYamlParam = (List<Map<String, Object>>) toggleStrategy.get(TOGGLE_STRATEGY_PARAMTAG);
+             Map<String,String> params = new HashMap<>();
+diff --git a/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java b/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
+index 8eb2bf7..3c163d5 100644
+--- a/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
++++ b/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
+@@ -23,7 +23,6 @@ package org.ff4j.conf;
+ import java.io.ByteArrayInputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+-import java.lang.reflect.Constructor;
+ import java.text.MessageFormat;
+ import java.util.ArrayList;
+ import java.util.HashMap;
+@@ -41,6 +40,7 @@ import org.ff4j.core.Feature;
+ import org.ff4j.core.FlippingStrategy;
+ import org.ff4j.property.Property;
+ import org.ff4j.property.PropertyString;
++import org.ff4j.property.util.PropertyFactory;
+ import org.ff4j.utils.MappingUtil;
+ import org.w3c.dom.Document;
+ import org.w3c.dom.Element;
+@@ -381,14 +381,10 @@ public final class XmlParser implements FF4jConfigurationParser<XmlConfig>{
+                
+                 // Substitution if relevant (e.g. 'int' -> 'org.ff4j.property.PropertyInt')
+                 optionalType = MappingUtil.mapPropertyType(optionalType);
+-                
+-                try {
+-                    // Constructor (String, String) is mandatory in Property interface
+-                    Constructor<?> constr = Class.forName(optionalType).getConstructor(String.class, String.class);
+-                    ap = (Property<?>) constr.newInstance(name, value);
+-                } catch (Exception e) {
+-                    throw new IllegalArgumentException("Cannot instantiate '" + optionalType + "' check default constructor", e);
+-                }
++
++                // Delegate to PropertyFactory so the base-type check (Property.class) is enforced
++                // before any reflective construction, consistently with every other source.
++                ap = PropertyFactory.createProperty(name, optionalType, value);
+             }
+             
+             if (null != attMap.getNamedItem(PROPERTY_PARAMDESCRIPTION)) {
+@@ -440,7 +436,7 @@ public final class XmlParser implements FF4jConfigurationParser<XmlConfig>{
+         try {
+             // Attribute CLASS
+             String clazzName = nnm.getNamedItem(FLIPSTRATEGY_ATTCLASS).getNodeValue();
+-            flipStrategy = (FlippingStrategy) Class.forName(clazzName).newInstance();
++            flipStrategy = MappingUtil.loadClass(clazzName, FlippingStrategy.class).newInstance();
+ 
+             // LIST OF PARAMS
+             Map<String, String> parameters = new LinkedHashMap<String, String>();
+diff --git a/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java b/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
+index aa3c675..bccd97a 100644
+--- a/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
++++ b/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
+@@ -44,6 +44,7 @@ import org.ff4j.property.PropertyLogLevel;
+ import org.ff4j.property.PropertyLong;
+ import org.ff4j.property.PropertyShort;
+ import org.ff4j.property.PropertyString;
++import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ 
+ /**
+@@ -160,7 +161,8 @@ public class PropertyFactory {
+         Util.assertNotNull(pType);
+         Property<?> ap = null;
+         try {
+-            Constructor<?> constr = Class.forName(pType).getConstructor(String.class, String.class);
++            Class<? extends Property> propertyClazz = MappingUtil.loadClass(pType, Property.class);
++            Constructor<?> constr = propertyClazz.getConstructor(String.class, String.class);
+             ap = (Property<?>) constr.newInstance(pName, pValue);
+             ap.setDescription(desc);
+             // Is there any fixed Value ?
+diff --git a/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java b/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
+index f952d8e..af3cd64 100644
+--- a/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
++++ b/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
+@@ -177,16 +177,45 @@ public class MappingUtil {
+      * @return
+      *      the flipping strategy
+      */
+-    @SuppressWarnings("unchecked")
+ 	public static FlippingStrategy instanceFlippingStrategy(String uid, String className,  Map<String, String> initparams) {
+         try {
+-            Class<FlippingStrategy> clazz = (Class<FlippingStrategy>) (classLoader == null ? Class.forName(className) : classLoader.loadClass(className));
++            Class<? extends FlippingStrategy> clazz = loadClass(className, FlippingStrategy.class);
+             FlippingStrategy flipStrategy = clazz.newInstance();
+             flipStrategy.init(uid, initparams);
+             return flipStrategy;
+         } catch (Exception ie) {
+             throw new FeatureAccessException("Cannot instantiate Strategy, no default constructor available", ie);
+-        } 
++        }
++    }
++
++    /**
++     * Resolve a class by name and enforce that it is assignable to the expected base type
++     * BEFORE any caller instantiates it. This guards every reflective-construction sink
++     * (flipping strategies, property types, ...) against attacker-controlled class names
++     * that would otherwise have their constructor executed prior to a post-construction
++     * cast failing.
++     *
++     * @param className
++     *      attacker/config supplied fully qualified class name
++     * @param expectedType
++     *      base type the resolved class must implement/extend
++     * @return
++     *      the resolved class, guaranteed assignable to expectedType
++     */
++    public static <T> Class<? extends T> loadClass(String className, Class<T> expectedType) {
++        if (className == null) {
++            throw new IllegalArgumentException("Class name cannot be null");
++        }
++        try {
++            Class<?> rawClazz = (classLoader == null) ? Class.forName(className) : classLoader.loadClass(className);
++            if (!expectedType.isAssignableFrom(rawClazz)) {
++                throw new IllegalArgumentException("Class '" + className + "' does not implement/extend expected type '"
++                        + expectedType.getName() + "'");
++            }
++            return rawClazz.asSubclass(expectedType);
++        } catch (ClassNotFoundException cnfe) {
++            throw new IllegalArgumentException("Cannot find class '" + className + "'", cnfe);
++        }
+     }
+ 
+     public static void setClassLoader(ClassLoader classLoader) {
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
+index 34878af..7a7da61 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
+@@ -111,4 +111,29 @@ public class PropertyFactoryTest {
+         PropertyJsonBean jsonBean = new PropertyJsonBean(new PropertyString("p1", "v1"));
+         Assert.assertNotNull(PropertyFactory.createProperty(jsonBean));
+     }
++
++    /**
++     * Regression test for CWE-094: a class name that resolves and even exposes a
++     * (String, String) constructor, but does not extend Property, must be rejected
++     * BEFORE that constructor runs (no reflective side-effect from attacker-controlled
++     * type names coming from properties/XML/JSON/web-console inputs).
++     */
++    @Test(expected = IllegalArgumentException.class)
++    public void testCreatePropertyRejectsForeignClassBeforeConstruction() {
++        NotAProperty.CONSTRUCTED = false;
++        try {
++            PropertyFactory.createProperty("p1", NotAProperty.class.getName(), "v1", "desc", null);
++        } finally {
++            Assert.assertFalse("Attacker-controlled class must not be constructed before the base-type check",
++                    NotAProperty.CONSTRUCTED);
++        }
++    }
++
++    /** Helper: resolvable class with a (String,String) constructor, but NOT a Property. */
++    public static class NotAProperty {
++        static boolean CONSTRUCTED = false;
++        public NotAProperty(String a, String b) {
++            CONSTRUCTED = true;
++        }
++    }
+ }
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java b/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
+index ca01612..41e6733 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
+@@ -81,7 +81,37 @@ public class MappingUtilsTest {
+     public void testIntanciateInvalidFlippingStrategy() {
+        MappingUtil.instanceFlippingStrategy("f1", "com.class.invalid", new HashMap<String, String>());
+     }
+-    
++
++    /**
++     * Regression test for CWE-094: a class name that resolves but does not implement
++     * FlippingStrategy must be rejected BEFORE its constructor runs (no reflective
++     * side-effect from attacker-controlled class names).
++     */
++    @Test(expected = FeatureAccessException.class)
++    public void testInstanceFlippingStrategyRejectsForeignClassBeforeConstruction() {
++        NotAFlippingStrategy.CONSTRUCTED = false;
++        try {
++            MappingUtil.instanceFlippingStrategy("f1", NotAFlippingStrategy.class.getName(), new HashMap<String, String>());
++        } finally {
++            Assert.assertFalse("Attacker-controlled class must not be constructed before the base-type check",
++                    NotAFlippingStrategy.CONSTRUCTED);
++        }
++    }
++
++    @Test(expected = IllegalArgumentException.class)
++    public void testLoadClassRejectsClassNotAssignableToExpectedType() {
++        MappingUtil.loadClass(String.class.getName(), Map.class);
++    }
++
++    /** Helper: resolvable class, no-arg constructor, but NOT a FlippingStrategy. */
++    public static class NotAFlippingStrategy {
++        static boolean CONSTRUCTED = false;
++        public NotAFlippingStrategy() {
++            CONSTRUCTED = true;
++        }
++    }
++
++
+     @Test(expected = IllegalArgumentException.class)
+     public void testAssert1() {
+         Util.assertTrue(false);
+diff --git a/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java b/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
+index 0720a8b..b89982d 100644
+--- a/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
++++ b/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
+@@ -64,6 +64,7 @@ import org.ff4j.parser.yaml.YamlParser;
+ import org.ff4j.property.Property;
+ import org.ff4j.property.store.PropertyStore;
+ import org.ff4j.property.util.PropertyFactory;
++import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ import org.ff4j.web.bean.WebConstants;
+ import org.slf4j.Logger;
+@@ -104,8 +105,7 @@ public final class ConsoleOperations {
+             final String strategy = req.getParameter(STRATEGY);
+             if (null != strategy && !strategy.isEmpty()) {
+                 try {
+-                    Class<?> strategyClass = Class.forName(strategy);
+-                    FlippingStrategy fstrategy = (FlippingStrategy) strategyClass.newInstance();
++                    FlippingStrategy fstrategy = MappingUtil.loadClass(strategy, FlippingStrategy.class).newInstance();
+ 
+                     final String strategyParams = req.getParameter(STRATEGY_INIT);
+                     if (null != strategyParams && !strategyParams.isEmpty()) {
+@@ -122,8 +122,6 @@ public final class ConsoleOperations {
+                     }
+                     fp.setFlippingStrategy(fstrategy);
+ 
+-                } catch (ClassNotFoundException e) {
+-                    throw new IllegalArgumentException("Cannot find strategy class", e);
+                 } catch (InstantiationException e) {
+                     throw new IllegalArgumentException("Cannot instantiate strategy", e);
+                 } catch (IllegalAccessException e) {
+@@ -245,9 +243,8 @@ public final class ConsoleOperations {
+         
+         if (null != strategy && !strategy.isEmpty()) {
+             try {
+-                Class<?> strategyClass = Class.forName(strategy);
+-                FlippingStrategy fstrategy = (FlippingStrategy) strategyClass.newInstance();
+-               
++                FlippingStrategy fstrategy = MappingUtil.loadClass(strategy, FlippingStrategy.class).newInstance();
++
+                 if (null != strategyParams && !strategyParams.isEmpty()) {
+                     Map<String, String> initParams = new HashMap<String, String>();
+                     String[] params = strategyParams.split(";");
+@@ -262,8 +259,6 @@ public final class ConsoleOperations {
+                 }
+                 fp.setFlippingStrategy(fstrategy);
+ 
+-            } catch (ClassNotFoundException e) {
+-                throw new IllegalArgumentException("Cannot find strategy class", e);
+             } catch (InstantiationException e) {
+                 throw new IllegalArgumentException("Cannot instantiate strategy", e);
+             } catch (IllegalAccessException e) {
+diff --git a/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class
+new file mode 100644
+index 0000000..837f6d0
+Binary files /dev/null and b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class differ
+diff --git a/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class
+new file mode 100644
+index 0000000..31b5f3c
+Binary files /dev/null and b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..4e3fa8d
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,29 @@
++#!/usr/bin/env bash
++# PoV runner for CWE-094 reflective construction in org.ff4j.utils.MappingUtil#instanceFlippingStrategy.
++#
++# Builds the ff4j-core module (needed so org.ff4j.utils.MappingUtil / org.ff4j.core.FlippingStrategy
++# .class files exist), compiles the standalone PoV against those real production classes, and runs it.
++#
++# Exit code contract:
++#   0  -> vulnerable behavior reproduced (attacker-controlled class was reflectively constructed)
++#   !=0 -> vulnerable behavior NOT observed (e.g. a correct fix now blocks construction)
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
++cd "$REPO_ROOT"
++
++POV_DIR=".security-pipeline/pov"
++POV_SRC="$POV_DIR/src/org/ff4j/pov/MappingUtilInjectionPoV.java"
++POV_OUT="$POV_DIR/out"
++
++rm -rf "$POV_OUT"
++mkdir -p "$POV_OUT"
++
++# Build just ff4j-core so we exercise the real, compiled production sink.
++mvn -q -B -pl ff4j-core -am package -DskipTests -Dmaven.test.skip=true
++
++CORE_CLASSES="ff4j-core/target/classes"
++
++javac -cp "$CORE_CLASSES" -d "$POV_OUT" "$POV_SRC"
++
++java -cp "$CORE_CLASSES:$POV_OUT" org.ff4j.pov.MappingUtilInjectionPoV
+diff --git a/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java b/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java
+new file mode 100644
+index 0000000..3dd3185
+--- /dev/null
++++ b/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java
+@@ -0,0 +1,74 @@
++package org.ff4j.pov;
++
++import java.util.HashMap;
++import java.util.Map;
++import java.util.concurrent.atomic.AtomicBoolean;
++
++import org.ff4j.core.FlippingStrategy;
++import org.ff4j.utils.MappingUtil;
++
++/**
++ * Proof-of-vulnerability for CWE-094 (Improper Control of Generation of Code / reflective
++ * code injection) in ff4j.
++ *
++ * Root cause: org.ff4j.utils.MappingUtil#instanceFlippingStrategy(String, String, Map) resolves
++ * an attacker-controlled class name with Class.forName(...) and invokes newInstance() BEFORE any
++ * check that the resolved class is actually assignable to the expected base type
++ * (org.ff4j.core.FlippingStrategy). The cast to FlippingStrategy only happens AFTER construction,
++ * so the no-arg constructor of ANY class reachable on the classpath runs unconditionally whenever
++ * a caller (properties parser, XML parser, JSON parser, or the embedded web console) forwards an
++ * untrusted "flipping strategy class" / "property type class" string into this sink.
++ *
++ * This PoV drives the real production entry point (MappingUtil.instanceFlippingStrategy) with an
++ * attacker-supplied class name that does NOT implement FlippingStrategy at all. On vulnerable
++ * code, the constructor of the attacker class still executes (observable side effect) before the
++ * post-construction cast fails and is swallowed into a FeatureAccessException. A correct fix must
++ * validate FlippingStrategy.class.isAssignableFrom(clazz) (or use an allow-list) BEFORE calling
++ * newInstance(), so the attacker class is never constructed and no side effect occurs.
++ */
++public class MappingUtilInjectionPoV {
++
++    /** Flips to true only if the attacker-controlled class is actually instantiated. */
++    static final AtomicBoolean PAYLOAD_EXECUTED = new AtomicBoolean(false);
++
++    /**
++     * Stand-in for an attacker-supplied "flipping strategy" class name. It intentionally does NOT
++     * implement org.ff4j.core.FlippingStrategy, to prove the sink performs no base-type check
++     * prior to reflective construction. Its constructor represents arbitrary attacker code that
++     * runs as a side effect of reflective instantiation (in a real gadget chain this could be a
++     * JNDI-triggering class, a file-writing class, etc.).
++     */
++    public static class NotAFlippingStrategy {
++        public NotAFlippingStrategy() {
++            PAYLOAD_EXECUTED.set(true);
++        }
++    }
++
++    public static void main(String[] args) {
++        String attackerControlledClassName = NotAFlippingStrategy.class.getName();
++        Map<String, String> initParams = new HashMap<String, String>();
++
++        boolean vulnerable = false;
++        try {
++            FlippingStrategy fs = MappingUtil.instanceFlippingStrategy("pov-uid", attackerControlledClassName, initParams);
++            // If a real FlippingStrategy is somehow returned, that is even more clearly wrong.
++            vulnerable = (fs != null) || PAYLOAD_EXECUTED.get();
++        } catch (Throwable t) {
++            // Expected on today's code: MappingUtil wraps the post-construction ClassCastException
++            // into a FeatureAccessException. By the time this exception is thrown, the attacker
++            // class's constructor has ALREADY run -- that is the vulnerability.
++            vulnerable = PAYLOAD_EXECUTED.get();
++        }
++
++        if (vulnerable) {
++            System.out.println("VULNERABLE: MappingUtil.instanceFlippingStrategy reflectively constructed "
++                    + "attacker-controlled class '" + attackerControlledClassName + "' even though it does not "
++                    + "implement FlippingStrategy. No base-type check ran before Class.forName(...).newInstance().");
++            System.exit(0);
++        } else {
++            System.out.println("NOT VULNERABLE: attacker-controlled class name was rejected before "
++                    + "construction; no side effect was observed.");
++            System.exit(1);
++        }
++    }
++}

@@ -1,0 +1,17 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260707_234923_finding-11bd97cc3c1c/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-11bd97cc3c1c:6479321ee913 bash -lc bash -lc 'MAIN=$(find . -path "*/build/classes/main" -type d | tr "\n" ":"); COMMONS=$(find . -path "*commons*classes/main" -type d | tr "\n" ":"); JARS=$(find /root/.gradle/caches/modules-2 -name "*.jar" | tr "\n" ":"); java -cp "tapestry-core/build/classes/test:${MAIN}${COMMONS}${JARS}" org.testng.TestNG -testclass org.apache.tapestry5.internal.services.assets.ContextAssetRequestHandlerTest'
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[TestNG] Running:
+  Command line suite
+
+
+===============================================
+Command line suite
+Total tests run: 8, Failures: 0, Skips: 0
+===============================================
+
+
+--- stderr ---
+

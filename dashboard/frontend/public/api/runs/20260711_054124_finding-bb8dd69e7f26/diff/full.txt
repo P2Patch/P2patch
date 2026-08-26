@@ -1,0 +1,108 @@
+diff --git a/src/main/java/spark/resource/ExternalResourceHandler.java b/src/main/java/spark/resource/ExternalResourceHandler.java
+index 7556f41..4a85b9e 100644
+--- a/src/main/java/spark/resource/ExternalResourceHandler.java
++++ b/src/main/java/spark/resource/ExternalResourceHandler.java
+@@ -17,6 +17,8 @@
+ //
+ package spark.resource;
+ 
++import java.io.File;
++import java.io.IOException;
+ import java.net.MalformedURLException;
+ 
+ import org.slf4j.Logger;
+@@ -77,7 +79,9 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+                 }
+             }
+ 
+-            return (resource != null && resource.exists()) ? resource : null;
++            if (resource != null && resource.exists() && isWithinBaseDirectory(resource)) {
++                return resource;
++            }
+         } catch (Exception e) {
+             if (LOG.isDebugEnabled()) {
+                 LOG.debug(e.getClass().getSimpleName() + " when trying to get resource. " + e.getMessage());
+@@ -86,4 +90,29 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+         return null;
+     }
+ 
++    /**
++     * Verifies that the resolved resource is located inside the configured base directory.
++     *
++     * <p>{@link UriPath#canonical(String)} only treats '/' as a path separator, so traversal
++     * sequences that rely on other separators (for example backslashes on some platforms) can
++     * survive canonicalization and later be resolved against the file system, escaping the base
++     * directory. This defense compares fully canonicalized file paths to guarantee containment
++     * regardless of how the request path was encoded.
++     *
++     * @param resource the resolved external resource
++     * @return {@code true} if the resource resides within the base directory, {@code false} otherwise
++     * @throws IOException if the canonical file paths cannot be resolved
++     */
++    private boolean isWithinBaseDirectory(ExternalResource resource) throws IOException {
++        File base = new File(baseResource).getCanonicalFile();
++        File target = new File(resource.getPath()).getCanonicalFile();
++
++        for (File current = target; current != null; current = current.getParentFile()) {
++            if (current.equals(base)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
+ }
+diff --git a/src/test/java/spark/resource/ExternalResourceHandlerTest.java b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+index f516969..71fbb80 100644
+--- a/src/test/java/spark/resource/ExternalResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+@@ -1,6 +1,8 @@
+ package spark.resource;
+ 
++import java.io.File;
+ import java.net.MalformedURLException;
++import java.nio.file.Files;
+ 
+ import org.junit.Before;
+ import org.junit.Test;
+@@ -65,7 +67,8 @@ public class ExternalResourceHandlerTest {
+         verify(secondResourceMock).exists();
+         verify(resourceMock).isDirectory();
+         verify(resourceMock).getPath();
+-        verify(secondResourceMock).getPath();
++        // getPath() is now also consulted by the base-directory containment check
++        verify(secondResourceMock, times(2)).getPath();
+     }
+ 
+     @Test
+@@ -119,4 +122,30 @@ public class ExternalResourceHandlerTest {
+         verify(resourceMock).isDirectory();
+     }
+ 
++    @Test
++    public void testGetResource_whenPathTraversesOutsideBaseUsingBackslashes_thenReturnNull() throws Exception {
++        // Real filesystem test (no mocking): a backslash-based traversal sequence survives
++        // UriPath.canonical() but is later resolved by the file system, escaping the base directory.
++        File baseDir = Files.createTempDirectory("spark-ext-base").toFile();
++        File allowed = new File(baseDir, "allowed.txt");
++        Files.write(allowed.toPath(), "ok".getBytes());
++
++        File secretDir = Files.createTempDirectory("spark-ext-secret").toFile();
++        File secret = new File(secretDir, "secret.txt");
++        Files.write(secret.toPath(), "top-secret".getBytes());
++
++        ExternalResourceHandler handler = new ExternalResourceHandler(baseDir.getAbsolutePath(), null);
++
++        // Sanity check: a legitimate file inside the base directory is served.
++        AbstractFileResolvingResource legit = handler.getResource("/allowed.txt");
++        org.junit.Assert.assertNotNull("Legitimate in-base file must be served", legit);
++        assertEquals(allowed.getCanonicalPath(),
++                     new File(((ExternalResource) legit).getPath()).getCanonicalPath());
++
++        // Attack: escape the base directory using backslash separators.
++        String traversal = "/allowed.txt/..\\..\\" + secretDir.getName() + "\\secret.txt";
++        assertNull("Backslash-based traversal outside the base directory must be rejected",
++                   handler.getResource(traversal));
++    }
++
+ }

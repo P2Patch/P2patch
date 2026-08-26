@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-476",
+  "cve_id": "CVE-2017-15232",
+  "note": "post_process_1pass() in jdpostct.c forwards its output_buf parameter straight into cinfo->cquantize->color_quantize() with no NULL check. When a caller discards scanlines (jpeg_skip_scanlines()), output_buf is legitimately NULL while num_rows can still be nonzero. color_quantize dispatches to quantize_ord_dither() in jquant1.c, whose first per-row action is jzero_far((void *) output_buf[row], ...) -- a write through the unchecked, possibly-NULL pointer, causing a NULL pointer dereference and a crash/denial of service on a crafted or ordinary JPEG input decoded with scanline-skipping enabled.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "output_buf parameter received unchecked; NULL when the caller is discarding scanlines (jpeg_skip_scanlines path)",
+            "uri": "jdpostct.c",
+            "line": 126
+          },
+          {
+            "message": "(*cinfo->cquantize->color_quantize)(cinfo, post->buffer, output_buf + *out_row_ctr, (int) num_rows); : forwards the unchecked output_buf onward with no NULL guard",
+            "uri": "jdpostct.c",
+            "line": 144
+          },
+          {
+            "message": "jzero_far((void *) output_buf[row], (size_t) (width * sizeof(JSAMPLE))); : dereferences output_buf[row] with no prior NULL check -- NULL pointer dereference sink",
+            "uri": "jquant1.c",
+            "line": 536
+          }
+        ]
+      ]
+    }
+  ]
+}

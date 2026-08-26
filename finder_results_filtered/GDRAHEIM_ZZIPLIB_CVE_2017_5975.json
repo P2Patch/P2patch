@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2017-5975",
+  "note": "zzip_mem_entry_new() (zzip/memdisk.c) fetches header via zzip_disk_entry_to_file_header(disk, entry) (zzip/mmapped.c) -- which returns 0 for a crafted disk_entry file-offset that lands outside [disk->buffer, disk->endbuf) -- and immediately uses it, with no null check in between, to compute item->zz_data and to read the file header's extras length/pointer (both header-relative pointer arithmetic). A failed lookup is dereferenced anyway, so a crafted disk_entry that fails the offset check still causes the caller to walk into a heap-based out-of-bounds read through the unguarded header pointer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "zzip_disk_entry_to_file_header(disk, entry) : can return 0 for a crafted disk_entry file-offset; the lookup validates only the offset range, not the candidate header's magic-number field",
+            "uri": "zzip/mmapped.c",
+            "line": 286
+          },
+          {
+            "message": "struct zzip_file_header *header = zzip_disk_entry_to_file_header(disk, entry) : return value stored with no null check",
+            "uri": "zzip/memdisk.c",
+            "line": 174
+          },
+          {
+            "message": "item->zz_data = zzip_file_header_to_data(header) : header dereferenced unconditionally -- heap-based out-of-bounds read once a failed lookup is walked",
+            "uri": "zzip/memdisk.c",
+            "line": 182
+          }
+        ]
+      ]
+    }
+  ]
+}

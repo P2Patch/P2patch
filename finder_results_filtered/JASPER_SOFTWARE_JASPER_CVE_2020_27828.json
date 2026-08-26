@@ -1,0 +1,33 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2020-27828",
+  "note": "cp_create() parses the encoder's '-O numrlvls=N' option string and stores the caller-supplied value straight into tccp->maxrlvls with no upper-bound check (jpc_enc.c:511, OPT_MAXRLVLS case). tccp->maxrlvls is then used, unclamped, as the loop bound writing into the fixed-size (JPC_MAXRLVLS=33 entries, jpc_cs.h:87) tccp->prcwidthexpns[]/prcheightexpns[] struct-member arrays at jpc_enc.c:627-629 -- 'numrlvls=40' overruns both arrays by 7 elements each, an out-of-bounds write. Nothing between the line-511 assignment and the line-627 loop bound checks tccp->maxrlvls against JPC_MAXRLVLS, so any caller-controlled numrlvls greater than 33 walks the loop past the end of both fixed-size arrays and corrupts adjacent struct memory.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "tccp->maxrlvls = atoi(jas_tvparser_getval(tvp)) -- caller-supplied '-O numrlvls=N' value, no upper-bound check",
+            "uri": "src/libjasper/jpc/jpc_enc.c",
+            "line": 511
+          },
+          {
+            "message": "for (rlvlno = 0; rlvlno < tccp->maxrlvls; ++rlvlno) -- loop bound is the unchecked maxrlvls",
+            "uri": "src/libjasper/jpc/jpc_enc.c",
+            "line": 627
+          },
+          {
+            "message": "tccp->prcwidthexpns[rlvlno] = prcwidthexpn -- writes past the fixed JPC_MAXRLVLS=33-entry array once maxrlvls > 33 (CWE-787)",
+            "uri": "src/libjasper/jpc/jpc_enc.c",
+            "line": 628
+          },
+          {
+            "message": "tccp->prcheightexpns[rlvlno] = prcheightexpn -- writes past the fixed JPC_MAXRLVLS=33-entry array once maxrlvls > 33 (CWE-787)",
+            "uri": "src/libjasper/jpc/jpc_enc.c",
+            "line": 629
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,432 @@
+{
+  "run_id": "20260715_033517_finding-2fe2f5ad4d3b",
+  "finding_id": "finding-2fe2f5ad4d3b",
+  "timestamp": "2026-07-15T03:35:17",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v1_full-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "finding_id": "20260715_033517_finding-2fe2f5ad4d3b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-2fe2f5ad4d3b",
+    "cve_id": "CVE-2022-28367",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "project_slug": "nahsra__antisamy_CVE-2022-28367_1.6.5",
+    "alert_file": "NAHSRA_ANTISAMY_CVE_2022_28367.json",
+    "github_url": "https://github.com/nahsra/antisamy",
+    "repo": "nahsra/antisamy",
+    "github_tag": "1.6.5",
+    "advisory_id": "GHSA-3pqg-4rqg-pg9g",
+    "buggy_commit_id": "b7c151112dd19928e700ee48639942fd1079d1e3",
+    "fix_commit_ids": [
+      "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java",
+        "class": "AntiSamyDOMScanner",
+        "class_start": "70.0",
+        "class_end": "783.0",
+        "method": "processStyleTag",
+        "method_start": "403.0",
+        "method_end": "446.0",
+        "signature": "boolean processStyleTag(Element,Node)",
+        "is_test": false
+      },
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java",
+        "class": "AntiSamyTest",
+        "class_start": "87.0",
+        "class_end": "1693.0",
+        "method": "testGithubIssue151",
+        "method_start": "1693.0",
+        "method_end": "1703.0",
+        "signature": "void testGithubIssue151()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-28367",
+      "advisory": "https://github.com/advisories/GHSA-3pqg-4rqg-pg9g",
+      "repo": "https://github.com/nahsra/antisamy",
+      "buggy_commit": "https://github.com/nahsra/antisamy/commit/b7c151112dd19928e700ee48639942fd1079d1e3"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-079",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 484,
+              "message": "item(...) : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "attribute : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "getNodeValue(...) : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 516,
+              "message": "value : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 209,
+              "message": "taintedCss : String",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            },
+            {
+              "line": 225,
+              "message": "taintedCss",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-079",
+      "finding_id": "finding-2fe2f5ad4d3b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B -Dtest=AntiSamyTest#testSmuggledTagsInStyleContent test",
+        "mvn -B -Dtest=AntiSamyTest test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81/Dockerfile",
+        "-t",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "mvn -B -Dtest=AntiSamyTest#testSmuggledTagsInStyleContent test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "mvn -B -Dtest=AntiSamyTest test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 825414,
+        "duration_api_ms": 722077,
+        "num_turns": 57,
+        "cost_usd": 4.0568495,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 98,
+          "output": 42690,
+          "cache_read": 3747977,
+          "cache_creation": 97029
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause is in src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java processStyleTag() (lines ~409-432): it reads only `ele.getFirstChild().getNodeValue()` into scanStyleSheet and cleans only firstChild, ignoring sibling child nodes. Trace in the alert (attribute/style CSS-scanning path into CssScanner) is the same style→CSS surface. The upstream fix commits 857202e (\"Support multiple children handling on style tags\") and 21c4061 (\"Fix child node removal on style tag processing\") replace it with a loop that concatenates every child's textContent, scans it, then removes children i>=1; the regression test testSmuggledTagsInStyleContent uses this exact payload. Verified live in the project container: vulnerable run printed the smuggled `</style><a href=javascript:alert(1)>test` and exited 0; after temporarily applying the upstream fix, output was clean and the POV exited 1; restoring the original source returned it to exit 0.",
+        "expected_vulnerable_behavior": "On unpatched code, AntiSamy.scan(\"<style/>b<![cdata[</style><a href=javascript:alert(1)>test\", policy(USE_XHTML=true), AntiSamy.DOM).getCleanHTML() returns `<style><![CDATA[b {\\n}\\n</style><a href=javascript:alert(1)>test]]></style>`, i.e. the smuggled `</style><a href=javascript:alert(1)>` payload leaks into the output. The POV detects the retained \"javascript:alert(1)\" substring and exits 0. After a correct patch (processStyleTag concatenates and CSS-scans ALL child nodes then removes the extra children), the output becomes `<style><![CDATA[b {\\n}\\n]]></style>`, the payload is gone, and the same command exits 1.",
+        "notes": "POV lives entirely under .security-pipeline/pov/ (Pov.java is the primary file; run_pov.sh builds the product with `mvn -DskipTests package`, resolves the runtime classpath via dependency:build-classpath, compiles Pov.java against target/classes + deps, and runs it). No product code or existing tests were modified. The command is self-contained and must be run inside /workspace/repo in the project container. Payload/assertion mirror the official upstream regression test, so it maps precisely to the CVE-2022-28367/29577 fix. Note: a linter reformatted the license header of AntiSamyDOMScanner.java during testing, but the vulnerable processStyleTag logic is intact/unchanged (verified: POV exits 0 on current source).",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/Pov.java",
+        "regression_hint": "A correct fix makes processStyleTag scan ALL child nodes of the <style> element (not just the first) and collapse them to a single cleaned text node, so no smuggled markup survives. After such a patch `bash .security-pipeline/pov/run_pov.sh` exits non-zero (getCleanHTML no longer contains \"javascript:alert(1)\"). If only the SAX path is fixed but the DOM path is not, the POV still fails (correctly flags remaining vulnerability), since it exercises AntiSamy.DOM.",
+        "status": "pov_created",
+        "summary": "Created a real POV for CWE-079 \"STYLE tag smuggling\" (CVE-2022-28367 / CVE-2022-29577) in OWASP AntiSamy 1.6.5. AntiSamyDOMScanner.processStyleTag() only CSS-scans the FIRST child node of a <style> element and leaves any additional child nodes untouched. A malformed input that the HTML parser splits into a <style> element with multiple children lets an attacker smuggle a `javascript:` URI (and full HTML tags) that survive sanitization and are re-emitted verbatim inside the serialized <style> content — a stored/reflected XSS vector. The POV drives the real public API (AntiSamy.scan, DOM mode) and asserts on getCleanHTML()."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 205281,
+        "duration_api_ms": 113458,
+        "num_turns": 20,
+        "cost_usd": 0.6551074999999998,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 36,
+          "output": 6432,
+          "cache_read": 569581,
+          "cache_creation": 20613
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java",
+          "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java"
+        ],
+        "patch_notes": "In processStyleTag(), replaced the single-child scan (`firstChild.getNodeValue()`) with a loop over `ele.getChildNodes()` that appends every child's node value into a StringBuilder before calling `styleScanner.scanStyleSheet(...)`. The cleaned CSS is written back into the first child (or \"/* */\" if empty, preserving the existing IE empty-style-tag guard), and a follow-up `while (ele.getChildNodes().getLength() > 1) ele.removeChild(ele.getLastChild());` removes the now-redundant extra children whose content has already been sanitized into the first child. Added regression test `testSmuggledTagsInStyleContent` in AntiSamyTest that asserts the upstream CVE payload `<style/>b<![cdata[</style><a href=javascript:alert(1)>test` no longer contains `javascript:alert(1)` after scanning in both DOM and SAX modes with USE_XHTML=true (required hamcrest matchers `not`/`containsString` already imported). Verified: POV now exits 1 (was 0), the new test passes, and the full 67-test AntiSamyTest suite passes with no regressions.",
+        "regression_commands": [
+          "mvn -B -Dtest=AntiSamyTest#testSmuggledTagsInStyleContent test",
+          "mvn -B -Dtest=AntiSamyTest test"
+        ],
+        "risk_notes": "Change is scoped to the <style> element processing path. Existing behavior for well-formed single-child <style> elements is preserved (single child → same concatenation of one value → same scan → written back into the first child, no extra children to remove). The empty-style-tag \"/* */\" guard is retained. No API, dependency, or policy changes. A linter had previously reformatted the file's license header (noted in POV evidence); no additional formatting churn was introduced by this patch.",
+        "status": "patched",
+        "summary": "Fixed STYLE tag smuggling (CVE-2022-28367 / CVE-2022-29577, CWE-079) in AntiSamyDOMScanner.processStyleTag(). The DOM path previously CSS-scanned only the first child node of a <style> element, leaving any sibling child nodes untouched. A malformed input that the HTML parser splits into multiple child nodes let an attacker smuggle a javascript: URI and full HTML tags (e.g. `</style><a href=javascript:alert(1)>`) that survived sanitization and were re-emitted verbatim. The patch now concatenates the text content of ALL child nodes, scans it as a single stylesheet, writes the cleaned result into the first child, and removes the extra children so nothing smuggled can survive."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 119739,
+        "duration_api_ms": 64013,
+        "num_turns": 10,
+        "cost_usd": 0.6830124999999999,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 11,
+          "output": 4462,
+          "cache_read": 275393,
+          "cache_creation": 41447
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "bash .security-pipeline/pov/run_pov.sh",
+          "mvn -B -Dtest=AntiSamyTest test"
+        ],
+        "diff_review": "patch_only.diff touches two product/test files plus a helper cp.txt. Core change in AntiSamyDOMScanner.java (lines ~410-458): replaces `String toScan = firstChild.getNodeValue()` with a StringBuilder loop over `ele.getChildNodes()` accumulating every child's node value, scans the concatenation via styleScanner.scanStyleSheet, writes cleaned CSS back into firstChild (retaining the IE empty-style `/* */` guard), then `while (ele.getChildNodes().getLength() > 1) ele.removeChild(ele.getLastChild())` drops the extra children whose content is now sanitized into the first child. This mirrors the upstream fix commits (857202e, 21c4061). Well-formed single-child <style> behavior is preserved. The test file adds regression test testSmuggledTagsInStyleContent asserting the CVE payload no longer yields `javascript:alert(1)` in DOM and SAX modes. No API/policy/dependency changes. cp.txt is a build-classpath helper artifact, harmless. Confirmed the on-disk source matches the diff. POV files are unmodified by the patch.",
+        "issues": [],
+        "pov_result": "Reran `bash .security-pipeline/pov/run_pov.sh` in the project container: INPUT `<style/>b<![cdata[</style><a href=javascript:alert(1)>test` produced CLEAN HTML `<style><![CDATA[b {\\n}\\n]]></style>`, \"SAFE: smuggled payload was neutralized\", exit code 1 (payload gone). Matches orchestrator pov_after_patch. Per logs the pre-patch run emitted the smuggled payload and exited 0. The POV is unchanged and still exercises the real AntiSamy.scan DOM public API.",
+        "regression_result": "Reran `mvn -B -Dtest=AntiSamyTest test` in the container: BUILD SUCCESS, Tests run: 67, Failures: 0, Errors: 0, Skipped: 0 (includes the new testSmuggledTagsInStyleContent). No regressions. Jacoco coverage-check warnings are pre-existing and non-fatal.",
+        "summary": "The patch fixes the STYLE-tag smuggling XSS (CWE-079, CVE-2022-28367/29577) in AntiSamyDOMScanner.processStyleTag() by concatenating the text of ALL child nodes of a <style> element before CSS-scanning, writing the cleaned result into the first child, and removing the now-redundant extra children. This closes the vector where only the first child was scanned, letting a smuggled `</style><a href=javascript:alert(1)>` payload survive. I independently reran the POV (now neutralized, exit 1) and the full AntiSamyTest suite (67/67 pass). The fix is minimal, preserves existing behavior (empty-style `/* */` guard retained, single-child path unchanged), does not remove vulnerable functionality, and does not touch the POV.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 5.395,
+    "num_turns": 87,
+    "agent_duration_ms": 1150434
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log"
+    ]
+  }
+}

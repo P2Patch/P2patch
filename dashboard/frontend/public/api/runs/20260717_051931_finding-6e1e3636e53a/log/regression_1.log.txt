@@ -1,0 +1,225 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051931_finding-6e1e3636e53a/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-6e1e3636e53a:4331f21f0ee0 bash -lc mvn -B test -pl ff4j-core -am
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[INFO] Scanning for projects...
+[INFO] Inspecting build with total of 2 modules...
+[INFO] Installing Nexus Staging features:
+[INFO]   ... total of 2 executions of maven-deploy-plugin replaced with nexus-staging-maven-plugin
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Feature Flipping 4 Java
+[INFO] ff4j-core
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Feature Flipping 4 Java 1.8.13
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.7:prepare-agent (default-prepare-agent) @ ff4j-parent ---
+[INFO] argLine set to -javaagent:/root/.m2/repository/org/jacoco/org.jacoco.agent/0.8.7/org.jacoco.agent-0.8.7-runtime.jar=destfile=/workspace/repo/target/jacoco.exec
+[INFO] 
+[INFO] --- license-maven-plugin:1.8:update-file-header (add-license) @ ff4j-parent ---
+[INFO] adding extra resolver file:/workspace/repo/src/license
+[WARNING] No file to scan.
+[INFO] 
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (unit-test) @ ff4j-parent ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building ff4j-core 1.8.13
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.7:prepare-agent (default-prepare-agent) @ ff4j-core ---
+[INFO] argLine set to -javaagent:/root/.m2/repository/org/jacoco/org.jacoco.agent/0.8.7/org.jacoco.agent-0.8.7-runtime.jar=destfile=/workspace/repo/ff4j-core/target/jacoco.exec
+[INFO] 
+[INFO] --- license-maven-plugin:1.8:update-file-header (add-license) @ ff4j-core ---
+[INFO] adding extra resolver file:/workspace/repo/ff4j-core//../src/license
+[INFO] Will search files to update from root /workspace/repo/ff4j-core/src/main/java
+[INFO] Will search files to update from root /workspace/repo/ff4j-core/src/test
+[INFO] Scan 242 files header done in 207.049ms.
+[INFO] All files are up-to-date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.4:resources (default-resources) @ ff4j-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 8 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.3:compile (default-compile) @ ff4j-core ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 141 source files to /workspace/repo/ff4j-core/target/classes
+[INFO] 
+[INFO] --- maven-resources-plugin:2.4:testResources (default-testResources) @ ff4j-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 37 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.3:testCompile (default-testCompile) @ ff4j-core ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 64 source files to /workspace/repo/ff4j-core/target/test-classes
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ ff4j-core ---
+[INFO] Tests are skipped.
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (unit-test) @ ff4j-core ---
+[INFO] Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-junit4/2.22.2/surefire-junit4-2.22.2.pom
+[INFO] Downloaded: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-junit4/2.22.2/surefire-junit4-2.22.2.pom (3.1 kB at 13 kB/s)
+[INFO] Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-providers/2.22.2/surefire-providers-2.22.2.pom
+[INFO] Downloaded: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-providers/2.22.2/surefire-providers-2.22.2.pom (2.5 kB at 46 kB/s)
+[INFO] Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-junit4/2.22.2/surefire-junit4-2.22.2.jar
+[INFO] Downloaded: https://repo.maven.apache.org/maven2/org/apache/maven/surefire/surefire-junit4/2.22.2/surefire-junit4-2.22.2.jar (85 kB at 837 kB/s)
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running org.ff4j.test.FF4jTest
+[INFO] Tests run: 37, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.229 s - in org.ff4j.test.FF4jTest
+[INFO] Running org.ff4j.test.cache.CacheProxyWithPollingTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.5 s - in org.ff4j.test.cache.CacheProxyWithPollingTest
+[INFO] Running org.ff4j.test.cache.InMemoryCacheTest
+[INFO] Tests run: 103, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.44 s - in org.ff4j.test.cache.InMemoryCacheTest
+[INFO] Running org.ff4j.test.cache.CacheProxyTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.053 s - in org.ff4j.test.cache.CacheProxyTest
+[INFO] Running org.ff4j.test.security.AuthorizationManagementTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.12 s - in org.ff4j.test.security.AuthorizationManagementTest
+[INFO] Running org.ff4j.test.property.JdbcPropertyStoreTest
+[INFO] Tests run: 41, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.799 s - in org.ff4j.test.property.JdbcPropertyStoreTest
+[INFO] Running org.ff4j.test.property.JdbcPropertyStoreSchemaTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.33 s - in org.ff4j.test.property.JdbcPropertyStoreSchemaTest
+[INFO] Running org.ff4j.test.property.InMemoryPropertiesStoreTest
+[INFO] Tests run: 53, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.114 s - in org.ff4j.test.property.InMemoryPropertiesStoreTest
+[INFO] Running org.ff4j.test.property.PropertyTest
+[INFO] Tests run: 32, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s - in org.ff4j.test.property.PropertyTest
+[INFO] Running org.ff4j.test.property.JdbcPropertyStoreErrorTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.134 s - in org.ff4j.test.property.JdbcPropertyStoreErrorTest
+[INFO] Running org.ff4j.test.property.JdbcPropertyStorePrefixTest
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.632 s - in org.ff4j.test.property.JdbcPropertyStorePrefixTest
+[INFO] Running org.ff4j.test.property.MultiValuedPropertyTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.223 s - in org.ff4j.test.property.MultiValuedPropertyTest
+[INFO] Running org.ff4j.test.property.PropertyFactoryTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.05 s - in org.ff4j.test.property.PropertyFactoryTest
+[INFO] Running org.ff4j.test.web.ApiConfigTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s - in org.ff4j.test.web.ApiConfigTest
+[INFO] Running org.ff4j.test.utils.ExceptionsTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.041 s - in org.ff4j.test.utils.ExceptionsTest
+[INFO] Running org.ff4j.test.utils.UtilTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s - in org.ff4j.test.utils.UtilTest
+[INFO] Running org.ff4j.test.utils.FeatureJsonMarshallTest
+[WARNING] Tests run: 9, Failures: 0, Errors: 0, Skipped: 2, Time elapsed: 0.276 s - in org.ff4j.test.utils.FeatureJsonMarshallTest
+[INFO] Running org.ff4j.test.utils.MappingUtilsTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.05 s - in org.ff4j.test.utils.MappingUtilsTest
+[INFO] Running org.ff4j.test.utils.IOUtilsTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.036 s - in org.ff4j.test.utils.IOUtilsTest
+[INFO] Running org.ff4j.test.utils.GenerationUtilTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.071 s - in org.ff4j.test.utils.GenerationUtilTest
+[INFO] Running org.ff4j.test.parser.ParameterUtilsTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.035 s - in org.ff4j.test.parser.ParameterUtilsTest
+[INFO] Running org.ff4j.test.parser.XmlParserTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.067 s - in org.ff4j.test.parser.XmlParserTest
+[INFO] Running org.ff4j.test.parser.FeatureXmlParserTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.078 s - in org.ff4j.test.parser.FeatureXmlParserTest
+[INFO] Running org.ff4j.test.FF4jInitializationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.104 s - in org.ff4j.test.FF4jInitializationTest
+[INFO] Running org.ff4j.test.audit.PropertyStoreAuditProxyTest
+[INFO] Tests run: 40, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.122 s - in org.ff4j.test.audit.PropertyStoreAuditProxyTest
+[INFO] Running org.ff4j.test.audit.JdbcEventRepositoryTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.004 s - in org.ff4j.test.audit.JdbcEventRepositoryTest
+[INFO] Running org.ff4j.test.audit.FeatureStoreAuditProxyTest
+[INFO] Tests run: 84, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.163 s - in org.ff4j.test.audit.FeatureStoreAuditProxyTest
+[INFO] Running org.ff4j.test.audit.AuditBeanTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s - in org.ff4j.test.audit.AuditBeanTest
+[INFO] Running org.ff4j.test.audit.EventWorkerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.63 s - in org.ff4j.test.audit.EventWorkerTest
+[INFO] Running org.ff4j.test.audit.InMemoryEventRepositoryTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.989 s - in org.ff4j.test.audit.InMemoryEventRepositoryTest
+[INFO] Running org.ff4j.test.audit.JdbcEventRepositorySchemaTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.317 s - in org.ff4j.test.audit.JdbcEventRepositorySchemaTest
+[INFO] Running org.ff4j.test.FF4j_autocreate_multithreaded_Test
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.522 s - in org.ff4j.test.FF4j_autocreate_multithreaded_Test
+[INFO] Running org.ff4j.test.store.InMemoryFeatureStoreTest
+[INFO] Tests run: 92, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.154 s - in org.ff4j.test.store.InMemoryFeatureStoreTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureStoreCoreTest
+[INFO] Tests run: 86, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.845 s - in org.ff4j.test.store.JdbcFeatureStoreCoreTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureStoreXmlTest
+[INFO] Tests run: 82, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.919 s - in org.ff4j.test.store.JdbcFeatureStoreXmlTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureStoreErrorTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.12 s - in org.ff4j.test.store.JdbcFeatureStoreErrorTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureDataSourceTest
+[INFO] Tests run: 89, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.7 s - in org.ff4j.test.store.JdbcFeatureDataSourceTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureStorePrefixTest
+[INFO] Tests run: 83, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.829 s - in org.ff4j.test.store.JdbcFeatureStorePrefixTest
+[INFO] Running org.ff4j.test.store.JdbcFeatureStoreSchemaTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.382 s - in org.ff4j.test.store.JdbcFeatureStoreSchemaTest
+[INFO] Running org.ff4j.test.strategy.ClientFilterStrategyTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.144 s - in org.ff4j.test.strategy.ClientFilterStrategyTest
+[INFO] Running org.ff4j.test.strategy.ServerFilterStrategyTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.134 s - in org.ff4j.test.strategy.ServerFilterStrategyTest
+[INFO] Running org.ff4j.test.strategy.el.ExpressionFlipStategyTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.067 s - in org.ff4j.test.strategy.el.ExpressionFlipStategyTest
+[INFO] Running org.ff4j.test.strategy.el.ExpressionParserTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.ff4j.test.strategy.el.ExpressionParserTest
+[INFO] Running org.ff4j.test.strategy.PonderationStrategyTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.145 s - in org.ff4j.test.strategy.PonderationStrategyTest
+[INFO] Running org.ff4j.test.strategy.OfficeHourStrategyTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.182 s - in org.ff4j.test.strategy.OfficeHourStrategyTest
+[INFO] Running org.ff4j.test.strategy.ReleaseDateFlipStrategyTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.138 s - in org.ff4j.test.strategy.ReleaseDateFlipStrategyTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[WARNING] Tests run: 1125, Failures: 0, Errors: 0, Skipped: 2
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] Feature Flipping 4 Java ............................ SUCCESS [  0.278 s]
+[INFO] ff4j-core .......................................... SUCCESS [01:11 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 01:11 min
+[INFO] Finished at: 2026-07-17T04:33:40Z
+[INFO] Final Memory: 40M/549M
+[INFO] ------------------------------------------------------------------------
+
+--- stderr ---
+Jul 17, 2026 4:32:37 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:32:37 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:32:37 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:32:38 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:32:39 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:32:42 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:32:42 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Cannot send Audit Event
+Jul 17, 2026 4:32:54 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:32:56 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:33:22 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:33:22 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:33:25 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:33:25 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:33:26 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:33:26 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:33:30 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:33:30 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+Jul 17, 2026 4:33:32 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory initDatabase
+INFO: Starting embedded database: url='jdbc:hsqldb:mem:testdb', username='sa'
+Jul 17, 2026 4:33:32 AM org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory shutdownDatabase
+INFO: Shutting down embedded database: url='jdbc:hsqldb:mem:testdb'
+

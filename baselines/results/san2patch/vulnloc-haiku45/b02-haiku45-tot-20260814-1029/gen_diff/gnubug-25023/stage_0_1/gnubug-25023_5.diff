@@ -1,0 +1,33 @@
+diff --git a/src/pr.c b/src/pr.c
+index 20e863760..8c2845826 100644
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -2234,22 +2234,24 @@ print_sep_string (void)
+     {
+       for (; separators_not_printed > 0; --separators_not_printed)
+         {
+-          while (l-- > 0)
++          int remaining = l;
++          const char *s_local = s;
++          while (remaining-- > 0)
+             {
+               /* 3 types of sep_strings: spaces only, spaces and chars,
+               chars only */
+-              if (*s == ' ')
++              if (*s_local == ' ')
+                 {
+                   /* We're tabifying output; consecutive spaces in
+                   sep_string may have to be converted to tabs */
+-                  s++;
++                  s_local++;
+                   ++spaces_not_printed;
+                 }
+               else
+                 {
+                   if (spaces_not_printed > 0)
+                     print_white_space ();
+-                  putchar (*s++);
++                  putchar (*s_local++);
+                   ++output_position;
+                 }
+             }

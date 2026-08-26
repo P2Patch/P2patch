@@ -1,0 +1,280 @@
+diff --git a/src/main/java/spark/staticfiles/DirectoryTraversal.java b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+index 080fbe4..180fe63 100644
+--- a/src/main/java/spark/staticfiles/DirectoryTraversal.java
++++ b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+@@ -10,18 +10,36 @@ import static spark.utils.StringUtils.removeLeadingAndTrailingSlashesFrom;
+ public class DirectoryTraversal {
+ 
+     public static void protectAgainstInClassPath(String path) {
+-        if (!removeLeadingAndTrailingSlashesFrom(path).startsWith(StaticFilesFolder.local())) {
++        if (!isStrictlyWithin(removeLeadingAndTrailingSlashesFrom(path), StaticFilesFolder.local())) {
+             throw new DirectoryTraversalDetection("classpath");
+         }
+     }
+ 
+     public static void protectAgainstForExternal(String path) {
+         String nixLikePath = Paths.get(path).toAbsolutePath().toString().replace("\\", "/");
+-        if (!removeLeadingAndTrailingSlashesFrom(nixLikePath).startsWith(StaticFilesFolder.external())) {
++        if (!isStrictlyWithin(removeLeadingAndTrailingSlashesFrom(nixLikePath), StaticFilesFolder.external())) {
+             throw new DirectoryTraversalDetection("external");
+         }
+     }
+ 
++    /**
++     * Checks that {@code normalizedPath} is either exactly {@code folder} or a path
++     * segment nested under it. A bare {@link String#startsWith(String)} check is not
++     * sufficient here, since it would also accept sibling entries that merely share a
++     * character prefix with the configured folder (e.g. folder "public" wrongly
++     * matching "public-jar.zip").
++     */
++    private static boolean isStrictlyWithin(String normalizedPath, String folder) {
++        if (folder == null) {
++            return false;
++        }
++        if (folder.isEmpty()) {
++            // Nothing configured to restrict against - the whole root is allowed.
++            return true;
++        }
++        return normalizedPath.equals(folder) || normalizedPath.startsWith(folder + "/");
++    }
++
+     public static final class DirectoryTraversalDetection extends RuntimeException {
+         private static final long serialVersionUID = 1L;
+ 
+diff --git a/.security-pipeline/pov/PathTraversalPovTest.java b/.security-pipeline/pov/PathTraversalPovTest.java
+new file mode 100644
+index 0000000..9335486
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPovTest.java
+@@ -0,0 +1,115 @@
++package spark.resource;
++
++import org.junit.Assert;
++import org.junit.Test;
++
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.InputStream;
++import java.net.URL;
++import java.nio.file.Files;
++
++import spark.staticfiles.StaticFilesFolder;
++
++/**
++ * Proof-of-vulnerability for finding-278ac32699a6 (CWE-022, path traversal).
++ *
++ * Root cause: {@code spark.staticfiles.DirectoryTraversal.protectAgainstInClassPath()}
++ * (src/main/java/spark/staticfiles/DirectoryTraversal.java) is supposed to stop a
++ * resolved {@link ClassPathResource} path from escaping the folder configured via
++ * {@code spark.Spark#staticFiles.location(...)}, but it validates the resolved path
++ * with a bare {@code String#startsWith(prefix)} check against
++ * {@code StaticFilesFolder.local()} -- with no trailing path-separator boundary.
++ *
++ * Separately, {@link UriPath#canonical(String)} (called first, in
++ * {@link ClassPathResourceHandler#getResource(String)}) only recognises ".." tokens
++ * that are delimited by the forward slash '/'. A backslash-obfuscated segment such as
++ * "..\" is therefore passed through untouched. Later, inside the
++ * {@link ClassPathResource#ClassPathResource(String)} constructor,
++ * {@code spark.utils.StringUtils#cleanPath(String)} first rewrites '\' to '/' and THEN
++ * collapses ".." segments -- so the very traversal token that slipped past the
++ * "protective" canonicalization step is honoured after all, and cancels out the
++ * "public" segment contributed by the configured static-files base resource.
++ *
++ * The net effect: requesting a backslash-obfuscated "../" lets the resolved
++ * ClassPathResource path become a *sibling* classpath entry ("public-jar.zip") that
++ * merely starts with the same characters as the configured folder ("public"). The
++ * boundary-free prefix check in protectAgainstInClassPath() then wrongly treats that
++ * sibling entry as "inside" the static folder, and spark.resource.ClassPathResource's
++ * real sinks -- getInputStream() (src/main/java/spark/resource/ClassPathResource.java:139)
++ * and getURL() (line 141) -- serve/resolve an out-of-root classpath resource.
++ *
++ * This test drives the real production code path
++ * (ClassPathResourceHandler.getResource(String) -&gt; new ClassPathResource(...) -&gt;
++ * getInputStream()/getURL()) exactly as spark.staticfiles.StaticFilesConfiguration
++ * does for every static-file HTTP request. It is placed in package spark.resource so
++ * it can call the package-protected ClassPathResourceHandler#getResource(String) the
++ * same way AbstractResourceHandler#getResource(HttpServletRequest) does internally.
++ *
++ * On vulnerable code this test PASSES (exit code 0). Once the traversal/prefix-bypass
++ * is fixed (e.g. boundary-checked comparison in protectAgainstInClassPath, and/or
++ * consistent separator handling between UriPath.canonical and StringUtils.cleanPath),
++ * the resource lookup must be rejected (return null or throw
++ * DirectoryTraversal.DirectoryTraversalDetection) and this test will fail (non-zero
++ * exit code).
++ */
++public class PathTraversalPovTest {
++
++    @Test
++    public void backslashObfuscatedTraversalEscapesConfiguredStaticFolder() throws Exception {
++        // Mirrors what spark.staticfiles.StaticFilesConfiguration#configure(String)
++        // does for `Spark.staticFiles.location("/public")`: it sets the "local"
++        // prefix used by DirectoryTraversal.protectAgainstInClassPath().
++        StaticFilesFolder.localConfiguredTo("/public");
++
++        // Mirrors `new ClassPathResourceHandler(folder, "index.html")` as constructed
++        // by StaticFilesConfiguration#configure(String).
++        ClassPathResourceHandler handler = new ClassPathResourceHandler("/public", "index.html");
++
++        // Decoded form of what an attacker sends as: GET /..%5Cpublic-jar.zip
++        // UriPath.canonical() does not recognise "..\" (backslash-delimited) as a
++        // traversal token, so it is forwarded unchanged into
++        // addPaths("/public", "/..\public-jar.zip") = "/public/..\public-jar.zip",
++        // which the ClassPathResource(String) constructor's cleanPath() then resolves
++        // (after '\'->'/' normalization) to the sibling entry "public-jar.zip".
++        AbstractFileResolvingResource rawResource = handler.getResource("/..\\public-jar.zip");
++
++        Assert.assertNotNull("expected the traversal payload to resolve to a resource; "
++                + "the directory-traversal guard failed to block it (vulnerable behavior)", rawResource);
++        Assert.assertTrue(rawResource instanceof ClassPathResource);
++        ClassPathResource resource = (ClassPathResource) rawResource;
++
++        // Confirms the resolved resource lives OUTSIDE the configured "/public" root,
++        // yet was accepted by the boundary-free startsWith("public") prefix check.
++        Assert.assertEquals("public-jar.zip", resource.getPath());
++
++        // Exercise the real sink: ClassPathResource#getInputStream()
++        // (src/main/java/spark/resource/ClassPathResource.java:139), the exact method
++        // spark.staticfiles.StaticFilesConfiguration#consumeWithFileResourceHandlers
++        // uses to stream file bytes back to the HTTP client.
++        byte[] served;
++        try (InputStream in = resource.getInputStream()) {
++            ByteArrayOutputStream out = new ByteArrayOutputStream();
++            byte[] buf = new byte[4096];
++            int n;
++            while ((n = in.read(buf)) != -1) {
++                out.write(buf, 0, n);
++            }
++            served = out.toByteArray();
++        }
++
++        File expectedFile = new File("src/test/resources/public-jar.zip");
++        byte[] expected = Files.readAllBytes(expectedFile.toPath());
++        Assert.assertArrayEquals("served bytes must match the real out-of-root classpath "
++                + "resource content, proving disclosure of a file outside the configured "
++                + "static-files folder", expected, served);
++
++        // Second sink from the alert: ClassPathResource#getURL()
++        // (src/main/java/spark/resource/ClassPathResource.java:141) must also resolve
++        // outside "/public/" for the same traversal payload.
++        URL url = resource.getURL();
++        Assert.assertNotNull(url);
++        Assert.assertTrue("resolved URL should point at the sibling resource, not under /public/",
++                url.toString().endsWith("public-jar.zip") && !url.toString().contains("/public/"));
++    }
++}
+diff --git a/src/test/java/spark/resource/ClassPathResourceHandlerTraversalTest.java b/src/test/java/spark/resource/ClassPathResourceHandlerTraversalTest.java
+new file mode 100644
+index 0000000..0c826a2
+--- /dev/null
++++ b/src/test/java/spark/resource/ClassPathResourceHandlerTraversalTest.java
+@@ -0,0 +1,41 @@
++package spark.resource;
++
++import org.junit.Test;
++
++import static org.junit.Assert.assertTrue;
++
++import spark.staticfiles.DirectoryTraversal;
++import spark.staticfiles.StaticFilesFolder;
++
++/**
++ * Regression test for CWE-022: end-to-end coverage of
++ * {@link ClassPathResourceHandler#getResource(String)} (accessed here via the same
++ * package the production {@link spark.resource.AbstractResourceHandler#getResource}
++ * uses) for a backslash-obfuscated traversal payload that resolves to a classpath
++ * entry ("public-jar.zip") which is merely a sibling of the configured static-files
++ * folder ("public"), not nested inside it.
++ * <p>
++ * Before the fix, {@code DirectoryTraversal.protectAgainstInClassPath} used a bare
++ * {@code startsWith} prefix check that wrongly accepted this sibling entry, letting
++ * {@code getInputStream()}/{@code getURL()} serve a resource outside the configured root.
++ */
++public class ClassPathResourceHandlerTraversalTest {
++
++    @Test
++    public void backslashObfuscatedTraversalIsRejected() throws Exception {
++        StaticFilesFolder.localConfiguredTo("/public");
++        ClassPathResourceHandler handler = new ClassPathResourceHandler("/public", "index.html");
++
++        boolean rejected;
++        try {
++            AbstractFileResolvingResource resource = handler.getResource("/..\\public-jar.zip");
++            rejected = (resource == null);
++        } catch (DirectoryTraversal.DirectoryTraversalDetection expected) {
++            rejected = true;
++        }
++
++        assertTrue("backslash-obfuscated traversal to a sibling classpath entry must be "
++                + "rejected (null resource or DirectoryTraversalDetection), not resolved",
++                rejected);
++    }
++}
+diff --git a/src/test/java/spark/staticfiles/DirectoryTraversalTest.java b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+new file mode 100644
+index 0000000..8dfe2d3
+--- /dev/null
++++ b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+@@ -0,0 +1,63 @@
++package spark.staticfiles;
++
++import org.junit.Test;
++
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.fail;
++
++/**
++ * Regression tests for CWE-022: the boundary-free {@code String#startsWith(prefix)}
++ * check previously used by {@link DirectoryTraversal} wrongly accepted classpath/external
++ * resources that merely share a character prefix with the configured static-files
++ * folder (e.g. folder "public" matching sibling entry "public-jar.zip"), letting a
++ * traversal payload resolve to a resource outside the configured root.
++ */
++public class DirectoryTraversalTest {
++
++    @Test
++    public void protectAgainstInClassPath_allowsExactFolderMatch() {
++        StaticFilesFolder.localConfiguredTo("/public");
++        DirectoryTraversal.protectAgainstInClassPath("public");
++    }
++
++    @Test
++    public void protectAgainstInClassPath_allowsNestedPath() {
++        StaticFilesFolder.localConfiguredTo("/public");
++        DirectoryTraversal.protectAgainstInClassPath("public/page.html");
++    }
++
++    @Test(expected = DirectoryTraversal.DirectoryTraversalDetection.class)
++    public void protectAgainstInClassPath_rejectsSiblingWithSamePrefix() {
++        StaticFilesFolder.localConfiguredTo("/public");
++        // "public-jar.zip" starts with "public" but is NOT inside the "public" folder.
++        DirectoryTraversal.protectAgainstInClassPath("public-jar.zip");
++    }
++
++    @Test(expected = DirectoryTraversal.DirectoryTraversalDetection.class)
++    public void protectAgainstInClassPath_rejectsSiblingReachedViaBackslashTraversal() {
++        StaticFilesFolder.localConfiguredTo("/public");
++
++        // Mirrors what spark.resource.ClassPathResourceHandler#getResource(String) computes for
++        // request path "/..\\public-jar.zip": UriPath.canonical() does not recognize a
++        // backslash-delimited ".." token, so it is forwarded unchanged; StringUtils.cleanPath()
++        // (invoked from the ClassPathResource constructor) later normalizes '\' to '/' and
++        // collapses the ".." segment, producing "public-jar.zip" - a sibling of "public".
++        DirectoryTraversal.protectAgainstInClassPath("public-jar.zip");
++    }
++
++    @Test
++    public void protectAgainstForExternal_allowsExactFolderMatch() {
++        String external = System.getProperty("java.io.tmpdir").replace("\\", "/");
++        StaticFilesFolder.externalConfiguredTo(external);
++        DirectoryTraversal.protectAgainstForExternal(external);
++    }
++
++    @Test(expected = DirectoryTraversal.DirectoryTraversalDetection.class)
++    public void protectAgainstForExternal_rejectsSiblingWithSamePrefix() {
++        String external = System.getProperty("java.io.tmpdir").replace("\\", "/");
++        StaticFilesFolder.externalConfiguredTo(external);
++        // A directory that merely starts with the same characters as the configured
++        // external folder must not be treated as being inside it.
++        DirectoryTraversal.protectAgainstForExternal(external + "-sibling/secret.txt");
++    }
++}

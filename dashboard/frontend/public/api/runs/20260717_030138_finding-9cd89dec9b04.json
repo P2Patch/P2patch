@@ -1,0 +1,1052 @@
+{
+  "run_id": "20260717_030138_finding-9cd89dec9b04",
+  "finding_id": "finding-9cd89dec9b04",
+  "timestamp": "2026-07-17T03:01:38",
+  "status": "rejected",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Regression command failed: mvn -B test",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_030138_finding-9cd89dec9b04",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-9cd89dec9b04",
+    "cve_id": "CVE-2018-1002201",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "zeroturnaround__zt-zip_CVE-2018-1002201_1.12",
+    "alert_file": "ZEROTURNAROUND_ZT_ZIP_CVE_2018_1002201.json",
+    "github_url": "https://github.com/zeroturnaround/zt-zip",
+    "repo": "zeroturnaround/zt-zip",
+    "github_tag": "1.12",
+    "advisory_id": "GHSA-qcf3-9vmh-xw4r",
+    "buggy_commit_id": "bd3f3d77f3709f901fd5180a493ef32e4dfebfa6",
+    "fix_commit_ids": [
+      "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff",
+        "file": "src/main/java/org/zeroturnaround/zip/ZipUtil.java",
+        "class": "Unpacker",
+        "class_start": "1139.0",
+        "class_end": "1149.0",
+        "method": "process",
+        "method_start": "1149.0",
+        "method_end": "1168.0",
+        "signature": "void process(InputStream,ZipEntry)",
+        "is_test": false
+      },
+      {
+        "commit": "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff",
+        "file": "src/main/java/org/zeroturnaround/zip/ZipUtil.java",
+        "class": "Unwraper",
+        "class_start": "1238.0",
+        "class_end": "1280.0",
+        "method": "getRootName",
+        "method_start": "1280.0",
+        "method_end": "1286.0",
+        "signature": "String getRootName(String)",
+        "is_test": false
+      },
+      {
+        "commit": "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff",
+        "file": "src/main/java/org/zeroturnaround/zip/ZipUtil.java",
+        "class": "Unwraper",
+        "class_start": "1238.0",
+        "class_end": "1280.0",
+        "method": "process",
+        "method_start": "1249.0",
+        "method_end": "1271.0",
+        "signature": "void process(InputStream,ZipEntry)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1002201",
+      "advisory": "https://github.com/advisories/GHSA-qcf3-9vmh-xw4r",
+      "repo": "https://github.com/zeroturnaround/zt-zip",
+      "buggy_commit": "https://github.com/zeroturnaround/zt-zip/commit/bd3f3d77f3709f901fd5180a493ef32e4dfebfa6"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 1301,
+              "message": "zip : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1310,
+              "message": "zip : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 938,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 939,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 994,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 996,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1144,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "this [post update] : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 996,
+              "message": "new Unpacker(...) : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 471,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 472,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 492,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 508,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1149,
+              "message": "parameter this : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "this <.field> : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1157,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1159,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 1094,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1144,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "this [post update] : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "new Unpacker(...) : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 704,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 712,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1149,
+              "message": "parameter this : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "this <.field> : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1157,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1159,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 1076,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1077,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1094,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1144,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "this [post update] : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "new Unpacker(...) : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 704,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 712,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1149,
+              "message": "parameter this : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "this <.field> : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1157,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1159,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 1060,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1061,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1094,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1144,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1145,
+              "message": "this [post update] : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1096,
+              "message": "new Unpacker(...) : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 704,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 712,
+              "message": "action : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1149,
+              "message": "parameter this : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "this <.field> : Unpacker [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1152,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1157,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1159,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 1196,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 31,
+              "message": "name : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/IdentityNameMapper.java"
+            },
+            {
+              "line": 32,
+              "message": "name : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/IdentityNameMapper.java"
+            },
+            {
+              "line": 1196,
+              "message": "map(...) : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1210,
+              "message": "name : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1210,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1214,
+              "message": "...[...] : String",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1214,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1215,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 1111,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1112,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1129,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1131,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1244,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "this [post update] : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1131,
+              "message": "new Unwraper(...) : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 745,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 746,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 704,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 712,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1249,
+              "message": "parameter this : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "this <.field> : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1265,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1267,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 1029,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1031,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1244,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "this [post update] : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1031,
+              "message": "new Unwraper(...) : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 471,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 472,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 492,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 508,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1249,
+              "message": "parameter this : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "this <.field> : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1265,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1267,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 1011,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1012,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1029,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1031,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1244,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1245,
+              "message": "this [post update] : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1031,
+              "message": "new Unwraper(...) : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 471,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 472,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 492,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 508,
+              "message": "action : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1249,
+              "message": "parameter this : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "this <.field> : Unwraper [outputDir] : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "outputDir : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1260,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1265,
+              "message": "file : File",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            },
+            {
+              "line": 1267,
+              "message": "file",
+              "uri": "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "skipped",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "skipped",
+      "detail": null
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-9cd89dec9b04",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "category": "agent_failure",
+      "name": "failed",
+      "reason": "Regression command failed: mvn -B test",
+      "status": "rejected"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/zeroturnaround__zt-zip_[redacted]_1.12/31/Dockerfile",
+        "-t",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/zeroturnaround__zt-zip_[redacted]_1.12/31"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "bash",
+        "-lc",
+        "mvn -B -DskipTests package"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "bash",
+        "-lc",
+        "mvn -B test -Dtest=ZipUtilTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    },
+    {
+      "name": "regression_3",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9cd89dec9b04:ec49b32dada6",
+        "bash",
+        "-lc",
+        "mvn -B test"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "regression_3.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 237865,
+        "duration_api_ms": 229432,
+        "num_turns": 30,
+        "cost_usd": 1.1246943,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 58,
+          "output": 19774,
+          "cache_read": 1704741,
+          "cache_creation": 52748
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause: unchecked `new File(<targetDir>, <attacker-controlled entry name>)` construction across ZipUtil's internal ZipEntryCallback implementations, with the untrusted input being the ZIP entry name (crossing the trust boundary from \"contents of an externally supplied .zip file\" into \"filesystem path used for a write\"). No canonicalization/containment check is performed before FileUtils.copy/forceMkdir writes to that File. Three distinct sink locations must all be fixed (verified by reading ZipUtil.java):\n1. ZipUtil.java:1152, `Unpacker#process` — `File file = new File(outputDir, name);` (then FileUtils.forceMkdir/FileUtils.copy at 1154/1157/1163). Reached from ALL `ZipUtil.unpack(File,File[,Charset])`, `unpack(File,File,NameMapper[,Charset])`, and `unpack(InputStream,File,...)` overloads (ZipUtil.java lines ~938-1096), i.e. the alert's first vulnerability group (4 traces, all converging here). This is the sink the PoV exercises directly.\n2. ZipUtil.java:1214/1220, `BackslashUnpacker#process` — `File file = new File(parentDirectory, dirs[i]);` and `File destFile = new File(parentDirectory, dirs[dirs.length-1]);`, where `dirs` comes from splitting the entry name on backslashes with no per-segment validation (a segment of \"..\" still escapes). This is the alert's second vulnerability group (getName -> IdentityNameMapper.map -> split -> array index -> new File -> file, ZipUtil.java:1196-1215-ish).\n3. ZipUtil.java:1260, `Unwraper#process` — `File file = new File(outputDir, name);` (then forceMkdir/copy at 1262/1265/1267-1269). Reached from `ZipUtil.unwrap(File,File[,NameMapper])` and the root-shaving `unpack(...)` variants that build an `Unwraper` (ZipUtil.java lines ~1011-1245). This is the alert's third vulnerability group (3 traces).\nAll three sinks share the identical pattern and root cause; a complete fix must add path-containment validation at each of them (or centralize it in one shared helper all three call).",
+        "expected_vulnerable_behavior": "ZipUtil.unpack(zipFile, outputDir) extracts a ZIP entry named \"../evil-escaped.txt\" to a file located one directory *above* outputDir (i.e. outside the caller's intended extraction sandbox), because ZipUtil.Unpacker#process builds the destination via `new File(outputDir, name)` with no validation that the resolved path stays under outputDir. The PoV detects this by checking that the escaped file exists outside outputDir's canonical path and contains the unique marker written into the malicious zip entry, then exits 0.",
+        "notes": "Targeted the alert's first vulnerability group (4 traces all converging on ZipUtil.Unpacker#process, ZipUtil.java:1152) via the most widely used public entry point, ZipUtil.unpack(File, File) — this is the historical zt-zip Zip Slip vulnerability (CVE-2018-1002200) and best demonstrates the shared root cause (unchecked `new File(targetDir, entryName)`). The other two vulnerability groups in the alert (BackslashUnpacker at ZipUtil.java:1214/1220, and Unwraper at ZipUtil.java:1260 reached via unwrap()/root-shaving unpack() overloads) share the identical pattern and are documented in `evidence`/`regression_hint` for the patcher to cover, but are not separately exercised by this PoV to keep it focused on one clear root-cause reproduction. Verified the PoV correctly reports VULNERABLE (exit 0) on the current unpatched tree, and correctly flips to SAFE (exit 1) when a canonical-path containment check is temporarily added to the Unpacker sink (patch was reverted afterward; `git diff --stat` on tracked files is empty). No product code or existing tests were modified; all PoV files live under `.security-pipeline/pov/`.",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/ZipSlipPov.java",
+        "regression_hint": "Invariant a correct fix must enforce: for every ZIP entry extracted by ZipUtil (via Unpacker, BackslashUnpacker, and Unwraper), the resolved destination File's canonical path must remain strictly inside the canonical path of the caller-supplied target directory (outputDir / parentDirectory) before any directory-creation or file-write happens; otherwise the entry must be rejected (e.g. throw ZipException) rather than silently written or silently dropped in a way that still touches the filesystem outside the sandbox.\n\nKnown bypass variants the fix must also block (test each against all three sinks — Unpacker, BackslashUnpacker, Unwraper — not just the one this PoV exercises):\n- Single- and multi-segment traversal: \"../evil.txt\", \"../../../etc/passwd\", \"a/../../evil.txt\".\n- Absolute paths as entry names, which make `new File(outputDir, name)` ignore outputDir entirely on some platforms: \"/etc/passwd\", \"C:\\\\evil.txt\" (Windows).\n- Backslash-separated traversal specifically for BackslashUnpacker: \"..\\\\..\\\\evil.txt\" (dirs[i] == \"..\").\n- Traversal combined with a NameMapper that rewrites names (mapper.map(...) output must also be re-validated — validating only the raw zipEntry.getName() before mapping is insufficient).\n- Traversal in directory entries (zipEntry.isDirectory() == true) as well as file entries — both branches in Unpacker/Unwraper call forceMkdir/copy on the same unchecked `file`.\n- Symlink-based escapes (an entry that first creates a symlink inside outputDir pointing outside, followed by an entry that writes \"through\" that symlink) — out of scope for this specific PoV but worth flagging since path-canonicalization alone (via getCanonicalPath) does not stop writes through a pre-existing symlink; a robust fix should also consider rejecting entries whose parent path already escaped via a symlink, or use java.nio.file.Path#normalize + a strict startsWith check performed after resolving without following symlinks, or resolve relative to outputDir with Path.resolve + normalize and reject on escape prior to any filesystem interaction.",
+        "status": "pov_created",
+        "summary": "Created a standalone Java PoV (ZipSlipPov.java) that builds a malicious ZIP with entry name \"../evil-escaped.txt\" and unpacks it via the public API ZipUtil.unpack(File, File). On the current (unpatched) code the ZipUtil.Unpacker.process sink at ZipUtil.java:1152 (`File file = new File(outputDir, name)`) resolves the traversal unchecked, and FileUtils.copy writes the file one directory above the caller-supplied output directory — confirmed by the escaped file existing outside outputDir with the expected marker content. Verified the harness also correctly flips to non-zero when a canonical-path containment check is added to that sink (tested with a temporary patch, then reverted — working tree is clean)."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 208971,
+        "duration_api_ms": 192870,
+        "num_turns": 38,
+        "cost_usd": 1.1937645,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 72,
+          "output": 15331,
+          "cache_read": 2079545,
+          "cache_creation": 56620
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/zeroturnaround/zip/ZipUtil.java",
+          "src/test/java/org/zeroturnaround/zip/ZipUtilTest.java"
+        ],
+        "patch_notes": "Added a private static helper `checkDestinationInsideTargetDir(File targetDir, String entryName, File destFile)` in ZipUtil.java that computes canonical paths for both targetDir and the candidate destination file and throws ZipException if the destination does not equal or fall strictly under the target directory. Wired this helper into the three sink locations named in the alert:\n1. Unpacker#process — `new File(outputDir, name)` now passed through the check before use in forceMkdir/copy.\n2. BackslashUnpacker#process — each intermediate segment File in the directory-creation loop, the final backslash-split destFile, and the top-level (non-backslash) destFile are all now checked.\n3. Unwraper#process — `new File(outputDir, name)` (post root-unwrapping/name-mapping) is now checked.\nAlso added three JUnit regression tests to ZipUtilTest.java (testUnpackPreventsZipSlip, testUnpackBackslashesPreventsZipSlip, testUnwrapPreventsZipSlip) that build a malicious zip with a traversal entry name (\"../evil-escaped.txt\", \"..\\\\evil-escaped.txt\", \"root/../evil-escaped.txt\" respectively) and assert a ZipException is thrown and no file is written outside the destination directory. Full test suite run (119 tests) shows only one failure, testPreserveWriteFlag in FilePermissionsTest, which was confirmed via git stash to fail identically on the unpatched baseline (pre-existing, environment-related — likely due to running as root in the build container — unrelated to this change).",
+        "regression_commands": [
+          "mvn -B -DskipTests package",
+          "mvn -B test -Dtest=ZipUtilTest",
+          "mvn -B test"
+        ],
+        "risk_notes": "Low risk: the change only adds a validation guard before existing file-write logic; it does not alter behavior for well-formed (non-traversal) zip entries, since canonical destination paths for legitimate entries always fall under the canonical target directory. Entries that previously escaped the target directory now cause a ZipException (a RuntimeException already used elsewhere in this codebase for zip-processing errors) instead of silently writing files outside the sandbox — this is an intentional, necessary behavior change to close the vulnerability and matches how the exploiter's PoV expected a fix to behave (unpack() throwing rather than silently succeeding). Callers that were relying on the previously-vulnerable escape behavior (unlikely for legitimate use) would now see an exception; this is the correct/expected outcome for a security fix. Symlink-based escapes (writing through a pre-existing symlink inside outputDir) are a separate, deeper issue noted by the exploiter as out of scope for this PoV/alert and are not addressed by canonical-path containment checks; consider a follow-up if that threat model applies.",
+        "status": "patched",
+        "summary": "Fixed the Zip Slip / path traversal vulnerability (CWE-22) in org.zeroturnaround.zip.ZipUtil by adding a shared containment check (checkDestinationInsideTargetDir) that resolves each extraction target's canonical path and verifies it stays inside the caller-supplied output directory before any directory creation or file write occurs. This root-cause fix is applied at all three vulnerable sinks identified in the alert: Unpacker#process (line ~1152, used by all unpack(File/InputStream, File, ...) overloads), BackslashUnpacker#process (both the per-segment directory-creation loop and the final file write, covering backslash-separated traversal like \"..\\\\evil.txt\"), and Unwraper#process (line ~1260, used by unwrap(...) and root-shaving unpack variants). Any entry (file or directory type) whose resolved path escapes the target directory now throws a ZipException instead of silently writing outside the sandbox — this also blocks absolute-path entry names since new File(targetDir, absoluteChild) is still checked against the canonical target dir prefix."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 2.3185,
+    "num_turns": 68,
+    "agent_duration_ms": 446836
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log",
+      "regression_3.log"
+    ]
+  }
+}

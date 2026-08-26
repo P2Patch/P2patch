@@ -1,0 +1,373 @@
+diff --git a/vertx-web-client/src/main/asciidoc/groovy/index.adoc b/vertx-web-client/src/main/asciidoc/groovy/index.adoc
+index e3de600..6dcb205 100644
+--- a/vertx-web-client/src/main/asciidoc/groovy/index.adoc
++++ b/vertx-web-client/src/main/asciidoc/groovy/index.adoc
+@@ -585,21 +585,56 @@ makes the HTTP request upon subscription, as consequence, the `Single` can be su
+ 
+ [source,groovy]
+ ----
+-Code not translatable
++
++// Create the RxJava single for an HttpRequest
++// at this point no HTTP request has been sent to the server
++def single = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend()
++
++// Send a request upon subscription of the Single
++single.subscribe({ response ->
++  println("Received 1st response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
++// Send another request
++single.subscribe({ response ->
++  println("Received 2nd response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
+ ----
+ 
+ The obtained `Single` can be composed and chained naturally with the RxJava API
+ 
+ [source,groovy]
+ ----
+-Code not translatable
++
++// Obtain an URL Single from myserver.mycompany.com
++def url = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend().map(io.vertx.rxjava.ext.web.client.HttpResponse.&bodyAsString)
++
++// Use the flatMap operator to make a request on the URL Single
++url.flatMap({ u ->
++  client.getAbs(u).rxSend()
++}).subscribe({ response ->
++  println("Received response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
+ ----
+ 
+ The same APIs is available
+ 
+ [source,groovy]
+ ----
+-Code not translatable
++def single = client.get(8080, "myserver.mycompany.com", "/some-uri").putHeader("some-header", "header-value").addQueryParam("some-param", "param value").as(io.vertx.rxjava.ext.web.codec.BodyCodec.jsonObject()).rxSend()
++single.subscribe({ resp ->
++  println(resp.statusCode())
++  println(resp.body())
++})
++
+ ----
+ 
+ The `link:../../apidocs/io/vertx/rxjava/ext/web/client/HttpRequest.html#sendStream-rx.Observable-io.vertx.core.Handler-[sendStream]` shall
+@@ -607,7 +642,15 @@ be preferred for sending bodies `Observable<Buffer>`
+ 
+ [source,groovy]
+ ----
+-Code not translatable
++
++def body = this.getPayload()
++
++def single = client.post(8080, "myserver.mycompany.com", "/some-uri").rxSendStream(body)
++single.subscribe({ resp ->
++  println(resp.statusCode())
++  println(resp.body())
++})
++
+ ----
+ 
+ Upon subscription, the `body` will be subscribed and its content used for the request.
+diff --git a/vertx-web-client/src/main/asciidoc/js/index.adoc b/vertx-web-client/src/main/asciidoc/js/index.adoc
+index 8cdf4d6..e5508f0 100644
+--- a/vertx-web-client/src/main/asciidoc/js/index.adoc
++++ b/vertx-web-client/src/main/asciidoc/js/index.adoc
+@@ -598,21 +598,56 @@ makes the HTTP request upon subscription, as consequence, the `Single` can be su
+ 
+ [source,js]
+ ----
+-Code not translatable
++
++// Create the RxJava single for an HttpRequest
++// at this point no HTTP request has been sent to the server
++var single = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend();
++
++// Send a request upon subscription of the Single
++single.subscribe(function (response) {
++  console.log("Received 1st response with status code" + response.statusCode());
++}, function (error) {
++  console.log("Something went wrong " + error.getMessage());
++});
++
++// Send another request
++single.subscribe(function (response) {
++  console.log("Received 2nd response with status code" + response.statusCode());
++}, function (error) {
++  console.log("Something went wrong " + error.getMessage());
++});
++
+ ----
+ 
+ The obtained `Single` can be composed and chained naturally with the RxJava API
+ 
+ [source,js]
+ ----
+-Code not translatable
++
++// Obtain an URL Single from myserver.mycompany.com
++var url = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend().map(Java.type("io.vertx.rxjava.ext.web.client.HttpResponse").bodyAsString);
++
++// Use the flatMap operator to make a request on the URL Single
++url.flatMap(function (u) {
++  client.getAbs(u).rxSend();
++}).subscribe(function (response) {
++  console.log("Received response with status code" + response.statusCode());
++}, function (error) {
++  console.log("Something went wrong " + error.getMessage());
++});
++
+ ----
+ 
+ The same APIs is available
+ 
+ [source,js]
+ ----
+-Code not translatable
++var single = client.get(8080, "myserver.mycompany.com", "/some-uri").putHeader("some-header", "header-value").addQueryParam("some-param", "param value").as(Java.type("io.vertx.rxjava.ext.web.codec.BodyCodec").jsonObject()).rxSend();
++single.subscribe(function (resp) {
++  console.log(resp.statusCode());
++  console.log(resp.body());
++});
++
+ ----
+ 
+ The `sendStream` shall
+@@ -620,7 +655,15 @@ be preferred for sending bodies `Observable<Buffer>`
+ 
+ [source,js]
+ ----
+-Code not translatable
++
++var body = getPayload();
++
++var single = client.post(8080, "myserver.mycompany.com", "/some-uri").rxSendStream(body);
++single.subscribe(function (resp) {
++  console.log(resp.statusCode());
++  console.log(resp.body());
++});
++
+ ----
+ 
+ Upon subscription, the `body` will be subscribed and its content used for the request.
+diff --git a/vertx-web-client/src/main/asciidoc/kotlin/index.adoc b/vertx-web-client/src/main/asciidoc/kotlin/index.adoc
+index 159de67..2616abe 100644
+--- a/vertx-web-client/src/main/asciidoc/kotlin/index.adoc
++++ b/vertx-web-client/src/main/asciidoc/kotlin/index.adoc
+@@ -584,21 +584,56 @@ makes the HTTP request upon subscription, as consequence, the `Single` can be su
+ 
+ [source,kotlin]
+ ----
+-Code not translatable
++
++// Create the RxJava single for an HttpRequest
++// at this point no HTTP request has been sent to the server
++var single = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend()
++
++// Send a request upon subscription of the Single
++single.subscribe({ response ->
++  println("Received 1st response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
++// Send another request
++single.subscribe({ response ->
++  println("Received 2nd response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
+ ----
+ 
+ The obtained `Single` can be composed and chained naturally with the RxJava API
+ 
+ [source,kotlin]
+ ----
+-Code not translatable
++
++// Obtain an URL Single from myserver.mycompany.com
++var url = client.get(8080, "myserver.mycompany.com", "/some-uri").rxSend().map<Any>({ io.vertx.rxjava.ext.web.client.HttpResponse.bodyAsString() })
++
++// Use the flatMap operator to make a request on the URL Single
++url.flatMap<Any>({ u ->
++  client.getAbs(u).rxSend()
++}).subscribe({ response ->
++  println("Received response with status code${response.statusCode()}")
++}, { error ->
++  println("Something went wrong ${error.getMessage()}")
++})
++
+ ----
+ 
+ The same APIs is available
+ 
+ [source,kotlin]
+ ----
+-Code not translatable
++var single = client.get(8080, "myserver.mycompany.com", "/some-uri").putHeader("some-header", "header-value").addQueryParam("some-param", "param value").as(io.vertx.rxjava.ext.web.codec.BodyCodec.jsonObject()).rxSend()
++single.subscribe({ resp ->
++  println(resp.statusCode())
++  println(resp.body())
++})
++
+ ----
+ 
+ The `link:../../apidocs/io/vertx/rxjava/ext/web/client/HttpRequest.html#sendStream-rx.Observable-io.vertx.core.Handler-[sendStream]` shall
+@@ -606,7 +641,15 @@ be preferred for sending bodies `Observable<Buffer>`
+ 
+ [source,kotlin]
+ ----
+-Code not translatable
++
++var body = getPayload()
++
++var single = client.post(8080, "myserver.mycompany.com", "/some-uri").rxSendStream(body)
++single.subscribe({ resp ->
++  println(resp.statusCode())
++  println(resp.body())
++})
++
+ ----
+ 
+ Upon subscription, the `body` will be subscribed and its content used for the request.
+diff --git a/vertx-web-client/src/main/asciidoc/ruby/index.adoc b/vertx-web-client/src/main/asciidoc/ruby/index.adoc
+index 584430e..3f2a266 100644
+--- a/vertx-web-client/src/main/asciidoc/ruby/index.adoc
++++ b/vertx-web-client/src/main/asciidoc/ruby/index.adoc
+@@ -598,21 +598,56 @@ makes the HTTP request upon subscription, as consequence, the `Single` can be su
+ 
+ [source,ruby]
+ ----
+-Code not translatable
++
++# Create the RxJava single for an HttpRequest
++# at this point no HTTP request has been sent to the server
++single = client.get(8080, "myserver.mycompany.com", "/some-uri").rx_send()
++
++# Send a request upon subscription of the Single
++single.subscribe(lambda { |response|
++  puts "Received 1st response with status code#{response.status_code()}"
++}, lambda { |error|
++  puts "Something went wrong #{error.get_message()}"
++})
++
++# Send another request
++single.subscribe(lambda { |response|
++  puts "Received 2nd response with status code#{response.status_code()}"
++}, lambda { |error|
++  puts "Something went wrong #{error.get_message()}"
++})
++
+ ----
+ 
+ The obtained `Single` can be composed and chained naturally with the RxJava API
+ 
+ [source,ruby]
+ ----
+-Code not translatable
++
++# Obtain an URL Single from myserver.mycompany.com
++url = client.get(8080, "myserver.mycompany.com", "/some-uri").rx_send().map(Java::IoVertxRxjavaExtWebClient::HttpResponse.method(:body_as_string))
++
++# Use the flatMap operator to make a request on the URL Single
++url.flat_map(lambda { |u|
++  client.get_abs(u).rx_send()
++}).subscribe(lambda { |response|
++  puts "Received response with status code#{response.status_code()}"
++}, lambda { |error|
++  puts "Something went wrong #{error.get_message()}"
++})
++
+ ----
+ 
+ The same APIs is available
+ 
+ [source,ruby]
+ ----
+-Code not translatable
++single = client.get(8080, "myserver.mycompany.com", "/some-uri").put_header("some-header", "header-value").add_query_param("some-param", "param value").as(Java::IoVertxRxjavaExtWebCodec::BodyCodec.json_object()).rx_send()
++single.subscribe(lambda { |resp|
++  puts resp.status_code()
++  puts resp.body()
++})
++
+ ----
+ 
+ The `link:unavailable#send_stream-instance_method[sendStream]` shall
+@@ -620,7 +655,15 @@ be preferred for sending bodies `Observable<Buffer>`
+ 
+ [source,ruby]
+ ----
+-Code not translatable
++
++body = get_payload()
++
++single = client.post(8080, "myserver.mycompany.com", "/some-uri").rx_send_stream(body)
++single.subscribe(lambda { |resp|
++  puts resp.status_code()
++  puts resp.body()
++})
++
+ ----
+ 
+ Upon subscription, the `body` will be subscribed and its content used for the request.
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java b/vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java
+index 129685b..155adde 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java
+@@ -175,6 +175,19 @@ public class Utils extends io.vertx.core.impl.Utils {
+       return null;
+     }
+ 
++    // Some platforms (most notably Windows) and the underlying NIO/filesystem APIs treat '\'
++    // exactly like '/' as a path segment separator. If a backslash based traversal sequence
++    // (raw, or resulting from percent-decoding a "%5c"/"%5C" sequence upstream) is not also
++    // normalized here, it would sail through the "/../" checks below untouched while still
++    // being honoured as a real separator once it reaches the filesystem, allowing a request
++    // path to escape the intended root directory. Canonicalize to '/' before doing anything
++    // else so every caller (StaticHandlerImpl, RoutingContextImpl#normalizedPath, ...) is
++    // protected, not just the single call site that first surfaced this.
++    String normalized = path.toString();
++    if (normalized.indexOf('\\') != -1) {
++      path = normalized.replace('\\', '/');
++    }
++
+     final StringBuilder obuf = new StringBuilder(path.length());
+ 
+     int i = 0;
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/UtilsTest.java b/vertx-web/src/test/java/io/vertx/ext/web/UtilsTest.java
+index 7323343..59a1781 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/UtilsTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/UtilsTest.java
+@@ -184,4 +184,20 @@ public class UtilsTest {
+ 
+     assertEquals(original, Utils.urlDecode( encoded, true ) );
+   }
++
++  // CWE-022: backslash is a real path separator on Windows filesystems/NIO APIs. removeDots
++  // (and therefore normalizePath, and anything that decodes then calls removeDots such as
++  // StaticHandlerImpl) must treat it exactly like '/' so a raw or decoded backslash based
++  // traversal sequence cannot bypass dot-segment removal.
++  @Test
++  public void testRemoveDotsBackslashTraversal() throws Exception {
++    assertEquals("/etc/passwd", Utils.removeDots("\\..\\..\\etc\\passwd"));
++    assertEquals("/etc/passwd", Utils.removeDots("/foo/..\\../etc\\passwd"));
++  }
++
++  @Test
++  public void testNormalizePathBackslashTraversal() throws Exception {
++    assertEquals("/blah", Utils.normalizePath("/..\\blah"));
++    assertEquals("/blah", Utils.normalizePath("/foo\\..\\..\\blah"));
++  }
+ }

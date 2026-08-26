@@ -1,0 +1,113 @@
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+index f6e23f0..2f2d438 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+@@ -76,20 +76,25 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case GET_LOG_BYTES_REQUEST:
+                 GetLogBytesRequestCommand getLogRequest = JSONUtils.parseObject(
+                         command.getBody(), GetLogBytesRequestCommand.class);
+-                byte[] bytes = getFileContentBytes(getLogRequest.getPath());
++                String getLogPath = getLogRequest.getPath();
++                checkLogPath(getLogPath);
++                byte[] bytes = getFileContentBytes(getLogPath);
+                 GetLogBytesResponseCommand getLogResponse = new GetLogBytesResponseCommand(bytes);
+                 channel.writeAndFlush(getLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case VIEW_WHOLE_LOG_REQUEST:
+                 ViewLogRequestCommand viewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), ViewLogRequestCommand.class);
+-                String msg = LoggerUtils.readWholeFileContent(viewLogRequest.getPath());
++                String viewLogPath = viewLogRequest.getPath();
++                checkLogPath(viewLogPath);
++                String msg = LoggerUtils.readWholeFileContent(viewLogPath);
+                 ViewLogResponseCommand viewLogResponse = new ViewLogResponseCommand(msg);
+                 channel.writeAndFlush(viewLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case ROLL_VIEW_LOG_REQUEST:
+                 RollViewLogRequestCommand rollViewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), RollViewLogRequestCommand.class);
++                checkLogPath(rollViewLogRequest.getPath());
+                 List<String> lines = readPartFileContent(rollViewLogRequest.getPath(),
+                         rollViewLogRequest.getSkipLineNum(), rollViewLogRequest.getLimit());
+                 StringBuilder builder = new StringBuilder();
+@@ -104,6 +109,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+                         command.getBody(), RemoveTaskLogRequestCommand.class);
+ 
+                 String taskLogPath = removeTaskLogRequest.getPath();
++                checkLogPath(taskLogPath);
+ 
+                 File taskLogFile = new File(taskLogPath);
+                 Boolean status = true;
+@@ -127,6 +133,23 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+         return this.executor;
+     }
+ 
++    /**
++     * Validate a requested log file path to prevent path traversal / arbitrary file access
++     * (CWE-022). Only genuine task log files are ever served here: they always end with the
++     * ".log" suffix and never contain a parent-directory ("..") segment. Any other path
++     * (e.g. "/etc/passwd" or "../../etc/passwd.log") is rejected.
++     *
++     * @param path the user-controlled log file path
++     */
++    private void checkLogPath(String path) {
++        if (path == null || path.trim().isEmpty()
++                || path.contains("..")
++                || !path.endsWith(".log")) {
++            logger.warn("Illegal log file path rejected: {}", path);
++            throw new IllegalArgumentException("Illegal log file path: " + path);
++        }
++    }
++
+     /**
+      * get files content bytes，for down load file
+      *
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+index e245395..cf41b29 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+@@ -44,7 +44,43 @@ public class LoggerRequestProcessorTest {
+         PowerMockito.mockStatic(LoggerUtils.class);
+         PowerMockito.when(LoggerUtils.readWholeFileContent(Mockito.anyString())).thenReturn("");
+ 
+-        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("/log/path");
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("/log/path.log");
++
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(logRequestCommand));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++    }
++
++    @Test(expected = IllegalArgumentException.class)
++    public void testProcessViewWholeLogRequestPathTraversal() {
++        Channel channel = PowerMockito.mock(Channel.class);
++        PowerMockito.when(channel.writeAndFlush(Mockito.any(Command.class))).thenReturn(null);
++        PowerMockito.mockStatic(LoggerUtils.class);
++        PowerMockito.when(LoggerUtils.readWholeFileContent(Mockito.anyString())).thenReturn("");
++
++        // arbitrary file read / path traversal attempt must be rejected
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("/etc/passwd");
++
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(logRequestCommand));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++    }
++
++    @Test(expected = IllegalArgumentException.class)
++    public void testProcessViewWholeLogRequestParentTraversal() {
++        Channel channel = PowerMockito.mock(Channel.class);
++        PowerMockito.when(channel.writeAndFlush(Mockito.any(Command.class))).thenReturn(null);
++        PowerMockito.mockStatic(LoggerUtils.class);
++        PowerMockito.when(LoggerUtils.readWholeFileContent(Mockito.anyString())).thenReturn("");
++
++        // ".." traversal that still ends with .log must be rejected
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("../../../../etc/passwd.log");
+ 
+         Command command = new Command();
+         command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);

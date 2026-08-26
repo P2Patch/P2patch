@@ -1,0 +1,105 @@
+diff --git a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+index fb42dc1..9ca5c69 100644
+--- a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
++++ b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+@@ -112,7 +112,9 @@ public class IOUtils {
+ 			zip = new ZipFile(file);
+ 			String newPath = extractFolder;
+ 
+-			new File(newPath).mkdir();
++			File destRoot = new File(newPath);
++			destRoot.mkdir();
++			String canonicalDestRoot = destRoot.getCanonicalPath();
+ 			Enumeration<? extends ZipEntry> zipFileEntries = zip.entries();
+ 
+ 			// Process each entry
+@@ -122,6 +124,13 @@ public class IOUtils {
+ 				String currentEntry = entry.getName();
+ 
+ 				File destFile = new File(newPath, currentEntry);
++				// Guard against Zip Slip: ensure the resolved path stays within
++				// the target extraction directory.
++				String canonicalDestFile = destFile.getCanonicalPath();
++				if (!canonicalDestFile.equals(canonicalDestRoot)
++						&& !canonicalDestFile.startsWith(canonicalDestRoot + File.separator)) {
++					throw new IOException("Illegal zip entry outside of target directory: " + currentEntry);
++				}
+ 				// destFile = new File(newPath, destFile.getName());
+ 				File destinationParent = destFile.getParentFile();
+ 
+diff --git a/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+new file mode 100644
+index 0000000..442e978
+--- /dev/null
++++ b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+@@ -0,0 +1,70 @@
++package com.alibaba.oneagent.utils;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.junit.Assert;
++import org.junit.Test;
++
++/**
++ * Regression test for the Zip Slip (CWE-022 path traversal) fix in
++ * {@link IOUtils#unzip(String, String)}.
++ */
++public class IOUtilsUnzipTest {
++
++    private static File newTempDir(String prefix) throws IOException {
++        File dir = File.createTempFile(prefix, "");
++        Assert.assertTrue(dir.delete());
++        Assert.assertTrue(dir.mkdirs());
++        dir.deleteOnExit();
++        return dir;
++    }
++
++    @Test
++    public void testUnzipNormalEntry() throws IOException {
++        File work = newTempDir("oneagent-unzip-normal");
++        File zipFile = new File(work, "good.zip");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++        try {
++            zos.putNextEntry(new ZipEntry("sub/hello.txt"));
++            zos.write("hello".getBytes("UTF-8"));
++            zos.closeEntry();
++        } finally {
++            zos.close();
++        }
++
++        File extract = new File(work, "extract");
++        IOUtils.unzip(zipFile.getAbsolutePath(), extract.getAbsolutePath());
++
++        File extracted = new File(extract, "sub/hello.txt");
++        Assert.assertTrue("Normal entry should be extracted", extracted.isFile());
++    }
++
++    @Test
++    public void testUnzipRejectsPathTraversal() throws IOException {
++        File work = newTempDir("oneagent-unzip-evil");
++        File zipFile = new File(work, "evil.zip");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++        try {
++            zos.putNextEntry(new ZipEntry("../../evil.txt"));
++            zos.write("pwned".getBytes("UTF-8"));
++            zos.closeEntry();
++        } finally {
++            zos.close();
++        }
++
++        File extract = new File(work, "extract");
++        try {
++            IOUtils.unzip(zipFile.getAbsolutePath(), extract.getAbsolutePath());
++            Assert.fail("Expected IOException for path traversal entry");
++        } catch (IOException expected) {
++            // expected
++        }
++
++        File escaped = new File(work.getParentFile(), "evil.txt");
++        Assert.assertFalse("Traversal entry must not escape target directory", escaped.exists());
++    }
++}

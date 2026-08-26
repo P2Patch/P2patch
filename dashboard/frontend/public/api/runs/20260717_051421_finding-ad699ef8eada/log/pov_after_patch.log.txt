@@ -1,0 +1,10 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-ad699ef8eada:394949b5ce09 bash -lc cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP="target/classes:$(cat /tmp/cp.txt)" && mkdir -p /tmp/pov-classes && javac -cp "$CP" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp "/tmp/pov-classes:$CP" Text4ShellPov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+NOT VULNERABLE: injected script did not execute (marker file absent).
+StringSubstitutor.replace(...) result: user-supplied: ${script:javascript:java.lang.Runtime.getRuntime().exec(['/bin/sh','-c','touch /tmp/text4shell_pov_marker.txt']).waitFor()}
+
+--- stderr ---
+

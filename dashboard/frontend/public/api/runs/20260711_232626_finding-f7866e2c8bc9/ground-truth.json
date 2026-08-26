@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-f7866e2c8bc9",
+  "cve_id": "CVE-2018-1002200",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5",
+  "alert_file": "CODEHAUS_CVE_2018_1002200.json",
+  "github_url": "https://github.com/codehaus-plexus/plexus-archiver",
+  "repo": "codehaus-plexus/plexus-archiver",
+  "github_tag": "3.5",
+  "advisory_id": "GHSA-hcxq-x77q-3469",
+  "buggy_commit_id": "b9f9a425865eb47fb3665b3144ee4ca11f402704",
+  "fix_commit_ids": [
+    "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "f8f4233508193b70df33759ae9dc6154d69c2ea8",
+      "file": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+      "class": "AbstractUnArchiver",
+      "class_start": "41.0",
+      "class_end": "303.0",
+      "method": "extractFile",
+      "method_start": "303.0",
+      "method_end": "359.0",
+      "signature": "void extractFile(File,File,InputStream,String,Date,boolean,Integer,String)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1002200",
+    "advisory": "https://github.com/advisories/GHSA-hcxq-x77q-3469",
+    "repo": "https://github.com/codehaus-plexus/plexus-archiver",
+    "buggy_commit": "https://github.com/codehaus-plexus/plexus-archiver/commit/b9f9a425865eb47fb3665b3144ee4ca11f402704"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "f8f4233508193b70df33759ae9dc6154d69c2ea8",
+      "url": "https://github.com/codehaus-plexus/plexus-archiver/commit/f8f4233508193b70df33759ae9dc6154d69c2ea8.diff",
+      "diff": "diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\nindex bd462d93b..96758801f 100644\n--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\n+++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\n@@ -308,6 +308,15 @@ protected void extractFile( final File srcF, final File dir, final InputStream c\n         // Hmm. Symlinks re-evaluate back to the original file here. Unsure if this is a good thing...\n         final File f = FileUtils.resolveFile( dir, entryName );\n \n+        // Make sure that the resolved path of the extracted file doesn't escape the destination directory\n+        String canonicalDirPath = dir.getCanonicalPath();\n+        String canonicalDestPath = f.getCanonicalPath();\n+\n+        if ( !canonicalDestPath.startsWith( canonicalDirPath ) )\n+        {\n+            throw new ArchiverException( \"Entry is outside of the target directory (\" + entryName + \")\" );\n+        }\n+\n         try\n         {\n             if ( !isOverwrite() && f.exists() && ( f.lastModified() >= entryDate.getTime() ) )\ndiff --git a/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java b/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java\nindex 1f72a6156..ea46a5aae 100644\n--- a/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java\n+++ b/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java\n@@ -190,6 +190,30 @@ public void testSelectors()\n                        } );\n     }\n \n+    public void testExtractingZipWithEntryOutsideDestDirThrowsException()\n+            throws Exception\n+    {\n+        Exception ex = null;\n+        String s = \"target/zip-unarchiver-slip-tests\";\n+        File testZip = new File( getBasedir(), \"src/test/zips/zip-slip.zip\" );\n+        File outputDirectory = new File( getBasedir(), s );\n+\n+        FileUtils.deleteDirectory( outputDirectory );\n+\n+        try\n+        {\n+            ZipUnArchiver zu = getZipUnArchiver( testZip );\n+            zu.extract( \"\", outputDirectory );\n+        }\n+        catch ( Exception e )\n+        {\n+            ex = e;\n+        }\n+\n+        assertNotNull( ex );\n+        assertTrue( ex.getMessage().startsWith( \"Entry is outside of the target directory\" ) );\n+    }\n+\n     private ZipArchiver getZipArchiver()\n     {\n         try\ndiff --git a/src/test/zips/zip-slip.zip b/src/test/zips/zip-slip.zip\nnew file mode 100644\nindex 000000000..38b3f499d\nBinary files /dev/null and b/src/test/zips/zip-slip.zip differ\n",
+      "cached": true
+    }
+  ]
+}

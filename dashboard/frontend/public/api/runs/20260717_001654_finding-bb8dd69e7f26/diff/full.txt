@@ -1,0 +1,206 @@
+diff --git a/src/main/java/spark/resource/AbstractResourceHandler.java b/src/main/java/spark/resource/AbstractResourceHandler.java
+index 5f952d6..9f3240b 100644
+--- a/src/main/java/spark/resource/AbstractResourceHandler.java
++++ b/src/main/java/spark/resource/AbstractResourceHandler.java
+@@ -22,6 +22,8 @@ import java.net.MalformedURLException;
+ import javax.servlet.RequestDispatcher;
+ import javax.servlet.http.HttpServletRequest;
+ 
++import spark.utils.StringUtils;
++
+ /**
+  * Abstract class providing functionality for finding resources based on an Http Servlet request.
+  * Code snippets copied from Eclipse Jetty source. Modifications made by Per Wendel.
+@@ -121,4 +123,35 @@ public abstract class AbstractResourceHandler {
+         return buf.toString();
+     }
+ 
++    /**
++     * Verifies that a resolved resource path is actually contained within its configured
++     * base resource path, once both are fully normalized the same way the underlying
++     * {@code Resource} implementations normalize them (see {@link StringUtils#cleanPath}).
++     * <p>
++     * This guards against path traversal payloads (e.g. mixed/encoded separators such as
++     * "\.." on some platforms) that {@link UriPath#canonical} may not recognize as ".."
++     * segments, but which {@link StringUtils#cleanPath} does resolve when the resource is
++     * finally opened - potentially escaping the configured root. Any such payload is
++     * rejected here at the trust boundary, rather than relying solely on path parsing.
++     *
++     * @param basePath     the configured base resource path
++     * @param resourcePath the fully resolved resource path (base + requested path)
++     * @return true if resourcePath is base itself or a descendant of base
++     */
++    protected static boolean isPathUnderBase(String basePath, String resourcePath) {
++        if (basePath == null || resourcePath == null) {
++            return false;
++        }
++
++        String normalizedBase = StringUtils.cleanPath(basePath);
++        String normalizedResource = StringUtils.cleanPath(resourcePath);
++
++        if (!normalizedBase.endsWith(SLASH)) {
++            normalizedBase += SLASH;
++        }
++
++        return normalizedResource.equals(normalizedBase.substring(0, normalizedBase.length() - 1))
++                || normalizedResource.startsWith(normalizedBase);
++    }
++
+ }
+diff --git a/src/main/java/spark/resource/ClassPathResourceHandler.java b/src/main/java/spark/resource/ClassPathResourceHandler.java
+index 40789b7..af13912 100644
+--- a/src/main/java/spark/resource/ClassPathResourceHandler.java
++++ b/src/main/java/spark/resource/ClassPathResourceHandler.java
+@@ -64,9 +64,18 @@ public class ClassPathResourceHandler extends AbstractResourceHandler {
+ 
+         try {
+             path = UriPath.canonical(path);
++            if (path == null) {
++                // Path tried to go outside its own root - reject it.
++                return null;
++            }
+ 
+             final String addedPath = addPaths(baseResource, path);
+ 
++            if (!isPathUnderBase(baseResource, addedPath)) {
++                // Resolved path escapes the configured base resource - reject it.
++                return null;
++            }
++
+             ClassPathResource resource = new ClassPathResource(addedPath);
+ 
+             if (resource.exists() && resource.getFile().isDirectory()) {
+diff --git a/src/main/java/spark/resource/ExternalResourceHandler.java b/src/main/java/spark/resource/ExternalResourceHandler.java
+index 7556f41..f787fc0 100644
+--- a/src/main/java/spark/resource/ExternalResourceHandler.java
++++ b/src/main/java/spark/resource/ExternalResourceHandler.java
+@@ -63,9 +63,18 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+ 
+         try {
+             path = UriPath.canonical(path);
++            if (path == null) {
++                // Path tried to go outside its own root - reject it.
++                return null;
++            }
+ 
+             final String addedPath = addPaths(baseResource, path);
+ 
++            if (!isPathUnderBase(baseResource, addedPath)) {
++                // Resolved path escapes the configured base resource - reject it.
++                return null;
++            }
++
+             ExternalResource resource = new ExternalResource(addedPath);
+ 
+             if (resource.exists() && resource.isDirectory()) {
+diff --git a/src/test/java/spark/resource/ClassPathResourceHandlerTest.java b/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
+index e2fa60b..fb7715c 100644
+--- a/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
+@@ -12,6 +12,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
+ import org.powermock.modules.junit4.PowerMockRunner;
+ 
+ import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
+ import static org.junit.Assert.assertNull;
+ import static org.mockito.Mockito.doReturn;
+ import static org.mockito.Mockito.doThrow;
+@@ -153,4 +154,30 @@ class ClassPathResourceHandlerTest {
+         verify(resourceMock).exists();
+         verify(resourceMock).getFile();
+     }
++
++    // Regression tests for CWE-022: resolved resources must stay within their configured
++    // base directory, even when the request path uses separators/sequences that
++    // UriPath.canonical() does not recognize as ".." (e.g. backslashes), but that
++    // StringUtils.cleanPath() later resolves when the resource is actually opened.
++    // These use the real ClassPathResource stack (no PowerMock stubbing) against
++    // src/test/resources/public so the full resolution path is exercised end-to-end.
++
++    @Test
++    public void testGetResource_whenPathTraversesOutsideBaseUsingBackslashes_thenReturnNull() throws Exception {
++        ClassPathResourceHandler classPathResourceHandler = new ClassPathResourceHandler("/public/pages", null);
++
++        AbstractFileResolvingResource resource =
++                classPathResourceHandler.getResource("/foo\\..\\..\\css\\style.css");
++
++        assertNull("Traversal outside the configured base resource must be rejected", resource);
++    }
++
++    @Test
++    public void testGetResource_whenPathStaysWithinBase_thenResourceIsReturned() throws Exception {
++        ClassPathResourceHandler classPathResourceHandler = new ClassPathResourceHandler("/public/pages", null);
++
++        AbstractFileResolvingResource resource = classPathResourceHandler.getResource("/index.html");
++
++        assertNotNull("A legitimate resource within the base directory should still resolve", resource);
++    }
+ }
+diff --git a/src/test/java/spark/resource/ExternalResourceHandlerTest.java b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+index f516969..ddef743 100644
+--- a/src/test/java/spark/resource/ExternalResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+@@ -1,6 +1,8 @@
+ package spark.resource;
+ 
++import java.io.File;
+ import java.net.MalformedURLException;
++import java.nio.file.Files;
+ 
+ import org.junit.Before;
+ import org.junit.Test;
+@@ -10,6 +12,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
+ import org.powermock.modules.junit4.PowerMockRunner;
+ 
+ import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
+ import static org.junit.Assert.assertNull;
+ import static org.mockito.Mockito.doReturn;
+ import static org.mockito.Mockito.times;
+@@ -119,4 +122,46 @@ public class ExternalResourceHandlerTest {
+         verify(resourceMock).isDirectory();
+     }
+ 
++    // Regression tests for CWE-022: resolved resources must stay within their configured
++    // base directory, even when the request path uses separators/sequences that
++    // UriPath.canonical() does not recognize as ".." (e.g. backslashes), but that
++    // StringUtils.cleanPath() later resolves when the resource is actually opened.
++    // These use the real ExternalResource/File stack (no PowerMock stubbing) so the
++    // full resolution path is exercised end-to-end.
++
++    @Test
++    public void testGetResource_whenPathTraversesOutsideBaseUsingBackslashes_thenReturnNull() throws Exception {
++        File baseDir = Files.createTempDirectory("spark-external-base").toFile();
++        File secret = new File(baseDir.getParentFile(), "secret-outside-base.txt");
++        Files.write(secret.toPath(), "top secret".getBytes());
++        try {
++            ExternalResourceHandler handler = new ExternalResourceHandler(baseDir.getAbsolutePath(), null);
++
++            AbstractFileResolvingResource resource =
++                    handler.getResource("/foo\\..\\..\\" + secret.getName());
++
++            assertNull("Traversal outside the configured base resource must be rejected", resource);
++        } finally {
++            secret.delete();
++            baseDir.delete();
++        }
++    }
++
++    @Test
++    public void testGetResource_whenPathStaysWithinBase_thenResourceIsReturned() throws Exception {
++        File baseDir = Files.createTempDirectory("spark-external-base").toFile();
++        File file = new File(baseDir, "allowed.txt");
++        Files.write(file.toPath(), "hello".getBytes());
++        try {
++            ExternalResourceHandler handler = new ExternalResourceHandler(baseDir.getAbsolutePath(), null);
++
++            AbstractFileResolvingResource resource = handler.getResource("/allowed.txt");
++
++            assertNotNull("A legitimate resource within the base directory should still resolve", resource);
++        } finally {
++            file.delete();
++            baseDir.delete();
++        }
++    }
++
+ }

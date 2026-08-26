@@ -1,0 +1,149 @@
+diff --git a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+index e9adc3a..4532539 100755
+--- a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
++++ b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+@@ -469,7 +469,7 @@ public class AgentServlet extends HttpServlet {
+     }
+ 
+     private void sendResponse(HttpServletResponse pResp, HttpServletRequest pReq, JSONAware pJson) throws IOException {
+-        String callback = pReq.getParameter(ConfigKey.CALLBACK.getKeyValue());
++        String callback = IoUtil.validateCallback(pReq.getParameter(ConfigKey.CALLBACK.getKeyValue()));
+         setContentType(pResp, callback != null ? "text/javascript" : getMimeType(pReq));
+ 
+         pResp.setStatus(HttpServletResponse.SC_OK);
+diff --git a/agent/core/src/main/java/org/jolokia/util/IoUtil.java b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+index eec9be6..8bc88ff 100644
+--- a/agent/core/src/main/java/org/jolokia/util/IoUtil.java
++++ b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+@@ -3,6 +3,7 @@ package org.jolokia.util;
+ import java.io.IOException;
+ import java.io.OutputStreamWriter;
+ import java.io.Writer;
++import java.util.regex.Pattern;
+ 
+ import org.json.simple.JSONStreamAware;
+ 
+@@ -15,8 +16,31 @@ public class IoUtil {
+     // Marker for the end of the stream
+     private final static char[] STREAM_END_MARKER = {};
+ 
++    // Pattern for a syntactically valid JavaScript function reference which can be
++    // safely used as a JSONP callback name (e.g. "callback" or "my.name.space.func").
++    // Only these characters are allowed so that a malicious "callback" request parameter
++    // cannot be used to inject arbitrary markup or script (reflected XSS, CWE-79).
++    private final static Pattern CALLBACK_PATTERN = Pattern.compile("^[A-Za-z_$][A-Za-z0-9_$.]*$");
++
+     private IoUtil() { }
+ 
++    /**
++     * Validate a JSONP callback name. If the given callback is a syntactically valid
++     * JavaScript function reference it is returned unchanged, otherwise <code>null</code>
++     * is returned so that the response is streamed as plain JSON instead of being wrapped
++     * in an attacker controlled callback. This prevents reflected cross-site scripting via
++     * the <code>callback</code> request parameter.
++     *
++     * @param pCallback the raw callback value taken from the request (may be null)
++     * @return the callback if it is valid, <code>null</code> otherwise
++     */
++    public static String validateCallback(String pCallback) {
++        if (pCallback == null) {
++            return null;
++        }
++        return CALLBACK_PATTERN.matcher(pCallback).matches() ? pCallback : null;
++    }
++
+     /**
+      * Stream a JSON stream to a given writer, potentiall wrap it in a callback for a
+      * JSONP response and then flush & close the writer. The writer is closed in any case,
+@@ -29,11 +53,13 @@ public class IoUtil {
+      */
+     public static void streamResponseAndClose(Writer pWriter, JSONStreamAware pJson, String callback)
+         throws IOException {
++        // Guard against reflected XSS through an unchecked JSONP callback name
++        String safeCallback = validateCallback(callback);
+         try {
+-            if (callback == null) {
++            if (safeCallback == null) {
+                 pJson.writeJSONString(pWriter);
+             } else {
+-                pWriter.write(callback);
++                pWriter.write(safeCallback);
+                 pWriter.write("(");
+                 pJson.writeJSONString(pWriter);
+                 pWriter.write(");");
+diff --git a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+index 4ab2efd..ee757ea 100644
+--- a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
++++ b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+@@ -9,11 +9,49 @@ import org.json.simple.JSONObject;
+ import org.testng.annotations.Test;
+ 
+ import static org.testng.Assert.assertEquals;
++import static org.testng.Assert.assertNull;
+ import static org.testng.Assert.assertTrue;
+ import static org.testng.Assert.fail;
+ 
+ 
+ public class IoUtilTest {
++
++    @Test
++    public void validateCallbackAcceptsValidNames() {
++        assertEquals(IoUtil.validateCallback("callback"), "callback");
++        assertEquals(IoUtil.validateCallback("my.name.space.func"), "my.name.space.func");
++        assertEquals(IoUtil.validateCallback("_$foo0"), "_$foo0");
++        assertNull(IoUtil.validateCallback(null));
++    }
++
++    @Test
++    public void validateCallbackRejectsXssPayloads() {
++        // Reflected XSS attempts through the JSONP callback must be dropped (CWE-79)
++        assertNull(IoUtil.validateCallback("<script>alert(1)</script>"));
++        assertNull(IoUtil.validateCallback("evil()//"));
++        assertNull(IoUtil.validateCallback("foo;alert(1)"));
++        assertNull(IoUtil.validateCallback("foo bar"));
++        assertNull(IoUtil.validateCallback("\"onload=\"alert(1)"));
++        assertNull(IoUtil.validateCallback(""));
++    }
++
++    @Test
++    public void maliciousCallbackIsNotReflected() throws IOException {
++        ByteArrayOutputStream out = new ByteArrayOutputStream();
++        OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8");
++
++        JSONObject resp = new JSONObject();
++        resp.put("value", "hello");
++
++        // An invalid (potentially malicious) callback must be ignored and the plain
++        // JSON streamed instead, so no attacker controlled markup ends up in the response.
++        IoUtil.streamResponseAndClose(writer, resp, "<script>alert(1)</script>");
++        String written = out.toString("UTF-8");
++        assertEquals(written, resp.toJSONString());
++        assertTrue(!written.contains("<script>"));
++        assertWriterClosed(writer);
++    }
++
+     @Test
+     public void checkSmallWrite() throws IOException {
+         ByteArrayOutputStream out = new ByteArrayOutputStream();
+diff --git a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+index 9dc0df0..6ca2dac 100644
+--- a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
++++ b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+@@ -342,7 +342,7 @@ public class JolokiaHttpHandler implements HttpHandler {
+         Headers headers = pExchange.getResponseHeaders();
+         if (pJson != null) {
+             headers.set("Content-Type", getMimeType(pParsedUri) + "; charset=utf-8");
+-            String callback = pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue());
++            String callback = IoUtil.validateCallback(pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue()));
+             pExchange.sendResponseHeaders(200, 0);
+             Writer writer = new OutputStreamWriter(pExchange.getResponseBody(), "UTF-8");
+             IoUtil.streamResponseAndClose(writer, pJson, callback);
+@@ -359,7 +359,7 @@ public class JolokiaHttpHandler implements HttpHandler {
+             if (pJson != null) {
+                 headers.set("Content-Type", getMimeType(pParsedUri) + "; charset=utf-8");
+                 String json = pJson.toJSONString();
+-                String callback = pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue());
++                String callback = IoUtil.validateCallback(pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue()));
+                 String content = callback == null ? json : callback + "(" + json + ");";
+                 byte[] response = content.getBytes("UTF8");
+                 pExchange.sendResponseHeaders(200,response.length);

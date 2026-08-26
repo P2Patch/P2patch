@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080136_finding-359ec246c045/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-359ec246c045:9e95644bb5c7 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+destDir            = /tmp/zip4j_zipslip_pov/extracted/sub
+escapedFile exists = true (/tmp/zip4j_zipslip_pov/evil_marker.txt)
+containedFile exists = false
+extractionThrew    = false
+VULNERABLE: zip entry "../../evil_marker.txt" was written outside the extraction root /tmp/zip4j_zipslip_pov/extracted/sub -- Zip Slip / path traversal confirmed via UnzipEngine.getOutputStream().
+
+--- stderr ---
+

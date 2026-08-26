@@ -1,0 +1,127 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:39:59.068712+00:00",
+    "finished_at": "2026-07-17T08:42:08.167379+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adopts the same defensive strategy as the official fix — canonicalize backslashes to '/' before dot-segment removal so that '\\..\\' (raw or decoded from %5C) cannot bypass removeDots yet still be honoured as a real separator by the Windows filesystem — but places it inside Utils.removeDots and applies it unconditionally rather than in StaticHandlerImpl.handle() guarded by File.separatorChar != '/'. Security-wise it covers the official's effect and more (every removeDots caller, every platform), and the POV no longer reproduces. However it is not a clean pass: the regression suite failed (run_status=rejected), and unconditional '\\'→'/' rewriting in a shared utility silently changes normalizePath/route-matching semantics on POSIX, where backslash is a legal filename character — precisely the case the upstream developers guarded against. The diff is also polluted with ~200 lines of unrelated regenerated asciidoc documentation.",
+    "root_cause": "Utils.removeDots only collapses '.'/'..' segments delimited by '/', so a path containing backslashes (raw, or produced by percent-decoding %5C before removeDots is called) passes through dot-removal untouched yet is still interpreted as a segment separator by the Windows filesystem when StaticHandlerImpl resolves it under the webroot, allowing escape from the intended base directory.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "POV no longer reproduces and the backslash-as-separator class is closed at the shared normalizer, including %5C variants since urlDecode runs before removeDots.",
+        "evidence": "Utils.java removeDots(): `String normalized = path.toString(); if (normalized.indexOf('\\\\') != -1) { path = normalized.replace('\\\\', '/'); }` inserted before the dot-segment loop; StaticHandlerImpl.java:138 decodes then calls removeDots; execution: pov_after_still_reproduces=false. Not a 5: no canonicalize-then-verify-under-base check at the sink (StaticHandlerImpl.java:611-614 getFile/pathOffset -> fs.exists at :266).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Fixes the normalizer every caller funnels through rather than a single entry point, which is at least as deep as the official handler-local fix.",
+        "evidence": "Change lands in vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java removeDots() — the trace nodes at Utils.java:172/221/230 — so RoutingContextImpl#normalizedPath and StaticHandlerImpl both inherit it; official instead patches only StaticHandlerImpl.handle(). Still not the filesystem sink itself (no base-dir containment assertion).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "All removeDots callers and the decode->removeDots ordering are covered; double-encoding is a non-issue with a single decode pass, but no other traversal vectors were addressed.",
+        "evidence": "Single choke point in Utils.removeDots covers the StaticHandlerImpl.java:138 path and Utils.normalizePath (trace lines 373/387). Nothing added at sendStatic/getFile (StaticHandlerImpl.java:186-192, 611-614), so any future caller that skips removeDots is unprotected.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same intent and same mechanism (backslash->slash before dot removal) but a different location, and it drops the platform guard the maintainers deliberately chose.",
+        "evidence": "Official: `if (File.separatorChar != '/') { path = path.replace(File.separatorChar, '/'); }` inside StaticHandlerImpl.handle(); ours: unconditional `path.replace('\\\\','/')` inside Utils.removeDots. Structural overlap jaccard=0.0, covers_all_official=false — StaticHandlerImpl.java untouched by our patch.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 2,
+        "rationale": "The regression suite failed under our patch, and the unconditional rewrite plausibly breaks legitimate POSIX paths/routes containing backslashes — exactly why upstream gated on File.separatorChar.",
+        "evidence": "Execution results: regressions_ran=1, regressions_passed=false, run_status=rejected. The behavioural change reaches every Utils.normalizePath/removeDots consumer (routing, RoutingContextImpl#normalizedPath), not just the static handler; on Linux '\\' is a legal filename character so `/foo\\bar` now resolves to `/foo/bar`.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "No new injection, ReDoS, TOCTOU or crash is introduced (null is handled above the insert), but globally re-defining a shared normalizer is a real edge risk.",
+        "evidence": "The existing `if (path == null) return null;` guard precedes the new block in Utils.removeDots and replace('\\\\','/') is a safe char-level primitive; risk is over-normalization of legitimate backslash-bearing paths for all callers rather than a new weakness.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 2,
+        "rationale": "The security-relevant edit is ~5 lines, but the diff also rewrites four unrelated generated documentation files with ~200 lines of noise.",
+        "evidence": "vertx-web-client/src/main/asciidoc/{groovy,js,kotlin,ruby}/index.adoc — 'Code not translatable' blocks replaced with regenerated RxJava samples; overlap report lists ours_only = [Utils.java, index.adoc]. The Java hunk itself is tight and localized.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Uses structural canonicalization (separator normalization + rfc3986 dot removal) rather than a '../' blocklist — this project's defense-of-record — but stops short of the CWE-022 anchor of resolving the real absolute path and asserting containment under the webroot.",
+        "evidence": "Ours normalizes separators then relies on the existing removeDots collapse (Utils.java:175-230); no File/Path canonicalization or startsWith(baseDir) check is added before StaticHandlerImpl.java:611-614 getFile -> fs.exists at :266. The official fix shares this limitation, so it is not a demerit relative to ground truth.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Regression gate failed (regressions_ran=1, regressions_passed=false, run_status=rejected). There is no evidence that legitimate behavior is preserved; the patch cannot be accepted as-is until the failing test(s) are identified and resolved."
+      },
+      {
+        "severity": "medium",
+        "description": "The backslash->slash rewrite is unconditional and lives in the shared Utils.removeDots, so it changes Utils.normalizePath / RoutingContextImpl#normalizedPath semantics on POSIX, where '\\' is a legal path/filename character. Upstream deliberately guarded with `if (File.separatorChar != '/')` and scoped the change to StaticHandlerImpl to avoid exactly this. Likely source of the regression failure and a silent behavior change for routes/files containing backslashes."
+      },
+      {
+        "severity": "medium",
+        "description": "Diff includes ~200 lines of unrelated, build-generated asciidoc documentation changes (vertx-web-client/src/main/asciidoc/{groovy,js,kotlin,ruby}/index.adoc) irrelevant to the CVE, which obscure review of the security-relevant hunk."
+      },
+      {
+        "severity": "low",
+        "description": "Neither our patch nor the official fix adds the CWE-022 defense-of-record at the sink: canonicalize the resolved file to its real absolute path (resolving symlinks) and verify it stays under the configured webroot before StaticHandlerImpl.getFile/fs.exists. The fix remains normalization-only."
+      }
+    ],
+    "overall": {
+      "mean": 3.12,
+      "score": 62,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "Utils.java",
+        "index.adoc"
+      ],
+      "official_only": [
+        "StaticHandlerImpl.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+      ],
+      "commits": [
+        "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b"
+      ]
+    }
+  }
+}

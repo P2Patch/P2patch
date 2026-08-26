@@ -1,0 +1,196 @@
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
+index eb126b2..c0334cb 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
+@@ -27,7 +27,8 @@ import org.springframework.context.expression.MapAccessor;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.HttpMethod;
+@@ -119,8 +120,9 @@ public class LetsChatNotifier extends AbstractStatusChangeNotifier {
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
++		SimpleEvaluationContext context = SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 		return message.getValue(context, String.class);
+ 	}
+ 
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
+index 09edea7..bb9c4be 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
+@@ -30,10 +30,12 @@ import lombok.Data;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.context.expression.MapAccessor;
++import org.springframework.expression.EvaluationContext;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.MediaType;
+@@ -141,7 +143,7 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 	@Override
+ 	protected Mono<Void> doNotify(InstanceEvent event, Instance instance) {
+ 		Message message;
+-		StandardEvaluationContext context = createEvaluationContext(event, instance);
++		EvaluationContext context = createEvaluationContext(event, instance);
+ 		if (event instanceof InstanceRegisteredEvent) {
+ 			message = getRegisteredMessage(instance, context);
+ 		}
+@@ -172,23 +174,23 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 				|| super.shouldNotify(event, instance);
+ 	}
+ 
+-	protected Message getDeregisteredMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getDeregisteredMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, deregisterActivitySubtitle);
+ 		return createMessage(instance, deRegisteredTitle, activitySubtitle, context);
+ 	}
+ 
+-	protected Message getRegisteredMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getRegisteredMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, registerActivitySubtitle);
+ 		return createMessage(instance, registeredTitle, activitySubtitle, context);
+ 	}
+ 
+-	protected Message getStatusChangedMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getStatusChangedMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, statusActivitySubtitle);
+ 		return createMessage(instance, statusChangedTitle, activitySubtitle, context);
+ 	}
+ 
+ 	protected Message createMessage(Instance instance, String registeredTitle, String activitySubtitle,
+-			StandardEvaluationContext context) {
++			EvaluationContext context) {
+ 		List<Fact> facts = new ArrayList<>();
+ 		facts.add(new Fact(STATUS_KEY, instance.getStatusInfo().getStatus()));
+ 		facts.add(new Fact(SERVICE_URL_KEY, instance.getRegistration().getServiceUrl()));
+@@ -203,18 +205,18 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 				.themeColor(evaluateExpression(context, themeColor)).sections(singletonList(section)).build();
+ 	}
+ 
+-	protected String evaluateExpression(StandardEvaluationContext context, Expression expression) {
++	protected String evaluateExpression(EvaluationContext context, Expression expression) {
+ 		return Objects.requireNonNull(expression.getValue(context, String.class));
+ 	}
+ 
+-	protected StandardEvaluationContext createEvaluationContext(InstanceEvent event, Instance instance) {
++	protected EvaluationContext createEvaluationContext(InstanceEvent event, Instance instance) {
+ 		Map<String, Object> root = new HashMap<>();
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
+-		return context;
++		return SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 	}
+ 
+ 	@Nullable
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
+index dec6138..7d606c3 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
+@@ -27,7 +27,8 @@ import org.springframework.context.expression.MapAccessor;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.MediaType;
+@@ -128,8 +129,9 @@ public class SlackNotifier extends AbstractStatusChangeNotifier {
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
++		SimpleEvaluationContext context = SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 		return message.getValue(context, String.class);
+ 	}
+ 
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
+index ce41dc1..9a40a92 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
+@@ -112,6 +112,16 @@ public class LetsChatNotifierTest {
+ 				eq(HttpMethod.POST), eq(expected), eq(Void.class));
+ 	}
+ 
++	@Test
++	public void test_setMessage_doesNotEvaluateCodeInjectionSpel() {
++		// A message template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setMessage("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions.assertThatThrownBy(() -> notifier.getText(
++				new InstanceStatusChangedEvent(instance.getId(), instance.getVersion(), StatusInfo.ofUp()), instance))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private HttpEntity<?> expectedMessage(String message) {
+ 		HttpHeaders httpHeaders = new HttpHeaders();
+ 		httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
+index 26b4bbd..a4cd224 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
+@@ -217,6 +217,18 @@ class MicrosoftTeamsNotifierTest {
+ 		assertThat(message.getThemeColor()).isEqualTo("green");
+ 	}
+ 
++	@Test
++	void test_setStatusActivitySubtitle_doesNotEvaluateCodeInjectionSpel() {
++		// A subtitle template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setStatusActivitySubtitle("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions
++				.assertThatThrownBy(() -> notifier.getStatusChangedMessage(instance,
++						notifier.createEvaluationContext(
++								new InstanceStatusChangedEvent(instance.getId(), 1L, StatusInfo.ofUp()), instance)))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private void assertMessage(Message message, String expectedTitle, String expectedSummary, String expectedSubTitle,
+ 			String expectedColor) {
+ 		assertThat(message.getTitle()).isEqualTo(expectedTitle);
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
+index 6bf9464..620bda2 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
+@@ -174,6 +174,16 @@ public class SlackNotifierTest {
+ 		verify(restTemplate).postForEntity(any(URI.class), eq(expected), eq(Void.class));
+ 	}
+ 
++	@Test
++	public void test_setMessage_doesNotEvaluateCodeInjectionSpel() {
++		// A message template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setMessage("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions.assertThatThrownBy(() -> notifier.getText(
++				new InstanceStatusChangedEvent(INSTANCE.getId(), INSTANCE.getVersion(), StatusInfo.ofUp()), INSTANCE))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private HttpEntity<Map<String, Object>> expectedMessage(String color, String user, String icon, String channel,
+ 			String message) {
+ 		Map<String, Object> messageJson = new HashMap<>();

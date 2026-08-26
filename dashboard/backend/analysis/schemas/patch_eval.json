@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "root_cause", "dimensions", "equivalence_verdict", "gates", "issues"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "2-4 sentence verdict on whether our patch is a good fix and why."
+    },
+    "root_cause": {
+      "type": "string",
+      "description": "One sentence: the underlying flaw at the sink/trust boundary that a correct fix must neutralize."
+    },
+    "dimensions": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "description": "Exactly the 8 rubric dimensions, each scored 1-5.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "score", "rationale", "evidence"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "vulnerability_elimination",
+              "root_cause",
+              "completeness",
+              "developer_intent",
+              "functional_correctness",
+              "no_new_defects",
+              "minimality",
+              "mitigation_soundness"
+            ]
+          },
+          "score": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "rationale": { "type": "string", "description": "One line justifying the score." },
+          "evidence": {
+            "type": "string",
+            "description": "Cited changed lines or file:method that support the score."
+          }
+        }
+      }
+    },
+    "equivalence_verdict": {
+      "type": "string",
+      "enum": ["equivalent", "superset_stronger", "subset_weaker", "different_valid", "different_wrong"],
+      "description": "Semantic relationship of our patch to the official reference fix."
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vulnerability_eliminated", "no_regressions"],
+      "properties": {
+        "vulnerability_eliminated": { "type": "boolean" },
+        "no_regressions": { "type": "boolean" }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Concrete problems with our patch (empty if none).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "description"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}

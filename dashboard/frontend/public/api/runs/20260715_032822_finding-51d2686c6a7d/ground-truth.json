@@ -1,0 +1,71 @@
+{
+  "finding_id": "finding-51d2686c6a7d",
+  "cve_id": "CVE-2019-17640",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "vert-x3__vertx-web_CVE-2019-17640_3.9.3",
+  "alert_file": "VERT_X3_VERTX_WEB_CVE_2019_17640.json",
+  "github_url": "https://github.com/vert-x3/vertx-web",
+  "repo": "vert-x3/vertx-web",
+  "github_tag": "3.9.3",
+  "advisory_id": "GHSA-vjw7-6gfq-6wf5",
+  "buggy_commit_id": "2146b7240096e25b40bb1acc083fa7ec79330989",
+  "fix_commit_ids": [
+    "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+      "file": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java",
+      "class": "StaticHandlerImpl",
+      "class_start": "51.0",
+      "class_end": "824.0",
+      "method": "handle",
+      "method_start": "125.0",
+      "method_end": "145.0",
+      "signature": "void handle(RoutingContext)",
+      "is_test": false
+    },
+    {
+      "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+      "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+      "class": "StaticHandlerTest",
+      "class_start": "39.0",
+      "class_end": "861.0",
+      "method": "testGetDefaultIndex",
+      "method_start": "51.0",
+      "method_end": "52.0",
+      "signature": "void testGetDefaultIndex()",
+      "is_test": true
+    },
+    {
+      "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+      "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+      "class": "StaticHandlerTest",
+      "class_start": "39.0",
+      "class_end": "861.0",
+      "method": "toDateTime",
+      "method_start": "852.0",
+      "method_end": "857.0",
+      "signature": "long toDateTime(String)",
+      "is_test": true
+    }
+  ],
+  "fix_files": [
+    "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2019-17640",
+    "advisory": "https://github.com/advisories/GHSA-vjw7-6gfq-6wf5",
+    "repo": "https://github.com/vert-x3/vertx-web",
+    "buggy_commit": "https://github.com/vert-x3/vertx-web/commit/2146b7240096e25b40bb1acc083fa7ec79330989"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+      "url": "https://github.com/vert-x3/vertx-web/commit/b12f7c4c6576a8adc3f683b2899de4b0e7d099e4.diff",
+      "diff": "diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\nindex b7d1ea08fe..754a1db5bc 100644\n--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\n+++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\n@@ -128,13 +128,16 @@ public void handle(RoutingContext context) {\n       if (log.isTraceEnabled()) log.trace(\"Not GET or HEAD so ignoring request\");\n       context.next();\n     } else {\n-      String path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false));\n+      // decode URL path\n+      String uriDecodedPath = URIDecoder.decodeURIComponent(context.normalisedPath(), false);\n       // if the normalized path is null it cannot be resolved\n-      if (path == null) {\n+      if (uriDecodedPath == null) {\n         log.warn(\"Invalid path: \" + context.request().path());\n         context.next();\n         return;\n       }\n+      // will normalize and handle all paths as UNIX paths\n+      String path = HttpUtils.removeDots(uriDecodedPath.replace('\\\\', '/'));\n \n       // only root is known for sure to be a directory. all other directories must be identified as such.\n       if (!directoryListing && \"/\".equals(path)) {\n@@ -764,7 +767,7 @@ public boolean isMissing() {\n \n   private static class FSTune {\n     // These members are all related to auto tuning of synchronous vs asynchronous file system access\n-    private static int NUM_SERVES_TUNING_FS_ACCESS = 1000;\n+    private static final int NUM_SERVES_TUNING_FS_ACCESS = 1000;\n \n     // these variables are read often and should always represent the\n     // real value, no caching should be allowed\ndiff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\nindex c561c01ddb..9478ad47a6 100644\n--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\n+++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\n@@ -52,6 +52,15 @@ public void testGetDefaultIndex() throws Exception {\n     testRequest(HttpMethod.GET, \"/\", 200, \"OK\", \"<html><body>Index page</body></html>\");\n   }\n \n+  @Test\n+  public void testGetSubdirectoryWithoutSlashDefaultIndex() throws Exception {\n+    // in the case the file is a directory, it redirects to the root.\n+    testRequest(HttpMethod.GET, \"/somedir\", null, res -> {\n+      String location = res.headers().get(\"location\");\n+      assertEquals(\"/somedir/\", location);\n+    }, 301, \"Moved Permanently\", null);\n+  }\n+\n   @Test\n   public void testGetSubdirectorySlashDefaultIndex() throws Exception {\n     testRequest(HttpMethod.GET, \"/somedir/\", 200, \"OK\", \"<html><body>Subdirectory index page</body></html>\");\n@@ -844,6 +853,28 @@ public void testHandlerAfter() throws Exception {\n     testRequest(HttpMethod.GET, \"/not-existing-file.html\", 200, \"OK\", \"Howdy!\");\n   }\n \n+  @Test\n+  public void testWriteResponseWhenAlreadyClosed() throws Exception {\n+    router.clear();\n+    router\n+      .route()\n+      .handler(rc -> {\n+        rc.next();\n+        rc.response().end(\"OtherResponse\");\n+      })\n+      .handler(stat);\n+    testRequest(HttpMethod.GET, \"/index.html\", 200, \"OK\", \"OtherResponse\");\n+  }\n+\n+  @Test\n+  public void testEscapeWindows() throws Exception {\n+    router.clear();\n+    router\n+      .route()\n+      .handler(stat);\n+    // /\\..\\index.html -> /index.html\n+    testRequest(HttpMethod.GET, \"/%5c..%5cindex.html\", 200, \"OK\");\n+  }\n \n   // TODO\n   // 1.Test all the params including invalid values\n",
+      "cached": true
+    }
+  ]
+}

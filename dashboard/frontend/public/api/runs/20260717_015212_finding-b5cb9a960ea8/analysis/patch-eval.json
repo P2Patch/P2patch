@@ -1,0 +1,123 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:37:15.825802+00:00",
+    "finished_at": "2026-07-17T08:40:21.368470+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "The traced sink is robustly closed for the whole payload class, but the same CWE-022 remains live through the un-patched ExtractionUtil extraction sinks that the official fix also had to close.",
+        "evidence": "ArchiveAnalyzer.java:517 `validateExtractionTarget(destination, file, entry.getName())` guards `new File(destination, entry.getName())` at line 516 (the exact taint sink); however ExtractionUtil.extractFile/extractArchive/extractFiles are untouched (structural overlap: official_only=[ExtractionUtil.java]), and PythonDistributionAnalyzer.java:216 calls `ExtractionUtil.extractFilesUsingFilter(...)` -> extractArchive -> extractFile, which still does `new File(destination, entry.getName())` with no containment check.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "At the reported sink the fix is at the correct trust boundary — canonicalize then verify containment before any filesystem use — not a caller/symptom guard; it just isn't replicated at the sibling sinks.",
+        "evidence": "validateExtractionTarget: `destinationPath = destination.getCanonicalPath(); filePath = file.getCanonicalPath();` then rejects unless `filePath.equals(destinationPath) || filePath.startsWith(destinationPath + File.separator)`; the call is placed before `entry.isDirectory()`/`file.mkdirs()`/`extractAcceptedFile`, so every downstream use (trace lines 518, 540-547) is covered.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "One of the five official fix locations is covered; a directly reachable sibling sink for the same CVE stays exploitable.",
+        "evidence": "Official fix touches ArchiveAnalyzer.extractArchive (covered), ArchiveAnalyzer.extractFiles gzip/bzip2 branches (`new File(destination, uncompressedName)` at ~lines 412/425 — not covered), and ExtractionUtil.extractFiles/extractArchive/extractFile (not covered). Verified in-tree: PythonDistributionAnalyzer.java:216 -> ExtractionUtil.extractFilesUsingFilter; ExtractionUtil.extractFile accepts on `filter.accept(file.getParentFile(), file.getName())`, so a .whl entry named `../../../METADATA` passes the name-only filter and writes outside the destination.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Identical defensive strategy (canonical path + containment, fail-closed) at the shared location, but scoped to a subset of the official fix's locations, so not semantically equivalent overall.",
+        "evidence": "Ours: `!filePath.equals(destinationPath) && !filePath.startsWith(destinationPath + File.separator)` -> AnalysisException; official: `if (!file.getCanonicalPath().startsWith(destPath)) throw new ArchiveExtractionException(msg);` in the same extractArchive loop. Official additionally patches ExtractionUtil.java (4 sites) and the gzip/bzip2 branches of extractFiles.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Compiles and preserves legitimate extraction; the containment predicate is precise rather than over-restrictive — but zero regression tests were executed, so this is code-reading evidence, not empirical.",
+        "evidence": "Verified in the base tree: extractArchive already has `catch (IOException | AnalysisException ex) { throw new ArchiveExtractionException(ex); }`, so the new checked AnalysisException compiles and degrades to the pre-existing warn-and-continue in extractFiles; ArchiveAnalyzerTest.java already imports `java.lang.reflect.InvocationTargetException` (line 19) and `Method` (line 20), so the reflection tests compile. Execution results: regressions_ran=0, regressions_passed=null.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Fail-closed on IOException, no new injection/TOCTOU beyond what the official fix shares; only a minor behavioral edge where an un-canonicalizable path now aborts an archive that previously extracted.",
+        "evidence": "validateExtractionTarget catches IOException and rethrows AnalysisException (`Unable to validate the extraction path for entry '%s'`), which aborts extraction of that archive via the existing catch; no regex/blocklist, no shell, uses java.io canonicalization only.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized: one guard call plus one private static helper at the sink, with focused unit tests; no unrelated edits.",
+        "evidence": "Production diff is +1 line at ArchiveAnalyzer.java:517 and a ~30-line private helper `validateExtractionTarget(File,File,String)`; the only other changes are two tests in ArchiveAnalyzerTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Textbook CWE-022 defense-of-record — canonicalize (resolving symlinks and ..) then verify the target stays under the base dir — and the boundary check is strictly stronger than the official fix's raw prefix test.",
+        "evidence": "`filePath.equals(destinationPath) || filePath.startsWith(destinationPath + File.separator)` closes the sibling-prefix bypass (e.g. dest=/tmp/dest, target=/tmp/dest-evil/x) that the official `f.getCanonicalPath().startsWith(destPath)` still admits; canonicalization also defeats absolute-path entries and symlink-through-earlier-entry attacks.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "ExtractionUtil.java is entirely unpatched, leaving a live path to the same CVE-2018-12036 traversal. Verified reachable: PythonDistributionAnalyzer.java:216 calls ExtractionUtil.extractFilesUsingFilter(...) -> extractArchive -> extractFile, which builds `new File(destination, entry.getName())` and gates only on `filter.accept(file.getParentFile(), file.getName())` — a name-only filter. A malicious .whl/.egg entry named `../../../../METADATA` matches the filter and is written outside the destination. The official fix adds canonical-path containment checks at ExtractionUtil.extractFiles, extractArchive, and extractFile precisely for this."
+      },
+      {
+        "severity": "medium",
+        "description": "The gzip/bzip2 branches of ArchiveAnalyzer.extractFiles (`new File(destination, GzipUtils.getUncompressedFilename(archive.getName()))` / BZip2Utils equivalent, ~lines 412/425) get no containment check, whereas the official fix adds one to both. Practical exploitability is low because File.getName() strips path separators, but this is an official-fixed location our patch leaves unguarded."
+      },
+      {
+        "severity": "low",
+        "description": "No execution evidence supports the patch. pov_before_reproduced=false means the POV never demonstrated the vulnerability on the unpatched build, so pov_after_still_reproduces=false proves nothing; regressions_ran=0 means no test at all exercised the new guard or checked for behavioral regressions. The compile-safety and no-over-restriction conclusions above come from reading the base tree, not from a green build."
+      }
+    ],
+    "root_cause": "Archive entry names are attacker-controlled and are joined to the extraction directory (`new File(destination, entry.getName())`) and written without ever verifying that the resolved real path stays inside that directory, so `../` or absolute-path entries escape the intended extraction root (Zip Slip).",
+    "summary": "Our patch applies the correct defense-of-record at the reported sink: it canonicalizes both the destination and the resolved entry target and rejects anything not equal to, or a separator-bounded descendant of, the destination — a strictly stronger boundary check than the official fix's raw `startsWith(destPath)`, which admits sibling-prefix directories. It is minimal, fail-closed, and compiles cleanly against the existing `catch (IOException | AnalysisException)` in extractArchive. However, it fixes only 1 of the 5 locations the official fix hardened: ExtractionUtil.java is untouched, and its extractFile sink is genuinely reachable via PythonDistributionAnalyzer -> extractFilesUsingFilter with a name-only filter, so the CWE-022 class survives outside the traced path. Combined with zero execution evidence (the POV never reproduced pre-patch and no regression tests ran), this is a well-built but incomplete fix.",
+    "overall": {
+      "mean": 3.75,
+      "score": 75,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ArchiveAnalyzer.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "ExtractionUtil.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+        "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java"
+      ],
+      "commits": [
+        "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7"
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_031506_finding-8ed861a75f95/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-8ed861a75f95:bc82b1e162b1 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[POV] base    = /tmp/pov-undertow-6755495329801365660/webroot
+[POV] served  = /tmp/pov-undertow-6755495329801365660/secret.txt
+[POV] secret  = /tmp/pov-undertow-6755495329801365660/secret.txt
+[POV] escapedBase=true isSecret=true leakedSecret=true
+[POV] VULNERABLE: path traversal escaped the base directory and leaked out-of-base file contents: "TOP-SECRET-ffffffffa13b6e56"
+
+--- stderr ---
+

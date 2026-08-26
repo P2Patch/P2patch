@@ -1,0 +1,125 @@
+diff --git a/.security-pipeline/pov/PathTraversalPovTest.java b/.security-pipeline/pov/PathTraversalPovTest.java
+new file mode 100644
+index 0000000..f6fc109
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPovTest.java
+@@ -0,0 +1,119 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *    http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.apache.dolphinscheduler.server.log;
++
++import static org.junit.Assert.assertTrue;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.when;
++
++import org.apache.dolphinscheduler.common.utils.JSONUtils;
++import org.apache.dolphinscheduler.remote.command.Command;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
++
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import org.junit.Test;
++import org.mockito.ArgumentCaptor;
++
++import io.netty.channel.Channel;
++
++/**
++ * PoV for CWE-022 in {@link LoggerRequestProcessor}.
++ *
++ * finding-e598eac7a0c3 / CVE-aligned DolphinScheduler log-server path traversal.
++ *
++ * The Netty {@code LoggerRequestProcessor.process(...)} method takes the
++ * "path" field out of an attacker-controlled {@link ViewLogRequestCommand}
++ * (deserialized straight from the wire via {@code JSONUtils.parseObject})
++ * and passes it, completely unvalidated, into
++ * {@code LoggerUtils.readWholeFileContent(String filePath)} which opens
++ * a {@code FileInputStream} on that exact path (LoggerUtils.java:108/111).
++ *
++ * There is no confinement to any "log root" directory anywhere on this
++ * path, so a remote peer that can reach the log-server Netty port (any
++ * master/worker in the cluster, or anyone able to reach that TCP port)
++ * can read an arbitrary file on the log-server's filesystem by sending a
++ * VIEW_WHOLE_LOG_REQUEST whose path uses "../" segments (or an absolute
++ * path) to escape the intended task-log directory.
++ *
++ * This test drives the real, unmodified production code path
++ * (LoggerRequestProcessor.process -> LoggerUtils.readWholeFileContent ->
++ * FileInputStream) - nothing is mocked except the outbound Netty
++ * {@link Channel}, which is only used to capture the response that the
++ * processor writes back.
++ *
++ * On vulnerable code: the response contains the secret marker that lives
++ * outside the "logs" directory, proving arbitrary file read via path
++ * traversal -> test PASSES (exit 0).
++ *
++ * On patched code (which must confine "path" to the configured log root
++ * and reject traversal/absolute paths for VIEW_WHOLE_LOG_REQUEST,
++ * GET_LOG_BYTES_REQUEST and ROLL_VIEW_LOG_REQUEST alike): the traversal
++ * either yields no content, throws, or is rejected before the file is
++ * ever opened -> the marker is absent -> assertion fails -> non-zero exit.
++ */
++public class PathTraversalPovTest {
++
++    @Test
++    public void viewWholeLogRequest_escapesLogRootViaDotDotTraversal() throws IOException {
++        // marker unique enough that a random unrelated read can't match it
++        final String marker = "DS-POV-SECRET-e598eac7a0c3-4b7e9c";
++
++        Path root = Files.createTempDirectory("ds-pov-root");
++        Path logsDir = root.resolve("logs");
++        Files.createDirectories(logsDir);
++
++        Path secretDir = root.resolve("secret");
++        Files.createDirectories(secretDir);
++        Path secretFile = secretDir.resolve("secret.txt");
++        Files.write(secretFile, (marker + "\n").getBytes(StandardCharsets.UTF_8));
++
++        // Attacker-controlled "path" as it would arrive in a
++        // ViewLogRequestCommand off the wire: it nominally lives under the
++        // authorized "logs" directory but walks out of it with "..".
++        String traversalPath = logsDir.toString() + "/../secret/secret.txt";
++
++        ViewLogRequestCommand requestCommand = new ViewLogRequestCommand(traversalPath);
++        Command command = requestCommand.convert2Command();
++
++        Channel channel = mock(Channel.class);
++        when(channel.writeAndFlush(org.mockito.Mockito.any(Command.class))).thenReturn(null);
++
++        // Exercise the real, unmodified production request handler.
++        LoggerRequestProcessor processor = new LoggerRequestProcessor();
++        processor.process(channel, command);
++
++        ArgumentCaptor<Command> responseCaptor = ArgumentCaptor.forClass(Command.class);
++        org.mockito.Mockito.verify(channel).writeAndFlush(responseCaptor.capture());
++
++        ViewLogResponseCommand response = JSONUtils.parseObject(
++                responseCaptor.getValue().getBody(), ViewLogResponseCommand.class);
++
++        String msg = response == null ? "" : response.getMsg();
++
++        assertTrue(
++                "Expected LoggerRequestProcessor to leak the contents of a file outside the "
++                        + "log root via '..' traversal in the request path (CWE-022); "
++                        + "got response message: [" + msg + "]",
++                msg != null && msg.contains(marker));
++    }
++}

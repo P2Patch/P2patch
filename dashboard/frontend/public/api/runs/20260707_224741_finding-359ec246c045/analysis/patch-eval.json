@@ -1,0 +1,279 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:50.238917+00:00",
+    "finished_at": "2026-07-11T23:22:40.023041+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Canonical-path containment check at the actual file-write sink blocks the whole zip-slip file-write class, not just the observed payload; POV no longer reproduces.",
+        "evidence": "UnzipEngine.java:422 assertFileWithinDestination(file, new File(outPath)) using getCanonicalPath() before mkdirs/write",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Guards the real sink where the tainted File is written (unzipFile), canonicalizing then verifying containment — neutralizes the flaw at the trust boundary rather than a caller symptom.",
+        "evidence": "assertFileWithinDestination invoked immediately after `new File(getOutputFileNameWithPath(...))` at line 422, before parentFile.mkdirs()",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Covers the file-extraction path through unzipFile, but directory-only entries are created in Unzip.initExtractFile (mkdirs) which never calls unzipFile, so a traversal directory entry is unguarded; official fix covers both.",
+        "evidence": "Our check only in UnzipEngine.unzipFile; official adds check in Unzip.initExtractFile before the fileHeader.isDirectory() mkdirs branch",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defense-of-record strategy (canonical path + startsWith containment) as official, applied at a different valid location; even hardens the separator-prefix edge case the official fix lacks.",
+        "evidence": "canonicalDestWithSep separator guard vs official's bare `.startsWith(new File(outPath).getCanonicalPath())` in Unzip.java",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Regression suite passed and the containment check permits all legitimate in-tree entries; only escaping paths throw.",
+        "evidence": "regressions_ran=1 passed; equals-or-startsWith(dest+sep) allows normal files",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses canonical path safely, correct separator handling avoids sibling-prefix false negatives, IOException wrapped as ZipException; no ReDoS/injection/crash introduced.",
+        "evidence": "assertFileWithinDestination try/catch(IOException e){throw new ZipException(e)}",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Core code change is tight and well-placed, but the diff also commits unrelated build artifacts under target/, adding noise.",
+        "evidence": "target/maven-archiver/pom.properties, createdFiles.lst, inputFiles.lst added",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize to real absolute path then verify it stays under the destination base — the canonical CWE-022 defense, and stronger than the official startsWith due to separator boundary handling.",
+        "evidence": "getCanonicalPath() on both file and dest + canonicalDestWithSep boundary check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Directory entries with traversal names are handled in Unzip.initExtractFile via mkdirs and never reach UnzipEngine.unzipFile, so our sink-level check does not cover them; a malicious directory entry could still create directories outside the destination. The official fix guards this in initExtractFile before the isDirectory() branch."
+      },
+      {
+        "severity": "low",
+        "description": "The diff commits unrelated Maven build artifacts (target/maven-archiver/pom.properties, createdFiles.lst, inputFiles.lst), reducing minimality and cleanliness of the patch."
+      }
+    ],
+    "root_cause": "Archive entry names containing path-traversal sequences flow untrusted into a File written to disk without verifying the resolved path stays inside the extraction destination directory (zip slip).",
+    "summary": "Our patch adds a canonical-path containment check (assertFileWithinDestination) at the actual file-write sink in UnzipEngine.unzipFile, which is the CWE-022 defense-of-record and even hardens the separator-boundary edge case the official fix misses. The POV no longer reproduces and the regression passed. It differs from the official fix in location (UnzipEngine vs Unzip.initExtractFile) and, importantly, does not guard traversal in directory-only entries which are created via mkdirs in initExtractFile without invoking unzipFile — a real but lower-impact completeness gap. Overall a sound, class-level fix for file writes with one uncovered sibling path and some committed build-artifact noise.",
+    "overall": {
+      "mean": 4.12,
+      "score": 82,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 82,
+        "score_mean": 83.3,
+        "score_min": 78,
+        "score_max": 90,
+        "score_stdev": 4.99,
+        "mean_median": 4.12,
+        "band_mode": "acceptable",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.29
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 78,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 82,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 90,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "UnzipEngine.java",
+        "createdFiles.lst",
+        "inputFiles.lst",
+        "pom.properties"
+      ],
+      "official_only": [
+        "InflaterInputStream.java",
+        "MANIFEST.MF",
+        "Unzip.java",
+        "pom.xml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/META-INF/MANIFEST.MF",
+        "src/main/java/net/lingala/zip4j/io/InflaterInputStream.java",
+        "src/main/java/net/lingala/zip4j/unzip/Unzip.java"
+      ],
+      "commits": [
+        "59aeea594ff885e06c25751dc6334dfea1bed8c6"
+      ]
+    }
+  }
+}

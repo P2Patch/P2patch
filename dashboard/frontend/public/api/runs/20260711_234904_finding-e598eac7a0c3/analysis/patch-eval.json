@@ -1,0 +1,272 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:12:35.985719+00:00",
+    "finished_at": "2026-07-11T23:13:39.474236+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds a `checkLogPath` guard invoked before every log-serving command (GET_LOG_BYTES, VIEW_WHOLE_LOG, ROLL_VIEW_LOG, REMOVE_TASK_LOG) in the same dispatcher class the official fix touches, and it neutralizes the observed POV (`/etc/passwd` has no `.log` suffix, so it is rejected). However it is strictly weaker than the official fix: it validates only `!path.contains(\"..\")` + `endsWith(\".log\")` and, critically, omits the official fix's base-directory anchoring (`path.startsWith(dsHome)`). As a result an attacker can still read any `.log` file anywhere on the filesystem, so the path-traversal/arbitrary-file-read class is not fully closed. The mechanism is a blocklist+suffix filter rather than canonicalize-and-contain, the CWE-022 defense-of-record.",
+    "root_cause": "Untrusted, attacker-controlled `path` from ViewLog/GetLog/RollView/RemoveTask commands flows unchecked into file reads in LoggerUtils/LoggerRequestProcessor, allowing arbitrary file access; a correct fix must constrain the resolved path to the log base directory.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "Blocks the observed no-.log payload but arbitrary .log files anywhere on disk remain readable.",
+        "evidence": "checkLogPath: only checks !path.contains(\"..\") && path.endsWith(\".log\"); no base-dir restriction",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Guards at the correct dispatcher boundary but with a blocklist/suffix filter, not path containment at the sink.",
+        "evidence": "private void checkLogPath(String path) in LoggerRequestProcessor.java",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "All four command paths guarded (good), but bypass variants — any .log outside home, symlinks — remain.",
+        "evidence": "checkLogPath calls added in GET_LOG_BYTES, VIEW_WHOLE_LOG, ROLL_VIEW_LOG, REMOVE_TASK_LOG cases",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same file/location and validate-before-serve intent, but omits official's startsWith(dsHome) anchoring.",
+        "evidence": "official checkPathSecurity: path.startsWith(dsHome) && !path.contains(\"../\") && path.endsWith(\".log\")",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Tests updated and pass; less restrictive than official so unlikely to break legit .log reads.",
+        "evidence": "updated LoggerRequestProcessorTest with .log path + two rejection tests; pov_after not reproduced",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No ReDoS/TOCTOU; throws IllegalArgumentException instead of boolean return, a minor behavioral change.",
+        "evidence": "throw new IllegalArgumentException(\"Illegal log file path: \" + path)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized single-file production change plus focused tests.",
+        "evidence": "only LoggerRequestProcessor.java changed in production; overlap jaccard 1.0",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Ad-hoc blocklist(\"..\")+suffix without canonicalization or base-dir containment — not the CWE-022 defense-of-record.",
+        "evidence": "checkLogPath lacks canonical path resolution and any allowed-root check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Missing base-directory containment: unlike the official fix (path.startsWith(DOLPHINSCHEDULER_HOME)), our checkLogPath permits any absolute path ending in .log, so an attacker can still read arbitrary .log files anywhere on the filesystem — the arbitrary-file-read class is not fully closed."
+      },
+      {
+        "severity": "low",
+        "description": "Uses a blocklist ('..') plus suffix allowlist rather than canonicalize-then-verify-inside-base-dir; symlinks are not resolved, so a symlinked *.log could escape any intended directory."
+      },
+      {
+        "severity": "low",
+        "description": "Throws IllegalArgumentException whereas the official checkPathSecurity returns a boolean; callers relying on graceful boolean handling see a different control flow (minor divergence)."
+      }
+    ],
+    "overall": {
+      "mean": 3.25,
+      "score": 65,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 65,
+        "score_mean": 66.7,
+        "score_min": 65,
+        "score_max": 70,
+        "score_stdev": 2.36,
+        "mean_median": 3.25,
+        "band_mode": "incomplete",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.12
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.33,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 70,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 65,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 65,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "LoggerRequestProcessor.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+      ],
+      "commits": [
+        "9717da6c255414eaef1c9ac943b0eb8989c1a85d"
+      ]
+    }
+  }
+}

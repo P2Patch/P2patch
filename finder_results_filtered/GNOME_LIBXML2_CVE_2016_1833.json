@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2016-1833",
+  "note": "xmlNextChar() (parserInternals.c) advances the parser's input cursor differently by ctxt->charset. Its XML_CHAR_ENCODING_UTF8 branch checks `*ctxt->input->cur == 0` and proactively grows the input buffer before doing anything else. The `else` branch -- taken for every other, fixed-length charset, which is what HTML parsing runs under (htmlCurrentChar()'s char-advance macro NEXT expands to a call to this same xmlNextChar()) -- has no such check: it unconditionally does `ctxt->input->cur++;` and then dereferences the possibly-past-the-end pointer at `if (*ctxt->input->cur == 0)`, a heap-buffer-overread for a crafted document (parsed with --html) that runs the cursor to the end of the allocated input buffer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "ctxt->input->cur++; -- unconditional pointer advance in the non-UTF8 (fixed-length encoding) branch, with no prior end-of-buffer check (unlike the sibling UTF8 branch immediately above)",
+            "uri": "parserInternals.c",
+            "line": 533
+          },
+          {
+            "message": "if (*ctxt->input->cur == 0) -- dereferences the now-advanced pointer with no check that it is still <= ctxt->input->end",
+            "uri": "parserInternals.c",
+            "line": 535
+          }
+        ]
+      ]
+    }
+  ]
+}

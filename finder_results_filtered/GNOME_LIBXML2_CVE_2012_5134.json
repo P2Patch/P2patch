@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2012-5134",
+  "note": "xmlParseAttValueComplex() (parser.c) ends its whitespace-normalization pass with `while (buf[len - 1] == 0x20) len--;` -- buf is the heap-allocated attribute-value translation buffer and len (a size_t, declared 0) is only ever incremented while copying characters into it. The guard that reaches this statement (`in_space && normalize`) does not itself guarantee len > 0: for a crafted attribute value whose content is entirely consumed by entity/character-reference processing without ever appending a character to buf, the loop reaches this line with len still 0, so len - 1 wraps to SIZE_MAX (size_t underflow) and the read walks before the start of the heap allocation -- a buffer underflow.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "size_t len = 0; -- len defaults to and can remain 0 through the parse loop above (only buf[len++]/COPY_BUF paths increment it)",
+            "uri": "parser.c",
+            "line": 3898
+          },
+          {
+            "message": "buf[len - 1] : read with no len>0 guard -- underflows to buf[SIZE_MAX] when len is still 0.",
+            "uri": "parser.c",
+            "line": 4079
+          }
+        ]
+      ]
+    }
+  ]
+}

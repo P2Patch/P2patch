@@ -1,0 +1,272 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:24.442911+00:00",
+    "finished_at": "2026-07-11T23:22:17.773091+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify neutralizes the tar-slip sink for the whole class, not just the observed payload.",
+        "evidence": "Copy.java extractArchiveFromPod: File f = new File(destinationDir, entry.getName()).getCanonicalFile(); then throws unless f.getPath() equals dest or startsWith canonicalDestinationPrefix.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Validation applied at the sink for every archive entry before File write, closing the trust boundary.",
+        "evidence": "Guard inside the per-entry loop that produced the tainted 'new File(...).getParentFile()' at Copy.java:146-147.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "copyDirectoryFromPod is the only extraction path; canonical check covers ../, absolute paths and symlink escapes.",
+        "evidence": "Single loop over ArchiveInputStream entries; getCanonicalFile() + separator-terminated prefix check handles all name variants.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same location and defensive intent as official fix (validate entry.getName() in the extraction loop); different but stronger mechanism.",
+        "evidence": "Ours uses getCanonicalFile()+prefix check vs official FilenameUtils.normalize() at the same File f = new File(destination, entry.getName()) site.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Added unit tests confirm legitimate nested extraction and traversal rejection; but regressions_ran=0 and canonicalization resolves symlinks which could alter edge behavior.",
+        "evidence": "testExtractArchiveExtractsLegitimateEntries passes; regressions_ran:0, pov_before_reproduced:false leaves regression coverage unverified.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe canonical-path primitives; prefix is terminated with File.separator, avoiding the sibling-prefix (dest vs dest-evil) false match.",
+        "evidence": "canonicalDestinationPrefix = destinationDir.getPath() + File.separator; equals-or-startsWith guard.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Core fix is tight, but the diff extracts a new method and relocates proc.waitFor(), adding non-essential restructuring.",
+        "evidence": "extractArchiveFromPod method extraction and moved waitFor block in Copy.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Applies the CWE-022 defense of record: canonicalize to real absolute path (resolving symlinks) then verify containment in base dir.",
+        "evidence": "getCanonicalFile() on both dest and entry, containment check via canonical prefix — stronger than textual normalize.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Regression suite was not executed (regressions_ran=0) and pov_before_reproduced=false, so no independent confirmation that legitimate copy behavior and other tests still pass beyond the two added unit tests."
+      },
+      {
+        "severity": "low",
+        "description": "getCanonicalFile() resolves symlinks inside the destination, which is a stronger stance than the official normalize-based fix; in rare setups where a legitimate symlinked subdir points outside dest, extraction could be rejected."
+      }
+    ],
+    "summary": "Our patch fixes the CWE-022 tar-slip at the correct sink in Copy.java by canonicalizing both the destination and each entry path and rejecting any entry that does not resolve inside the destination directory (prefix terminated with File.separator to avoid sibling-prefix bypass). This is the CWE-022 defense of record and is semantically a superset of the official FilenameUtils.normalize() fix, additionally neutralizing symlink-based escapes. The main gap is verification coverage: no regressions were run and the POV did not reproduce pre-patch, though added unit tests confirm both rejection and legitimate extraction.",
+    "root_cause": "Archive entry names read from the pod (entry.getName()) were passed unvalidated into new File(destination, name), allowing '../' sequences to write files outside the destination directory (tar slip / path traversal).",
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 95,
+        "score_mean": 94.0,
+        "score_min": 92,
+        "score_max": 95,
+        "score_stdev": 1.41,
+        "mean_median": 4.75,
+        "band_mode": "good",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 95,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 92,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 95,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Copy.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "util/pom.xml",
+        "util/src/main/java/io/kubernetes/client/Copy.java"
+      ],
+      "commits": [
+        "858316ae8bc1145005a0310e1f65f95d2389a589"
+      ]
+    }
+  }
+}

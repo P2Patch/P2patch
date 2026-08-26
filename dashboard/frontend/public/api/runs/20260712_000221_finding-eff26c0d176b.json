@@ -1,0 +1,226 @@
+{
+  "run_id": "20260712_000221_finding-eff26c0d176b",
+  "finding_id": "finding-eff26c0d176b",
+  "timestamp": "2026-07-12T00:02:21",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260712_000221_finding-eff26c0d176b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-eff26c0d176b",
+    "cve_id": "CVE-2022-25842",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "alibaba__one-java-agent_CVE-2022-25842_0.0.1",
+    "alert_file": "ALIBABA__ONE-JAVA-AGENT_CVE-2022-25842_0.0.1.json",
+    "github_url": "https://github.com/alibaba/one-java-agent",
+    "repo": "alibaba/one-java-agent",
+    "github_tag": "0.0.1",
+    "advisory_id": "GHSA-9hr3-j9mc-xmq2",
+    "buggy_commit_id": "b911af2bb779917c84a016350700745dc31c642a",
+    "fix_commit_ids": [
+      "359603b63fc6c59d8b57e061c171954bab3433bf",
+      "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "359603b63fc6c59d8b57e061c171954bab3433bf",
+        "file": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+        "class": "IOUtils",
+        "class_start": "24.0",
+        "class_end": "106.0",
+        "method": "unzip",
+        "method_start": "",
+        "method_end": "",
+        "signature": "unzip(String zipFile, String extractFolder)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-25842",
+      "advisory": "https://github.com/advisories/GHSA-9hr3-j9mc-xmq2",
+      "repo": "https://github.com/alibaba/one-java-agent",
+      "buggy_commit": "https://github.com/alibaba/one-java-agent/commit/b911af2bb779917c84a016350700745dc31c642a"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 122,
+              "message": "getName(...) : String",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 124,
+              "message": "currentEntry : String",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 124,
+              "message": "new File(...) : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 126,
+              "message": "destFile : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 126,
+              "message": "getParentFile(...) : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 129,
+              "message": "destinationParent",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-eff26c0d176b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260712_000221_finding-eff26c0d176b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-eff26c0d176b:2be5285b1e2a",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/alibaba__one-java-agent_[redacted]_0.0.1/26/Dockerfile",
+        "-t",
+        "simpleautosec-finding-eff26c0d176b:2be5285b1e2a",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/alibaba__one-java-agent_[redacted]_0.0.1/26"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 78466,
+        "duration_api_ms": 63650,
+        "num_turns": 10,
+        "cost_usd": 0.315446,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 17,
+          "output": 3987,
+          "cache_read": 207626,
+          "cache_creation": 11028
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+          "one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java"
+        ],
+        "patch_notes": "In IOUtils.unzip(), computed the canonical path of the extraction root once, then for each zip entry computed the destination file's canonical path and threw an IOException when it neither equals the root nor starts with root + File.separator. This blocks entries containing \"../\" traversal sequences (and absolute-path entries) before any directory creation or file write occurs. Added IOUtilsUnzipTest with two cases: a normal nested entry that extracts correctly, and a malicious \"../../evil.txt\" entry that must throw and must not create a file outside the target directory.",
+        "regression_commands": [
+          "cd one-java-agent-plugin && mvn -B -Dtest=IOUtilsUnzipTest test"
+        ],
+        "risk_notes": "The check uses getCanonicalPath(), which resolves symlinks and normalizes paths; behavior is consistent across platforms via File.separator. Legitimate zips with nested subdirectories continue to extract normally (verified by testUnzipNormalEntry). The only behavioral change is that entries resolving outside the extraction directory now cause the unzip to fail fast with an IOException instead of writing outside the target. No dependency or API changes.",
+        "status": "patched",
+        "summary": "Fixed a Zip Slip path-traversal vulnerability (CWE-022) in IOUtils.unzip(). A malicious zip entry name such as \"../../evil.txt\" could resolve outside the intended extraction directory, allowing arbitrary file writes. The fix canonicalizes each destination path and rejects any entry that resolves outside the target directory before creating parent directories or writing files."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.3154,
+    "num_turns": 10,
+    "agent_duration_ms": 78466
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

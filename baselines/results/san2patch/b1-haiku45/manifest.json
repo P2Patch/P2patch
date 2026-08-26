@@ -1,0 +1,18 @@
+{
+  "batch": "b1-haiku45",
+  "purpose": "First smoke run — verify the harness end to end before committing compute to the full VulnLoc set.",
+  "baseline": "san2patch",
+  "baseline_commit": "a8c5ace939cdf3de835fa50c617f4fe979f35e6d",
+  "image": "acorn421/san2patch:latest (amd64, 16GB)",
+  "local_modifications": "baselines/san2patch/0001-add-claude-haiku-4-5.patch — all four of San2Patch's stock Anthropic model IDs are retired (HTTP 404), so a current model had to be registered before it could reach Anthropic at all.",
+  "model": "claude-haiku-4-5-20251001",
+  "version": "tot",
+  "host": "2.28.1.51 (x86_64, 8 cores, 15GB RAM, Ubuntu 24.04)",
+  "host_caveat": "Box was under load ~8.6/8 cores from the AutoSec pipeline throughout. Timing here is a lower bound on speed, not a measurement — do not compare it to the paper's 8m55s average.",
+  "ran_at": "2026-08-14T08:15:22Z",
+  "cases_attempted": 2,
+  "notes": [
+    "CVE-2017-14745 could not be run: it is the ONLY one of the 66 cases in the benchmark image whose src/ tree is absent, so validation could not start. Packaging gap on their side, present since the image was built (2025-06-19), not caused by our run. Excluded from the denominator rather than scored as a failure.",
+    "The image ships 41 of the 43 VulnLoc cases (no ffmpeg) plus 25 San2Vuln = 66."
+  ]
+}

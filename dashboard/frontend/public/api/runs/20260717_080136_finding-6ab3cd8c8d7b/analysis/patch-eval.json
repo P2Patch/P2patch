@@ -1,0 +1,132 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:45.014843+00:00",
+    "finished_at": "2026-07-17T15:43:19.405473+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "POV (currentDir vector) is blocked, but the leaf name/fileName and upload-filename vectors remain unvalidated, so the CWE-022 class survives.",
+        "evidence": "FileUtils.directoryPathTraversal guards only currentDir at ResourcesServiceImpl lines ~137,217,965; leaf `name` still only checked for endsWith(\"/\") and `fileName`/originalFilename untouched.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Guards the parent-dir parameter with a blocklist rather than validating the leaf name at the sink as the official fix does; misses the actual root the developers targeted.",
+        "evidence": "Official replaces name.endsWith(FOLDER_SEPARATOR) with FileUtils.directoryTraversal(name)+canonical check; our patch never validates name/fileName, only currentDir.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Does not cover verifyFile upload path (name + originalFilename) or the leaf name in createDirectory/onlineCreateResource that the official fix explicitly hardens.",
+        "evidence": "Our diff touches no verifyFile; official adds directoryTraversal(name) and directoryTraversal(file.getOriginalFilename()) in verifyFile.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same high-level goal (block traversal in resource service) but different parameter (currentDir vs name/fileName) and different mechanism (\"..\" blocklist vs canonical+\"/\" rejection).",
+        "evidence": "Official guards name/fileName via directoryTraversal; ours introduces directoryPathTraversal on currentDir, a parameter the official fix does not touch.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legit multi-segment paths (/a/b/c) pass; 4 regressions and added tests pass, no obvious over-restriction.",
+        "evidence": "directoryPathTraversal returns false for \"/\",\"/a/b/c\"; regressions_passed=true, pov_after_still_reproduces=false.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Helper is safe: null-guarded, split-based (no ReDoS), no TOCTOU; only nit is an unrelated committed artifact.",
+        "evidence": "FileUtils.directoryPathTraversal null/backslash checks + split(FOLDER_SEPARATOR,-1); stray test/testFile.txt added.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Guards are localized, but a stray junk file is committed and the leaf-name fix is absent, so change is both incomplete and slightly noisy.",
+        "evidence": "Adds test/testFile.txt (\"正正正faffdasfasdfas\") unrelated to the fix.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Uses a \"..\"-segment/backslash blocklist rather than canonicalize-then-verify-inside-base; per rubric blocklisting is the weak defense for CWE-022.",
+        "evidence": "directoryPathTraversal loops segments checking \"..\".equals(segment.trim()); no getCanonicalFile/base-dir containment check unlike official directoryTraversal.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Leaf `name`/`fileName` parameters are not validated for traversal. The official fix's core change (FileUtils.directoryTraversal on name/fileName, rejecting any \"/\" plus canonical check) is not replicated, so name=\"../evil\" with a benign currentDir can still build a traversing fullName."
+      },
+      {
+        "severity": "high",
+        "description": "verifyFile (file upload) path is entirely unguarded. The official fix adds directoryTraversal checks on both `name` and `file.getOriginalFilename()`; our patch touches no upload path, leaving upload-based traversal open."
+      },
+      {
+        "severity": "medium",
+        "description": "Mitigation is an ad-hoc \"..\"-segment/backslash blocklist rather than canonicalize-then-verify-within-base-dir, the CWE-022 defense of record; fragile against non-\"..\" escape forms."
+      },
+      {
+        "severity": "low",
+        "description": "Unrelated artifact test/testFile.txt committed with the patch, adding noise unrelated to the security fix."
+      }
+    ],
+    "root_cause": "Untrusted resource-center path inputs (currentDir, and especially the leaf name/fileName and uploaded originalFilename) are concatenated into fullName and passed to HadoopUtils' new Path() sink without canonicalization/containment validation, allowing path traversal.",
+    "summary": "Our patch blocks the observed POV by adding a currentDir \\\"..\\\"-segment blocklist (directoryPathTraversal) at three service entry points, and regressions pass. However it guards the wrong/partial parameter: the official fix validates the leaf name/fileName and the uploaded originalFilename via directoryTraversal (reject any \\\"/\\\" + canonical vs absolute), whereas our patch never validates name/fileName and does not touch verifyFile — so leaf-name and upload traversal vectors of the same CWE-022 class remain reachable. It is a symptom-oriented, blocklist-based subset of the official fix rather than a root-cause, canonicalizing fix.",
+    "overall": {
+      "mean": 2.62,
+      "score": 52,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "FileUtils.java",
+        "ResourcesServiceImpl.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "Status.java",
+        "file-manage.md"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 4,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "docs/docs/en/guide/resource/file-manage.md",
+        "docs/docs/zh/guide/resource/file-manage.md",
+        "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/enums/Status.java",
+        "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java"
+      ],
+      "commits": [
+        "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd"
+      ]
+    }
+  }
+}

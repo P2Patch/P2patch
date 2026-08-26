@@ -1,0 +1,474 @@
+diff --git a/pom.xml b/pom.xml
+index c04aa8d..d3e5bee 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -25,6 +25,14 @@
+ <developerConnection>scm:hg:file:///Users/srikanthl/Zip4j/src</developerConnection>
+ <url>http://www.lingala.net/zip4j/</url>
+ </scm>
++<dependencies>
++<dependency>
++<groupId>junit</groupId>
++<artifactId>junit</artifactId>
++<version>4.13.1</version>
++<scope>test</scope>
++</dependency>
++</dependencies>
+ <build>
+   <plugins>
+     <plugin>
+diff --git a/src/main/java/net/lingala/zip4j/unzip/Unzip.java b/src/main/java/net/lingala/zip4j/unzip/Unzip.java
+index 4e9be03..48731d0 100644
+--- a/src/main/java/net/lingala/zip4j/unzip/Unzip.java
++++ b/src/main/java/net/lingala/zip4j/unzip/Unzip.java
+@@ -142,8 +142,7 @@ public class Unzip {
+ 					if (!Zip4jUtil.isStringNotNullAndNotEmpty(fileName)) {
+ 						return;
+ 					}
+-					String completePath = outPath + fileName;
+-					File file = new File(completePath);
++					File file = Zip4jUtil.getSanitizedOutputFile(outPath, fileName);
+ 					if (!file.exists()) {
+ 						file.mkdirs();
+ 					}
+@@ -193,14 +192,14 @@ public class Unzip {
+ 			return;
+ 		}
+ 		
+-		String compOutPath = outPath + fileName;
+ 		try {
+-			File file = new File(compOutPath);
+-			String parentDir = file.getParent();
+-			File parentDirFile = new File(parentDir);
+-			if (!parentDirFile.exists()) {
++			File file = Zip4jUtil.getSanitizedOutputFile(outPath, fileName);
++			File parentDirFile = file.getParentFile();
++			if (parentDirFile != null && !parentDirFile.exists()) {
+ 				parentDirFile.mkdirs();
+ 			}
++		} catch (ZipException e) {
++			throw e;
+ 		} catch (Exception e) {
+ 			throw new ZipException(e);
+ 		}
+diff --git a/src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java b/src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java
+index 86d3f89..f43bc21 100644
+--- a/src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java
++++ b/src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java
+@@ -443,7 +443,8 @@ public class UnzipEngine {
+ 		} else {
+ 			fileName = fileHeader.getFileName();
+ 		}
+-		return outPath + System.getProperty("file.separator") + fileName;
++		// Ensure the entry-derived path cannot escape the extraction root (zip slip protection).
++		return Zip4jUtil.getSanitizedOutputFile(outPath, fileName).getPath();
+ 	}
+ 	
+ 	public RandomAccessFile startNextSplitFile() throws IOException, FileNotFoundException {
+diff --git a/src/main/java/net/lingala/zip4j/util/Zip4jUtil.java b/src/main/java/net/lingala/zip4j/util/Zip4jUtil.java
+index 52c035a..b757915 100644
+--- a/src/main/java/net/lingala/zip4j/util/Zip4jUtil.java
++++ b/src/main/java/net/lingala/zip4j/util/Zip4jUtil.java
+@@ -80,7 +80,47 @@ public class Zip4jUtil {
+ 		
+ 		return true;
+ 	}
+-	
++
++	/**
++	 * Resolves fileName against outPath and verifies that the resulting
++	 * canonical path is still located within outPath. This guards against
++	 * "zip slip" / path traversal attacks where a zip entry name contains
++	 * sequences such as "../" (or an absolute path) that would otherwise
++	 * cause the extracted file to be written, its parent directories
++	 * created, or an existing file overwritten/deleted outside of the
++	 * intended extraction root.
++	 *
++	 * @return the verified, canonical output {@link File}
++	 * @throws ZipException if the resolved path escapes outPath
++	 */
++	public static File getSanitizedOutputFile(String outPath, String fileName) throws ZipException {
++		if (!isStringNotNullAndNotEmpty(outPath)) {
++			throw new ZipException("invalid output path");
++		}
++
++		if (!isStringNotNullAndNotEmpty(fileName)) {
++			throw new ZipException("invalid entry name");
++		}
++
++		try {
++			File outDirFile = new File(outPath);
++			File targetFile = new File(outPath, fileName);
++
++			String canonicalOutDir = outDirFile.getCanonicalPath();
++			String canonicalTarget = targetFile.getCanonicalPath();
++
++			if (!canonicalTarget.equals(canonicalOutDir) &&
++					!canonicalTarget.startsWith(canonicalOutDir + File.separator)) {
++				throw new ZipException("Illegal file entry: " + fileName +
++						". Entry is outside of the target directory");
++			}
++
++			return targetFile;
++		} catch (java.io.IOException e) {
++			throw new ZipException("Cannot resolve canonical path for entry: " + fileName, e);
++		}
++	}
++
+ 	public static boolean checkFileReadAccess(String path) throws ZipException {
+ 		if (!isStringNotNullAndNotEmpty(path)) {
+ 			throw new ZipException("path is null");
+diff --git a/src/test/java/net/lingala/zip4j/unzip/ZipSlipTest.java b/src/test/java/net/lingala/zip4j/unzip/ZipSlipTest.java
+new file mode 100644
+index 0000000..bd542af
+--- /dev/null
++++ b/src/test/java/net/lingala/zip4j/unzip/ZipSlipTest.java
+@@ -0,0 +1,126 @@
++package net.lingala.zip4j.unzip;
++
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++import static org.junit.Assert.fail;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.lingala.zip4j.core.ZipFile;
++import net.lingala.zip4j.exception.ZipException;
++
++import org.junit.After;
++import org.junit.Before;
++import org.junit.Test;
++
++/**
++ * Regression tests for the "zip slip" path traversal vulnerability
++ * (CWE-022): a malicious zip entry name containing "../" sequences must
++ * not be able to write, create directories for, or delete/overwrite
++ * files outside of the requested extraction directory.
++ */
++public class ZipSlipTest {
++
++	private File tempRoot;
++	private File extractDir;
++	private File maliciousMarker;
++	private File maliciousDir;
++
++	@Before
++	public void setUp() throws IOException {
++		tempRoot = File.createTempFile("zip4j-ziptest", "");
++		tempRoot.delete();
++		tempRoot.mkdirs();
++
++		extractDir = new File(tempRoot, "extract-here");
++		extractDir.mkdirs();
++
++		// Sibling locations outside of extractDir that a "../" traversal would target.
++		maliciousMarker = new File(tempRoot, "evil.txt");
++		if (maliciousMarker.exists()) {
++			maliciousMarker.delete();
++		}
++		maliciousDir = new File(tempRoot, "evil-dir");
++		if (maliciousDir.exists()) {
++			maliciousDir.delete();
++		}
++	}
++
++	@After
++	public void tearDown() {
++		deleteRecursively(tempRoot);
++	}
++
++	@Test
++	public void extractAllRejectsZipEntryThatTraversesOutsideDestination() throws Exception {
++		File maliciousZip = createZipWithEntry(new File(tempRoot, "malicious.zip"), "../evil.txt", "pwned");
++
++		ZipFile zipFile = new ZipFile(maliciousZip);
++		try {
++			zipFile.extractAll(extractDir.getAbsolutePath());
++			fail("Expected a ZipException to be thrown for a path traversal entry, but extraction succeeded");
++		} catch (ZipException expected) {
++			// expected: traversal must be rejected
++		}
++
++		assertFalse("Entry must not be written outside of the extraction directory", maliciousMarker.exists());
++	}
++
++	@Test
++	public void extractAllRejectsTraversalDirectoryEntry() throws Exception {
++		// A directory entry (name ends with "/") exercises the separate
++		// mkdirs() sink used for directory entries, as opposed to the file
++		// write sink exercised above.
++		File maliciousZip = createZipWithEntry(new File(tempRoot, "malicious-dir.zip"), "../evil-dir/", "");
++
++		ZipFile zipFile = new ZipFile(maliciousZip);
++		try {
++			zipFile.extractAll(extractDir.getAbsolutePath());
++			fail("Expected a ZipException to be thrown for a path traversal directory entry, but extraction succeeded");
++		} catch (ZipException expected) {
++			// expected: traversal must be rejected
++		}
++
++		assertFalse("Directory must not be created outside of the extraction directory", maliciousDir.exists());
++	}
++
++	@Test
++	public void extractAllStillWorksForWellBehavedEntries() throws Exception {
++		File goodZip = createZipWithEntry(new File(tempRoot, "good.zip"), "subdir/hello.txt", "hello");
++
++		ZipFile zipFile = new ZipFile(goodZip);
++		zipFile.extractAll(extractDir.getAbsolutePath());
++
++		File extracted = new File(extractDir, "subdir/hello.txt");
++		assertTrue("Legitimate entries must still extract correctly", extracted.exists());
++	}
++
++	private static File createZipWithEntry(File zipFile, String entryName, String content) throws IOException {
++		ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++		try {
++			zos.putNextEntry(new ZipEntry(entryName));
++			zos.write(content.getBytes("UTF-8"));
++			zos.closeEntry();
++		} finally {
++			zos.close();
++		}
++		return zipFile;
++	}
++
++	private static void deleteRecursively(File file) {
++		if (file == null || !file.exists()) {
++			return;
++		}
++		File[] children = file.listFiles();
++		if (children != null) {
++			for (File child : children) {
++				deleteRecursively(child);
++			}
++		}
++		file.delete();
++	}
++}
+diff --git a/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst b/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+new file mode 100644
+index 0000000..bc1820d
+--- /dev/null
++++ b/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+@@ -0,0 +1,60 @@
++net/lingala/zip4j/io/CipherOutputStream.class
++net/lingala/zip4j/crypto/engine/ZipCryptoEngine.class
++net/lingala/zip4j/unzip/Unzip$1.class
++net/lingala/zip4j/util/ArchiveMaintainer$1.class
++net/lingala/zip4j/model/ZipParameters.class
++net/lingala/zip4j/crypto/IEncrypter.class
++net/lingala/zip4j/io/InflaterInputStream.class
++net/lingala/zip4j/model/ExtraDataRecord.class
++net/lingala/zip4j/crypto/StandardDecrypter.class
++net/lingala/zip4j/core/HeaderWriter.class
++net/lingala/zip4j/crypto/engine/AESEngine.class
++net/lingala/zip4j/crypto/AESEncrpyter.class
++net/lingala/zip4j/util/ArchiveMaintainer.class
++net/lingala/zip4j/io/BaseInputStream.class
++net/lingala/zip4j/core/ZipFile.class
++net/lingala/zip4j/model/ArchiveExtraDataRecord.class
++net/lingala/zip4j/model/Zip64ExtendedInfo.class
++net/lingala/zip4j/model/ZipModel.class
++net/lingala/zip4j/io/SplitOutputStream.class
++net/lingala/zip4j/util/CRCUtil.class
++net/lingala/zip4j/crypto/PBKDF2/PBKDF2Parameters.class
++net/lingala/zip4j/exception/ZipExceptionConstants.class
++net/lingala/zip4j/unzip/UnzipEngine.class
++net/lingala/zip4j/model/UnzipEngineParameters.class
++net/lingala/zip4j/model/AESExtraDataRecord.class
++net/lingala/zip4j/io/ZipOutputStream.class
++net/lingala/zip4j/model/CentralDirectory.class
++net/lingala/zip4j/crypto/PBKDF2/PRF.class
++net/lingala/zip4j/io/ZipInputStream.class
++net/lingala/zip4j/zip/ZipEngine.class
++net/lingala/zip4j/crypto/PBKDF2/PBKDF2Engine.class
++net/lingala/zip4j/exception/ZipException.class
++net/lingala/zip4j/model/Zip64EndCentralDirRecord.class
++net/lingala/zip4j/util/Raw.class
++net/lingala/zip4j/crypto/IDecrypter.class
++net/lingala/zip4j/model/EndCentralDirRecord.class
++net/lingala/zip4j/model/DataDescriptor.class
++net/lingala/zip4j/model/DigitalSignature.class
++net/lingala/zip4j/progress/ProgressMonitor.class
++net/lingala/zip4j/model/Zip64EndCentralDirLocator.class
++net/lingala/zip4j/model/LocalFileHeader.class
++net/lingala/zip4j/crypto/PBKDF2/MacBasedPRF.class
++net/lingala/zip4j/crypto/StandardEncrypter.class
++net/lingala/zip4j/model/UnzipParameters.class
++net/lingala/zip4j/util/InternalZipConstants.class
++net/lingala/zip4j/io/DeflaterOutputStream.class
++net/lingala/zip4j/io/PartInputStream.class
++net/lingala/zip4j/crypto/PBKDF2/PBKDF2HexFormatter.class
++net/lingala/zip4j/zip/ZipEngine$1.class
++net/lingala/zip4j/model/FileHeader.class
++net/lingala/zip4j/unzip/Unzip$2.class
++net/lingala/zip4j/unzip/Unzip.class
++net/lingala/zip4j/core/HeaderReader.class
++net/lingala/zip4j/util/ArchiveMaintainer$2.class
++net/lingala/zip4j/util/Zip4jUtil.class
++net/lingala/zip4j/unzip/UnzipUtil.class
++net/lingala/zip4j/crypto/AESDecrypter.class
++net/lingala/zip4j/crypto/PBKDF2/BinTools.class
++net/lingala/zip4j/util/Zip4jConstants.class
++net/lingala/zip4j/io/BaseOutputStream.class
+diff --git a/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst b/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+new file mode 100644
+index 0000000..3ea35d9
+--- /dev/null
++++ b/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+@@ -0,0 +1,55 @@
++/workspace/repo/src/main/java/net/lingala/zip4j/exception/ZipException.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/MacBasedPRF.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/Raw.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/AESEncrpyter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/DeflaterOutputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/ExtraDataRecord.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/CentralDirectory.java
++/workspace/repo/src/main/java/net/lingala/zip4j/unzip/Unzip.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/engine/ZipCryptoEngine.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/engine/AESEngine.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/InternalZipConstants.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/PBKDF2HexFormatter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/BaseOutputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/IDecrypter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/StandardEncrypter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/InflaterInputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/zip/ZipEngine.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/ZipParameters.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/Zip64EndCentralDirLocator.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/ArchiveExtraDataRecord.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/ZipInputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/ZipOutputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/Zip64EndCentralDirRecord.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/StandardDecrypter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/core/HeaderReader.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/PBKDF2Parameters.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/ArchiveMaintainer.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/FileHeader.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/LocalFileHeader.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/PBKDF2Engine.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/PRF.java
++/workspace/repo/src/main/java/net/lingala/zip4j/exception/ZipExceptionConstants.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/Zip4jUtil.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/EndCentralDirRecord.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/PBKDF2/BinTools.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/Zip4jConstants.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/AESExtraDataRecord.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/AESDecrypter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/unzip/UnzipUtil.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/PartInputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/BaseInputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/SplitOutputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/UnzipParameters.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/DigitalSignature.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/Zip64ExtendedInfo.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/DataDescriptor.java
++/workspace/repo/src/main/java/net/lingala/zip4j/util/CRCUtil.java
++/workspace/repo/src/main/java/net/lingala/zip4j/core/HeaderWriter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/progress/ProgressMonitor.java
++/workspace/repo/src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java
++/workspace/repo/src/main/java/net/lingala/zip4j/crypto/IEncrypter.java
++/workspace/repo/src/main/java/net/lingala/zip4j/core/ZipFile.java
++/workspace/repo/src/main/java/net/lingala/zip4j/io/CipherOutputStream.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/UnzipEngineParameters.java
++/workspace/repo/src/main/java/net/lingala/zip4j/model/ZipModel.java
+diff --git a/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst b/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst
+new file mode 100644
+index 0000000..a8bd457
+--- /dev/null
++++ b/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst
+@@ -0,0 +1 @@
++net/lingala/zip4j/unzip/ZipSlipTest.class
+diff --git a/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst b/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst
+new file mode 100644
+index 0000000..e46b06e
+--- /dev/null
++++ b/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst
+@@ -0,0 +1 @@
++/workspace/repo/src/test/java/net/lingala/zip4j/unzip/ZipSlipTest.java
+diff --git a/target/surefire-reports/TEST-net.lingala.zip4j.unzip.ZipSlipTest.xml b/target/surefire-reports/TEST-net.lingala.zip4j.unzip.ZipSlipTest.xml
+new file mode 100644
+index 0000000..9fd46df
+--- /dev/null
++++ b/target/surefire-reports/TEST-net.lingala.zip4j.unzip.ZipSlipTest.xml
+@@ -0,0 +1,64 @@
++<?xml version="1.0" encoding="UTF-8" ?>
++<testsuite tests="3" failures="0" name="net.lingala.zip4j.unzip.ZipSlipTest" time="0.037" errors="0" skipped="0">
++  <properties>
++    <property name="jansi.mode" value="strip"/>
++    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
++    <property name="java.vm.version" value="17.0.19+10"/>
++    <property name="sun.boot.library.path" value="/opt/java/openjdk/lib"/>
++    <property name="maven.multiModuleProjectDirectory" value="/workspace/repo"/>
++    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
++    <property name="java.vendor.url" value="https://adoptium.net/"/>
++    <property name="guice.disable.misplaced.annotation.check" value="true"/>
++    <property name="path.separator" value=":"/>
++    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
++    <property name="user.country" value="US"/>
++    <property name="sun.java.launcher" value="SUN_STANDARD"/>
++    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
++    <property name="user.dir" value="/workspace/repo"/>
++    <property name="java.vm.compressedOopsMode" value="32-bit"/>
++    <property name="java.runtime.version" value="17.0.19+10"/>
++    <property name="os.arch" value="aarch64"/>
++    <property name="java.io.tmpdir" value="/tmp"/>
++    <property name="line.separator" value="
++"/>
++    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
++    <property name="os.name" value="Linux"/>
++    <property name="classworlds.conf" value="/opt/maven/bin/m2.conf"/>
++    <property name="sun.jnu.encoding" value="UTF-8"/>
++    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
++    <property name="maven.conf" value="/opt/maven/conf"/>
++    <property name="jdk.debug" value="release"/>
++    <property name="java.class.version" value="61.0"/>
++    <property name="java.specification.name" value="Java Platform API Specification"/>
++    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
++    <property name="os.version" value="6.12.54-linuxkit"/>
++    <property name="library.jansi.path" value="/opt/maven/lib/jansi-native"/>
++    <property name="user.home" value="/root"/>
++    <property name="user.timezone" value="Etc/UTC"/>
++    <property name="file.encoding" value="UTF-8"/>
++    <property name="java.specification.version" value="17"/>
++    <property name="user.name" value="root"/>
++    <property name="java.class.path" value="/opt/maven/boot/plexus-classworlds-2.6.0.jar"/>
++    <property name="java.vm.specification.version" value="17"/>
++    <property name="sun.arch.data.model" value="64"/>
++    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher -B test"/>
++    <property name="java.home" value="/opt/java/openjdk"/>
++    <property name="user.language" value="en"/>
++    <property name="java.specification.vendor" value="Oracle Corporation"/>
++    <property name="java.vm.info" value="mixed mode, sharing"/>
++    <property name="java.version" value="17.0.19"/>
++    <property name="native.encoding" value="UTF-8"/>
++    <property name="java.vendor" value="Eclipse Adoptium"/>
++    <property name="java.specification.maintenance.version" value="1"/>
++    <property name="maven.home" value="/opt/maven"/>
++    <property name="file.separator" value="/"/>
++    <property name="java.version.date" value="2026-04-21"/>
++    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
++    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
++    <property name="sun.cpu.endian" value="little"/>
++    <property name="java.vendor.version" value="Temurin-17.0.19+10"/>
++  </properties>
++  <testcase classname="net.lingala.zip4j.unzip.ZipSlipTest" name="extractAllRejectsZipEntryThatTraversesOutsideDestination" time="0.022"/>
++  <testcase classname="net.lingala.zip4j.unzip.ZipSlipTest" name="extractAllStillWorksForWellBehavedEntries" time="0.015"/>
++  <testcase classname="net.lingala.zip4j.unzip.ZipSlipTest" name="extractAllRejectsTraversalDirectoryEntry" time="0"/>
++</testsuite>
+\ No newline at end of file
+diff --git a/target/surefire-reports/net.lingala.zip4j.unzip.ZipSlipTest.txt b/target/surefire-reports/net.lingala.zip4j.unzip.ZipSlipTest.txt
+new file mode 100644
+index 0000000..0992f82
+--- /dev/null
++++ b/target/surefire-reports/net.lingala.zip4j.unzip.ZipSlipTest.txt
+@@ -0,0 +1,4 @@
++-------------------------------------------------------------------------------
++Test set: net.lingala.zip4j.unzip.ZipSlipTest
++-------------------------------------------------------------------------------
++Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 sec

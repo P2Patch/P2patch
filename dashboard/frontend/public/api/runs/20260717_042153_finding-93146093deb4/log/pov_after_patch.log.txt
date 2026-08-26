@@ -1,0 +1,12 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_042153_finding-93146093deb4/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-93146093deb4:a27710aa4208 bash -lc mkdir -p /tmp/pov-build && javac -d /tmp/pov-build obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java .security-pipeline/pov/PathTraversalPOV.java && java -cp /tmp/pov-build PathTraversalPOV
+exit_code=1
+timed_out=false
+
+--- stdout ---
+Extraction root: /tmp/obr-pov-4393369128241303587/extract
+Expected escape target (outside root): /tmp/obr-pov-4393369128241303587/extractEVIL/pwned.txt
+FileUtil.unjar(...) rejected the archive: java.io.IOException: JAR resource cannot contain paths with .. characters: /tmp/obr-pov-4393369128241303587/extract/../extractEVIL/pwned.txt
+SAFE: extraction stayed within the extraction root (archive was rejected).
+
+--- stderr ---
+

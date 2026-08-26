@@ -1,0 +1,667 @@
+{
+  "run_id": "20260711_235148_finding-6e1e3636e53a",
+  "finding_id": "finding-6e1e3636e53a",
+  "timestamp": "2026-07-11T23:51:48",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "finding_id": "20260711_235148_finding-6e1e3636e53a",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-6e1e3636e53a",
+    "cve_id": "CVE-2022-44262",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "project_slug": "ff4j__ff4j_CVE-2022-44262_1.8.13",
+    "alert_file": "FF4J_CVE_2022_44262.json",
+    "github_url": "https://github.com/ff4j/ff4j",
+    "repo": "ff4j/ff4j",
+    "github_tag": "1.8.13",
+    "advisory_id": "GHSA-65hj-9ppw-77xc",
+    "buggy_commit_id": "7c34409d320ed1c917c4ec4ac72a99661c4e446f",
+    "fix_commit_ids": [
+      "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+        "class": "PropertiesParser",
+        "class_start": "49.0",
+        "class_end": "276.0",
+        "method": "parseFeatures",
+        "method_start": "276.0",
+        "method_end": "333.0",
+        "signature": "void parseFeatures(FF4jConfiguration,Map)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+        "class": "PropertiesParser",
+        "class_start": "49.0",
+        "class_end": "276.0",
+        "method": "parseProperties",
+        "method_start": "213.0",
+        "method_end": "265.0",
+        "signature": "Map parseProperties(String,Map)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-properties/src/test/java/org/ff4j/parser/properties/PropertiesParserTest.java",
+        "class": "PropertiesParserTest",
+        "class_start": "33.0",
+        "class_end": "51.0",
+        "method": "importProperties_should_be_same_asXMLImport",
+        "method_start": "51.0",
+        "method_end": "79.0",
+        "signature": "void importProperties_should_be_same_asXMLImport()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-properties/src/test/java/org/ff4j/parser/properties/PropertiesParserTest.java",
+        "class": "PropertiesParserTest",
+        "class_start": "33.0",
+        "class_end": "51.0",
+        "method": "should_export_anyConfig_asProperties",
+        "method_start": "41.0",
+        "method_end": "47.0",
+        "signature": "void should_export_anyConfig_asProperties()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-properties/src/test/java/org/ff4j/parser/properties/PropertiesParserTest.java",
+        "class": "PropertiesParserTest",
+        "class_start": "33.0",
+        "class_end": "51.0",
+        "method": "propertiesFile_shouldExist",
+        "method_start": "36.0",
+        "method_end": "37.0",
+        "signature": "void propertiesFile_shouldExist()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+        "class": "YamlParser",
+        "class_start": "50.0",
+        "class_end": "328.0",
+        "method": "parseProperties",
+        "method_start": "147.0",
+        "method_end": "202.0",
+        "signature": "Map parseProperties(List)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+        "class": "YamlParser",
+        "class_start": "50.0",
+        "class_end": "328.0",
+        "method": "parseFlipStrategy",
+        "method_start": "250.0",
+        "method_end": "266.0",
+        "signature": "FlippingStrategy parseFlipStrategy(Feature,Map)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-yaml/src/test/java/org/ff4j/parser/yaml/YamlParserTest.java",
+        "class": "YamlParserTest",
+        "class_start": "33.0",
+        "class_end": "51.0",
+        "method": "yamlFile_shouldExist",
+        "method_start": "36.0",
+        "method_end": "37.0",
+        "signature": "void yamlFile_shouldExist()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-config-yaml/src/test/java/org/ff4j/parser/yaml/YamlParserTest.java",
+        "class": "YamlParserTest",
+        "class_start": "33.0",
+        "class_end": "51.0",
+        "method": "importYaml_should_be_same_asXMLImport",
+        "method_start": "51.0",
+        "method_end": "79.0",
+        "signature": "void importYaml_should_be_same_asXMLImport()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+        "class": "XmlParser",
+        "class_start": "55.0",
+        "class_end": "704.0",
+        "method": "parsePropertiesTag",
+        "method_start": "358.0",
+        "method_end": "420.0",
+        "signature": "Map parsePropertiesTag(Element)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+        "class": "XmlParser",
+        "class_start": "55.0",
+        "class_end": "704.0",
+        "method": "parseFlipStrategy",
+        "method_start": "432.0",
+        "method_end": "476.0",
+        "signature": "FlippingStrategy parseFlipStrategy(Element,String)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+        "class": "PropertyFactory",
+        "class_start": "54.0",
+        "class_end": "158.0",
+        "method": "createProperty",
+        "method_start": "158.0",
+        "method_end": "179.0",
+        "signature": "Property createProperty(String,String,String,String,Set)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+        "class": "MappingUtil",
+        "class_start": "50.0",
+        "class_end": "192.0",
+        "method": "instanceFlippingStrategy",
+        "method_start": "181.0",
+        "method_end": "188.0",
+        "signature": "FlippingStrategy instanceFlippingStrategy(String,String,Map)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/test/java/org/ff4j/test/parser/XmlParserTest.java",
+        "class": "XmlParserTest",
+        "class_start": "37.0",
+        "class_end": "140.0",
+        "method": "testParsingFeatureInvalidTag",
+        "method_start": "83.0",
+        "method_end": "84.0",
+        "signature": "void testParsingFeatureInvalidTag()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/test/java/org/ff4j/test/parser/XmlParserTest.java",
+        "class": "XmlParserTest",
+        "class_start": "37.0",
+        "class_end": "140.0",
+        "method": "testParseXMLWithSpecialCharacters",
+        "method_start": "108.0",
+        "method_end": "136.0",
+        "signature": "void testParseXMLWithSpecialCharacters()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java",
+        "class": "PropertyFactoryTest",
+        "class_start": "39.0",
+        "class_end": "110.0",
+        "method": "testPropertyFactory9",
+        "method_start": "99.0",
+        "method_end": "100.0",
+        "signature": "void testPropertyFactory9()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java",
+        "class": "MappingUtilsTest",
+        "class_start": "46.0",
+        "class_end": "144.0",
+        "method": "testIntanciateInvalidFlippingStrategy",
+        "method_start": "81.0",
+        "method_end": "82.0",
+        "signature": "void testIntanciateInvalidFlippingStrategy()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java",
+        "class": "MappingUtilsTest",
+        "class_start": "46.0",
+        "class_end": "144.0",
+        "method": "testAssert4",
+        "method_start": "96.0",
+        "method_end": "97.0",
+        "signature": "void testAssert4()",
+        "is_test": true
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java",
+        "class": "ConsoleOperations",
+        "class_start": "72.0",
+        "class_end": "438.0",
+        "method": "createFeature",
+        "method_start": "85.0",
+        "method_end": "150.0",
+        "signature": "void createFeature(FF4j,HttpServletRequest)",
+        "is_test": false
+      },
+      {
+        "commit": "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6",
+        "file": "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java",
+        "class": "ConsoleOperations",
+        "class_start": "72.0",
+        "class_end": "438.0",
+        "method": "updateFlippingStrategy",
+        "method_start": "244.0",
+        "method_end": "270.0",
+        "signature": "void updateFlippingStrategy(Feature,String,String)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+      "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+      "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+      "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+      "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+      "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-44262",
+      "advisory": "https://github.com/advisories/GHSA-65hj-9ppw-77xc",
+      "repo": "https://github.com/ff4j/ff4j",
+      "buggy_commit": "https://github.com/ff4j/ff4j/commit/7c34409d320ed1c917c4ec4ac72a99661c4e446f"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-094",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 75,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            },
+            {
+              "line": 77,
+              "message": "v",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            }
+          ],
+          [
+            {
+              "line": 75,
+              "message": "value : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 79,
+              "message": "value : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 79,
+              "message": "fixedValues [post update] : Set [<element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 79,
+              "message": "this <.field> [post update] : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 71,
+              "message": "pf [post update] : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-store-mongodb/src/main/java/org/ff4j/mongo/mapper/MongoPropertyMapper.java"
+            },
+            {
+              "line": 75,
+              "message": "pf : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-store-mongodb/src/main/java/org/ff4j/mongo/mapper/MongoPropertyMapper.java"
+            },
+            {
+              "line": 83,
+              "message": "parameter this : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 84,
+              "message": "this : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java"
+            },
+            {
+              "line": 139,
+              "message": "pgb : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 144,
+              "message": "pgb : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 127,
+              "message": "parameter this : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java"
+            },
+            {
+              "line": 128,
+              "message": "this <.field> : PropertyJsonBean [fixedValues, <element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java"
+            },
+            {
+              "line": 128,
+              "message": "fixedValues : Set [<element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java"
+            },
+            {
+              "line": 144,
+              "message": "getFixedValues(...) : Set [<element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 158,
+              "message": "fixedValues : Set [<element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 168,
+              "message": "fixedValues : Set [<element>] : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 169,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 169,
+              "message": "trim(...) : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java"
+            },
+            {
+              "line": 126,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/Property.java"
+            },
+            {
+              "line": 127,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/Property.java"
+            },
+            {
+              "line": 75,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            },
+            {
+              "line": 77,
+              "message": "v",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            }
+          ],
+          [
+            {
+              "line": 218,
+              "message": "json : String",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 227,
+              "message": "ll : LinkedHashMap",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 83,
+              "message": "fMap : LinkedHashMap",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 97,
+              "message": "fMap : LinkedHashMap",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 97,
+              "message": "get(...) : Object",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 97,
+              "message": "(...)... : Map",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 98,
+              "message": "propertyMap : Map",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 113,
+              "message": "customPTag : Map",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 117,
+              "message": "customPTag : Map",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 117,
+              "message": "values(...) : Collection [<element>] : Object",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 118,
+              "message": "property : Object",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 118,
+              "message": "(...)... : HashMap",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 124,
+              "message": "propertyJson : HashMap",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 124,
+              "message": "get(...) : Object",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 124,
+              "message": "(...)... : List",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 125,
+              "message": "listOfFixedValue : List",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 133,
+              "message": "listOfFixedValue : List",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 136,
+              "message": "v : Object",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 136,
+              "message": "valueOf(...) : String",
+              "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java"
+            },
+            {
+              "line": 126,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/Property.java"
+            },
+            {
+              "line": 127,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/Property.java"
+            },
+            {
+              "line": 75,
+              "message": "v : String",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            },
+            {
+              "line": 77,
+              "message": "v",
+              "uri": "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-094",
+      "finding_id": "finding-6e1e3636e53a",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260711_235148_finding-6e1e3636e53a/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-6e1e3636e53a:4331f21f0ee0",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/ff4j__ff4j_[redacted]_1.8.13/112/Dockerfile",
+        "-t",
+        "simpleautosec-finding-6e1e3636e53a:4331f21f0ee0",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/ff4j__ff4j_[redacted]_1.8.13/112"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 140421,
+        "duration_api_ms": 109047,
+        "num_turns": 15,
+        "cost_usd": 0.5960325,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 27,
+          "output": 6002,
+          "cache_read": 420833,
+          "cache_creation": 23115
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java",
+          "ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java"
+        ],
+        "patch_notes": "PropertyClass.fromString() now: (1) returns null for null input, and (2) calls Class.forName(v, false, classLoader) with initialize=false, using the thread context classloader (falling back to the class's own classloader). This prevents execution of the named class's static initializer — the primary RCE vector for Class.forName on untrusted input — while preserving legitimate behavior, since the resolved Class object is only ever used for its name (asString() -> value.getName()) and is never instantiated by PropertyClass. Added regression test testPropertyClassDoesNotRunStaticInitializer() using a helper class whose static initializer flips a static flag; the test asserts the class is still resolved correctly but the initializer flag remains false. Full PropertyTest suite (33 tests) passes.",
+        "regression_commands": [
+          "cd ff4j-core && mvn -B test -Dtest=PropertyTest"
+        ],
+        "risk_notes": "Low risk. Behavior for valid class names is unchanged aside from deferred static initialization; the loaded Class is only used for its name so no consumer relies on the class being initialized at resolution time. Uses the thread context classloader first to preserve resolvability in container/webapp environments, falling back to PropertyClass's own classloader. This blocks the static-initializer RCE path but does not add an allowlist, so class references can still be resolved (loaded, not initialized); if stricter policy is desired later, an allowlist of permitted classes could be layered on top. ClassNotFoundException still maps to IllegalArgumentException, so existing error-path tests are unaffected.",
+        "status": "patched",
+        "summary": "Fixed a CWE-94 code-injection (RCE) in PropertyClass.fromString(), which called Class.forName(v) on an attacker-controllable class name reachable from deserialized/persisted property values (JSON/Mongo/etc.). Loading a class this way triggers its static initializer, enabling arbitrary code execution via gadget classes. The fix resolves the class without initializing it (Class.forName(v, false, classLoader)), blocking static-initializer execution while still returning the correct Class reference used only for its name."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.596,
+    "num_turns": 15,
+    "agent_duration_ms": 140421
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

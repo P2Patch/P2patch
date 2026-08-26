@@ -1,0 +1,81 @@
+diff --git a/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java b/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java
+index cac7968..4ab0b9e 100644
+--- a/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java
++++ b/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java
+@@ -410,7 +410,26 @@ public class AntiSamyDOMScanner extends AbstractAntiSamyScanner {
+             Node firstChild = ele.getFirstChild();
+             if (firstChild != null) {
+ 
+-                String toScan = firstChild.getNodeValue();
++                /*
++                 * A malformed document can cause the HTML parser to split the
++                 * content of a <style> element into multiple child nodes. Only
++                 * scanning the first child would leave the remaining children
++                 * untouched, allowing an attacker to smuggle markup (e.g.
++                 * "</style><a href=javascript:...>") past the CSS scanner. To
++                 * prevent that, concatenate the text content of every child,
++                 * scan it as a single stylesheet, and collapse the result back
++                 * into the first child while removing the rest.
++                 */
++                StringBuilder toScanBuilder = new StringBuilder();
++                NodeList styleChildren = ele.getChildNodes();
++                for (int i = 0; i < styleChildren.getLength(); i++) {
++                    String childValue = styleChildren.item(i).getNodeValue();
++                    if (childValue != null) {
++                        toScanBuilder.append(childValue);
++                    }
++                }
++
++                String toScan = toScanBuilder.toString();
+                 CleanResults cr = styleScanner.scanStyleSheet(toScan, policy.getMaxInputSize());
+                 errorMessages.addAll(cr.getErrorMessages());
+ 
+@@ -429,6 +448,14 @@ public class AntiSamyDOMScanner extends AbstractAntiSamyScanner {
+                 } else {
+                     firstChild.setNodeValue(cleanHTML);
+                 }
++
++                /*
++                 * Remove any extra child nodes; their content has already been
++                 * incorporated into (and sanitized within) the first child.
++                 */
++                while (ele.getChildNodes().getLength() > 1) {
++                    ele.removeChild(ele.getLastChild());
++                }
+             }
+ 
+         } catch (DOMException | ScanException | ParseException | NumberFormatException e) {
+diff --git a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+index e15a2bc..f29e840 100644
+--- a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
++++ b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+@@ -1662,5 +1662,21 @@ static final String test33 = "<html>\n"
+         assertThat(as.scan(input, revised, AntiSamy.DOM).getCleanHTML(), both(containsString("-webkit-border-radius")).and(containsString("-moz-border-radius")));
+         assertThat(as.scan(input, revised, AntiSamy.SAX).getCleanHTML(), both(containsString("-webkit-border-radius")).and(containsString("-moz-border-radius")));
+     }
++
++    @Test
++    public void testSmuggledTagsInStyleContent() throws ScanException, PolicyException {
++        // Regression test for CVE-2022-28367 / CVE-2022-29577 (STYLE tag smuggling).
++        // Malformed input causes the HTML parser to split the <style> element into
++        // multiple child nodes; only scanning the first child left the smuggled
++        // markup untouched, allowing a javascript: XSS payload to survive.
++        final String input = "<style/>b<![cdata[</style><a href=javascript:alert(1)>test";
++        Policy revised = policy.cloneWithDirective(Policy.USE_XHTML, "true");
++
++        String domOutput = as.scan(input, revised, AntiSamy.DOM).getCleanHTML();
++        assertThat(domOutput, not(containsString("javascript:alert(1)")));
++
++        String saxOutput = as.scan(input, revised, AntiSamy.SAX).getCleanHTML();
++        assertThat(saxOutput, not(containsString("javascript:alert(1)")));
++    }
+ }
+ 
+diff --git a/.security-pipeline/cp.txt b/.security-pipeline/cp.txt
+new file mode 100644
+index 0000000..58f69a5
+--- /dev/null
++++ b/.security-pipeline/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/net/sourceforge/nekohtml/nekohtml/1.9.22/nekohtml-1.9.22.jar:/root/.m2/repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar:/root/.m2/repository/org/apache/httpcomponents/httpcore/4.4.15/httpcore-4.4.15.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-css/1.14/batik-css-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-shared-resources/1.14/batik-shared-resources-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-util/1.14/batik-util-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-constants/1.14/batik-constants-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/batik-i18n/1.14/batik-i18n-1.14.jar:/root/.m2/repository/org/apache/xmlgraphics/xmlgraphics-commons/2.6/xmlgraphics-commons-2.6.jar:/root/.m2/repository/commons-io/commons-io/2.6/commons-io-2.6.jar:/root/.m2/repository/org/slf4j/slf4j-api/1.7.35/slf4j-api-1.7.35.jar:/root/.m2/repository/org/slf4j/jcl-over-slf4j/1.7.35/jcl-over-slf4j-1.7.35.jar:/root/.m2/repository/org/slf4j/slf4j-simple/1.7.35/slf4j-simple-1.7.35.jar:/root/.m2/repository/xerces/xercesImpl/2.12.2/xercesImpl-2.12.2.jar:/root/.m2/repository/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.jar:/root/.m2/repository/xml-apis/xml-apis-ext/1.3.04/xml-apis-ext-1.3.04.jar:/root/.m2/repository/com/github/spotbugs/spotbugs-annotations/4.5.3/spotbugs-annotations-4.5.3.jar:/root/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/root/.m2/repository/commons-codec/commons-codec/1.15/commons-codec-1.15.jar:/root/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/root/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar
+\ No newline at end of file

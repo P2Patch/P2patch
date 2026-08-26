@@ -1,0 +1,270 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:20.997768+00:00",
+    "finished_at": "2026-07-11T23:29:36.076137+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Re-checking the normalized resource.getPath() against the illegal regex closes the forward-slash '..' traversal class (the POSIX-exploitable POV), not just one literal payload; a backslash-separator variant remains.",
+        "evidence": "ContextAssetRequestHandler.handleAssetRequest: added `if (illegal.matcher(resource.getPath()).matches()) return false;` after `rootContextResource.forFile(path.resourcePath)`.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "The flaw is that the denylist check ran on the pre-normalization path while forFile() later canonicalizes '..'; re-checking the canonicalized output directly addresses that check-before-normalize gap.",
+        "evidence": "Original line 50 checks raw path.resourcePath; forFile() (AbstractResource:104-142) normalizes '..'; patch adds a post-normalization re-check on resource.getPath().",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "All forward-slash '..' paths and .tml/META-INF/WEB-INF prefixes are caught after normalization, but the backslash-separator variant the official fix targets is not, since forFile() splits only on '/'.",
+        "evidence": "AbstractResource.forFile line 104 `relativePath.split(\"/\")` leaves `foo\\..\\WEB-INF\\web.xml` as one term; our forward-slash regex `^(web|meta)-inf` won't match it.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Shares the goal of blocking WEB-INF/META-INF access but uses a different mechanism (handler-level denylist re-check) at a different location and omits the separator-normalization that IS the official fix.",
+        "evidence": "Official diff adds `relativePath.replace('\\\\','/')` in AbstractResource.forFile; ours edits ContextAssetRequestHandler only (overlap_files=[], jaccard=0).",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Re-check rejects only paths normalizing into the already-protected WEB-INF/META-INF/.tml set, so legitimate assets stream unchanged; regressions pass and new tests added.",
+        "evidence": "regressions_ran=2 passed; illegal pattern only matches intended-protected prefixes; added traversal_paths test asserts streamer.streamed==null.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Adds one linear regex match on a short normalized string (no ReDoS), no new injection/crash; reuses existing safe primitives.",
+        "evidence": "`illegal.matcher(resource.getPath()).matches()` on a bounded path; no new I/O or state introduced.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized ~8-line production change at the correct sink plus focused tests.",
+        "evidence": "Single hunk in ContextAssetRequestHandler.handleAssetRequest.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Checks the normalized/canonical form (better than raw blocklisting) but relies on a denylist regex rather than canonicalize-then-contain-within-base, and does not normalize path separators, leaving a fragile edge.",
+        "evidence": "Denylist `^(((web|meta)-inf.*)|(.*\\.tml$))` on getPath(); no separator normalization vs official `replace('\\\\','/')`.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Backslash-separator traversal (e.g. `foo\\..\\WEB-INF\\web.xml`) is not covered: forFile() splits only on '/', so backslashes survive into resource.getPath() and the forward-slash illegal regex won't match, allowing bypass on Windows servlet containers via getRealPath. This is precisely the variant the official fix (`relativePath.replace('\\','/')`) closes."
+      },
+      {
+        "severity": "low",
+        "description": "Mitigation is a denylist regex over normalized paths rather than the CWE-022 defense-of-record (canonicalize then verify containment within an allowed base), making it fragile to future separator/encoding variants."
+      }
+    ],
+    "root_cause": "The WEB-INF/META-INF/.tml denylist regex is applied to the raw request path before AbstractResource.forFile() canonicalizes '..' segments, so a path that normalizes into a protected folder passes the check and is then streamed.",
+    "summary": "Our patch correctly re-runs the illegal denylist against the fully normalized resource.getPath() after forFile(), which closes the forward-slash '..' traversal class (the POSIX-exploitable POV) at the right conceptual point with a minimal, regression-safe change. However, it takes a different approach from the official fix (a handler-level denylist re-check vs. separator normalization inside forFile) and does not normalize backslashes, so the Windows backslash-separator bypass the official commit specifically targets remains open. It is a valid, well-scoped fix for the tested platform but not a complete superset of the reference fix.",
+    "overall": {
+      "mean": 3.88,
+      "score": 78,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 78,
+        "score_mean": 76.7,
+        "score_min": 70,
+        "score_max": 82,
+        "score_stdev": 4.99,
+        "mean_median": 3.88,
+        "band_mode": "incomplete",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.29
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            3
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.33,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 70,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 82,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 78,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 2,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "ContextAssetRequestHandler.java"
+      ],
+      "official_only": [
+        "AbstractResource.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+      ],
+      "commits": [
+        "6dd7219fd4707467a36091e2f7f5f6460c619099"
+      ]
+    }
+  }
+}

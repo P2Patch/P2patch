@@ -1,0 +1,176 @@
+{
+  "run_id": "20260717_021846_finding-f84f61183a73",
+  "finding_id": "finding-f84f61183a73",
+  "timestamp": "2026-07-17T02:18:46",
+  "status": "rejected",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": null,
+  "reason": "Docker builder image failed to build",
+  "project": {
+    "build_command": "./gradlew --no-daemon clean build -x test",
+    "build_system": "gradle-wrapper",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_021846_finding-f84f61183a73",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "",
+    "test_command": "./gradlew --no-daemon test",
+    "use_gradlew": "1.0"
+  },
+  "ground_truth": {
+    "finding_id": "finding-f84f61183a73",
+    "cve_id": "CVE-2022-26049",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "diffplug__goomph_CVE-2022-26049_3.37.1",
+    "alert_file": "DIFFPLUG_CVE_2022_26049.json",
+    "github_url": "https://github.com/diffplug/goomph",
+    "repo": "diffplug/goomph",
+    "github_tag": "3.37.1",
+    "advisory_id": "GHSA-p2f7-9cv7-jjf6",
+    "buggy_commit_id": "fe2083196f0d0a75885aea402baaa972254173d5",
+    "fix_commit_ids": [
+      "25f04f67ba62d9a14104bee13a0a0f2517afb8c8"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "25f04f67ba62d9a14104bee13a0a0f2517afb8c8",
+        "file": "src/main/java/com/diffplug/gradle/ZipMisc.java",
+        "class": "ZipMisc",
+        "class_start": "47.0",
+        "class_end": "176.0",
+        "method": "unzip",
+        "method_start": "176.0",
+        "method_end": "186.0",
+        "signature": "void unzip(File,File)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/com/diffplug/gradle/ZipMisc.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-26049",
+      "advisory": "https://github.com/advisories/GHSA-p2f7-9cv7-jjf6",
+      "repo": "https://github.com/diffplug/goomph",
+      "buggy_commit": "https://github.com/diffplug/goomph/commit/fe2083196f0d0a75885aea402baaa972254173d5"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 180,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/com/diffplug/gradle/ZipMisc.java"
+            },
+            {
+              "line": 180,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/com/diffplug/gradle/ZipMisc.java"
+            },
+            {
+              "line": 184,
+              "message": "dest : File",
+              "uri": "src/main/java/com/diffplug/gradle/ZipMisc.java"
+            },
+            {
+              "line": 185,
+              "message": "dest",
+              "uri": "src/main/java/com/diffplug/gradle/ZipMisc.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "skipped",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "skipped",
+      "detail": null
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-f84f61183a73",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021846_finding-f84f61183a73/worktree",
+      "status": "ok"
+    },
+    {
+      "category": "infra_build_error",
+      "name": "failed",
+      "reason": "Docker builder image failed to build",
+      "status": "rejected"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38/Dockerfile",
+        "-t",
+        "simpleautosec-finding-f84f61183a73:e4500ff8cbcd",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [],
+  "totals": {
+    "cost_usd": 0,
+    "num_turns": 0,
+    "agent_duration_ms": 0
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

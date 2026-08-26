@@ -1,0 +1,55 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..80a9c1cb 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2438,9 +2438,16 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	tsize_t cc;
+ 	unsigned char *tf_buf;
+ 	unsigned char *cp, c;
+-
++	tsize_t allocated_size;
++// FIXME: Crash CWE-125: Out-of-bounds Read
++ 
+ 	(void) w;
+-	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow);
++	allocated_size = tf_bytesperrow;
++	if (allocated_size < (tsize_t)samplesperpixel) {
++		TIFFError(filename, "Invalid scanline buffer size");
++		return;
++	}
++	tf_buf = (unsigned char *) _TIFFmalloc(allocated_size);
+ 	if (tf_buf == NULL) {
+ 		TIFFError(filename, "No space for scanline buffer");
+ 		return;
+@@ -2454,12 +2461,12 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 		 * byte first
+ 		 */
+ 		if (bitspersample == 16 && !HOST_BIGENDIAN) {
+-			PS_FlipBytes(cp, tf_bytesperrow);
++			PS_FlipBytes(cp, allocated_size);
+ 		}
+ 		if (alpha) {
+ 			int adjust;
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + samplesperpixel <= allocated_size; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				/*
+ 				 * For images with alpha, matte against
+@@ -2478,7 +2485,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			}
+ 		} else {
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + samplesperpixel <= allocated_size; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);
+@@ -2493,6 +2500,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	_TIFFfree((char *) tf_buf);
+ }
+ 
++
+ void
+ PSDataColorSeparate(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ {

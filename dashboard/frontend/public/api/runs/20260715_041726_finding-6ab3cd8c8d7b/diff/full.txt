@@ -1,0 +1,328 @@
+diff --git a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java
+index c00d454..c2a8016 100644
+--- a/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java
++++ b/dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java
+@@ -137,6 +137,10 @@ public class ResourcesServiceImpl extends BaseServiceImpl implements ResourcesSe
+             putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);
+             return result;
+         }
++        if (checkDirectoryTraversal(currentDir)) {
++            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);
++            return result;
++        }
+         String fullName = currentDir.equals("/") ? String.format("%s%s",currentDir,name) : String.format("%s/%s",currentDir,name);
+         result = verifyResource(loginUser, type, fullName, pid);
+         if (!result.getCode().equals(Status.SUCCESS.getCode())) {
+@@ -213,6 +217,11 @@ public class ResourcesServiceImpl extends BaseServiceImpl implements ResourcesSe
+             return result;
+         }
+ 
++        if (checkDirectoryTraversal(currentDir)) {
++            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);
++            return result;
++        }
++
+         // check resource name exists
+         String fullName = currentDir.equals("/") ? String.format("%s%s",currentDir,name) : String.format("%s/%s",currentDir,name);
+         if (checkResourceExists(fullName, 0, type.ordinal())) {
+@@ -956,6 +965,10 @@ public class ResourcesServiceImpl extends BaseServiceImpl implements ResourcesSe
+             putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);
+             return result;
+         }
++        if (checkDirectoryTraversal(currentDir)) {
++            putMsg(result, Status.VERIFY_PARAMETER_NAME_FAILED);
++            return result;
++        }
+ 
+         //check file suffix
+         String nameSuffix = fileSuffix.trim();
+@@ -1014,6 +1027,26 @@ public class ResourcesServiceImpl extends BaseServiceImpl implements ResourcesSe
+         return result;
+     }
+ 
++    /**
++     * check whether the given directory path attempts a path traversal (contains a ".." segment).
++     * The parent directory legitimately contains path separators, so {@link FileUtils#directoryTraversal(String)}
++     * (which rejects any separator) cannot be used here; instead each path segment is inspected.
++     *
++     * @param currentDir the user supplied parent directory
++     * @return true if the path contains a traversal segment and must be rejected
++     */
++    private static boolean checkDirectoryTraversal(String currentDir) {
++        if (StringUtils.isEmpty(currentDir)) {
++            return false;
++        }
++        for (String segment : currentDir.split("/")) {
++            if ("..".equals(segment.trim())) {
++                return true;
++            }
++        }
++        return false;
++    }
++
+     private Result<Object> verifyResource(User loginUser, ResourceType type, String fullName, int pid) {
+         Result<Object> result = verifyResourceName(fullName, type, loginUser);
+         if (!result.getCode().equals(Status.SUCCESS.getCode())) {
+diff --git a/.security-pipeline/pov/ResourcesPathTraversalPovTest.java b/.security-pipeline/pov/ResourcesPathTraversalPovTest.java
+new file mode 100644
+index 0000000..69b7e7f
+--- /dev/null
++++ b/.security-pipeline/pov/ResourcesPathTraversalPovTest.java
+@@ -0,0 +1,185 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *    http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.apache.dolphinscheduler.api.service;
++
++import org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl;
++import org.apache.dolphinscheduler.api.utils.Result;
++import org.apache.dolphinscheduler.common.utils.HadoopUtils;
++import org.apache.dolphinscheduler.common.utils.PropertyUtils;
++import org.apache.dolphinscheduler.dao.entity.Resource;
++import org.apache.dolphinscheduler.dao.entity.Tenant;
++import org.apache.dolphinscheduler.dao.entity.User;
++import org.apache.dolphinscheduler.dao.mapper.ProcessDefinitionMapper;
++import org.apache.dolphinscheduler.dao.mapper.ResourceMapper;
++import org.apache.dolphinscheduler.dao.mapper.ResourceUserMapper;
++import org.apache.dolphinscheduler.dao.mapper.TenantMapper;
++import org.apache.dolphinscheduler.dao.mapper.UdfFuncMapper;
++import org.apache.dolphinscheduler.dao.mapper.UserMapper;
++import org.apache.dolphinscheduler.spi.enums.ResourceType;
++import org.junit.Assert;
++import org.junit.Before;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.mockito.ArgumentCaptor;
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++import org.mockito.Mockito;
++import org.powermock.api.mockito.PowerMockito;
++import org.powermock.core.classloader.annotations.PowerMockIgnore;
++import org.powermock.core.classloader.annotations.PrepareForTest;
++import org.powermock.modules.junit4.PowerMockRunner;
++
++/**
++ * Proof-of-Vulnerability: CWE-022 Path Traversal in the DolphinScheduler resource center.
++ *
++ * The attacker-controlled {@code currentDir} argument to
++ * {@link ResourcesServiceImpl#createDirectory} is NEVER passed through
++ * {@code FileUtils.directoryTraversal(...)} — only the leaf {@code name} is validated.
++ * As a result a benign leaf name combined with a traversal parent directory
++ * (e.g. currentDir = "/x/../../../../../../tmp/pwn") flows unchanged into the
++ * persisted {@code Resource.fullName}, which is subsequently handed to
++ * {@code HadoopUtils.getHdfsFileName(...)} / {@code HadoopUtils.mkdir(...)} — the
++ * Hadoop path-creation sink identified by the finder. The resulting HDFS path
++ * escapes the tenant resource root.
++ *
++ * This test drives the REAL {@link ResourcesServiceImpl#createDirectory} method and
++ * captures the {@link Resource} that reaches the persistence/HDFS layer.
++ *
++ * VULNERABLE (unpatched): the traversal parent directory is accepted, the resource is
++ * inserted, and its fullName contains the "/../" traversal sequence -> test passes (exit 0).
++ *
++ * PATCHED: a correct fix rejects or normalizes the traversal parent directory, so either
++ * the insert never happens (validation short-circuit) or the persisted fullName no longer
++ * contains a traversal sequence -> test fails (non-zero exit).
++ */
++@RunWith(PowerMockRunner.class)
++@PowerMockIgnore({"sun.security.*", "javax.net.*"})
++@PrepareForTest({HadoopUtils.class, PropertyUtils.class})
++public class ResourcesPathTraversalPovTest {
++
++    @InjectMocks
++    private ResourcesServiceImpl resourcesService;
++
++    @Mock
++    private ResourceMapper resourcesMapper;
++
++    @Mock
++    private TenantMapper tenantMapper;
++
++    @Mock
++    private HadoopUtils hadoopUtils;
++
++    @Mock
++    private UserMapper userMapper;
++
++    @Mock
++    private UdfFuncMapper udfFunctionMapper;
++
++    @Mock
++    private ProcessDefinitionMapper processDefinitionMapper;
++
++    @Mock
++    private ResourceUserMapper resourceUserMapper;
++
++    @Before
++    public void setUp() throws Exception {
++        // Mock ONLY HadoopUtils and PropertyUtils statics.
++        // Deliberately do NOT mock FileUtils so the real directoryTraversal() runs,
++        // demonstrating that the leaf name check exists but the parent dir check does not.
++        PowerMockito.mockStatic(HadoopUtils.class);
++        PowerMockito.mockStatic(PropertyUtils.class);
++        PowerMockito.whenNew(HadoopUtils.class).withNoArguments().thenReturn(hadoopUtils);
++        PowerMockito.when(HadoopUtils.getInstance()).thenReturn(hadoopUtils);
++    }
++
++    @Test
++    public void povParentDirPathTraversalReachesHadoopSink() throws Exception {
++        // resource upload enabled
++        PowerMockito.when(PropertyUtils.getResUploadStartupState()).thenReturn(true);
++
++        User user = new User();
++        user.setId(1);
++        user.setTenantId(1);
++
++        Tenant tenant = new Tenant();
++        tenant.setTenantCode("123");
++        Mockito.when(tenantMapper.queryById(1)).thenReturn(tenant);
++
++        // resource does not already exist, HDFS interactions succeed
++        Mockito.when(resourcesMapper.existResource(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt()))
++                .thenReturn(false);
++        Mockito.when(hadoopUtils.exists(Mockito.anyString())).thenReturn(true);
++        Mockito.when(hadoopUtils.mkdir(Mockito.anyString())).thenReturn(true);
++
++        // A perfectly benign leaf name -> passes FileUtils.directoryTraversal(name)
++        String leafName = "pov_evil_dir";
++        // Attacker-controlled PARENT directory carrying the traversal payload.
++        String maliciousParentDir = "/pov/../../../../../../../../tmp/dolphin_pwn";
++
++        // Drive the REAL service method. On unpatched code the downstream Hadoop
++        // singleton call may throw (it is only a mock), but that happens AFTER the
++        // tainted value has already been persisted and handed to the Hadoop path
++        // builder, so we swallow it and inspect what actually reached the sink.
++        try {
++            Result<Object> result = resourcesService.createDirectory(
++                    user, leafName, "pov path traversal", ResourceType.FILE, -1, maliciousParentDir);
++            System.out.println("[POV] createDirectory result = " + result.getMsg());
++        } catch (Throwable t) {
++            System.out.println("[POV] createDirectory threw after reaching sink: " + t.getMessage());
++        }
++
++        // (1) The tainted directory must have been accepted and PERSISTED. A correct
++        // patch rejects/normalises the traversal parent dir, so either insert() is
++        // never called (verification below throws) or the stored fullName no longer
++        // contains a traversal sequence (assertion below fails). Either way -> non-zero.
++        ArgumentCaptor<Resource> captor = ArgumentCaptor.forClass(Resource.class);
++        Mockito.verify(resourcesMapper, Mockito.times(1)).insert(captor.capture());
++        Resource persisted = captor.getValue();
++        String fullName = persisted.getFullName();
++        System.out.println("[POV] persisted fullName reaching Hadoop path sink = " + fullName);
++        Assert.assertTrue(
++                "Expected path-traversal sequence to survive into the resource fullName reaching "
++                        + "HadoopUtils path creation, but got: " + fullName,
++                fullName != null && fullName.contains("/../"));
++
++        // (2) The exact finder sink: HadoopUtils.getHdfsFileName(...) must have been
++        // invoked with the tainted, traversal-carrying fullName.
++        ArgumentCaptor<String> sinkArg = ArgumentCaptor.forClass(String.class);
++        PowerMockito.verifyStatic(HadoopUtils.class, Mockito.atLeastOnce());
++        HadoopUtils.getHdfsFileName(Mockito.any(ResourceType.class), Mockito.anyString(), sinkArg.capture());
++        boolean sinkTainted = false;
++        for (String v : sinkArg.getAllValues()) {
++            if (v != null && v.contains("/../")) {
++                sinkTainted = true;
++                break;
++            }
++        }
++        Assert.assertTrue(
++                "Expected the traversal fullName to reach HadoopUtils.getHdfsFileName sink, "
++                        + "captured args=" + sinkArg.getAllValues(),
++                sinkTainted);
++
++        // (3) Confirm the payload genuinely escapes the intended tenant resource root.
++        java.nio.file.Path normalized =
++                java.nio.file.Paths.get("/dolphinscheduler/123/resources" + fullName).normalize();
++        System.out.println("[POV] normalized HDFS target = " + normalized);
++        Assert.assertFalse(
++                "Expected the traversal to escape the tenant resource root: " + normalized,
++                normalized.toString().startsWith("/dolphinscheduler/123/resources/"));
++    }
++}
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..c0febfb
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-service/2.0.9/dolphinscheduler-service-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-remote/2.0.9/dolphinscheduler-remote-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-common/2.0.9/dolphinscheduler-common-2.0.9.jar:/root/.m2/repository/org/ow2/asm/asm/6.2.1/asm-6.2.1.jar:/root/.m2/repository/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar:/root/.m2/repository/ch/qos/logback/logback-core/1.2.3/logback-core-1.2.3.jar:/root/.m2/repository/com/github/oshi/oshi-core/6.1.1/oshi-core-6.1.1.jar:/root/.m2/repository/net/java/dev/jna/jna/5.10.0/jna-5.10.0.jar:/root/.m2/repository/net/java/dev/jna/jna-platform/5.10.0/jna-platform-5.10.0.jar:/root/.m2/repository/com/facebook/presto/presto-jdbc/0.238.1/presto-jdbc-0.238.1.jar:/root/.m2/repository/com/baomidou/mybatis-plus-annotation/3.2.0/mybatis-plus-annotation-3.2.0.jar:/root/.m2/repository/org/mybatis/mybatis/3.5.2/mybatis-3.5.2.jar:/root/.m2/repository/com/github/rholder/guava-retrying/2.0.0/guava-retrying-2.0.0.jar:/root/.m2/repository/net/bytebuddy/byte-buddy/1.9.16/byte-buddy-1.9.16.jar:/root/.m2/repository/io/protostuff/protostuff-core/1.7.2/protostuff-core-1.7.2.jar:/root/.m2/repository/io/protostuff/protostuff-api/1.7.2/protostuff-api-1.7.2.jar:/root/.m2/repository/io/protostuff/protostuff-runtime/1.7.2/protostuff-runtime-1.7.2.jar:/root/.m2/repository/io/protostuff/protostuff-collectionschema/1.7.2/protostuff-collectionschema-1.7.2.jar:/root/.m2/repository/org/reflections/reflections/0.9.12/reflections-0.9.12.jar:/root/.m2/repository/org/javassist/javassist/3.26.0-GA/javassist-3.26.0-GA.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-dao/2.0.9/dolphinscheduler-dao-2.0.9.jar:/root/.m2/repository/com/zaxxer/HikariCP/4.0.3/HikariCP-4.0.3.jar:/root/.m2/repository/com/baomidou/mybatis-plus/3.2.0/mybatis-plus-3.2.0.jar:/root/.m2/repository/com/baomidou/mybatis-plus-extension/3.2.0/mybatis-plus-extension-3.2.0.jar:/root/.m2/repository/com/baomidou/mybatis-plus-core/3.2.0/mybatis-plus-core-3.2.0.jar:/root/.m2/repository/com/github/jsqlparser/jsqlparser/2.1/jsqlparser-2.1.jar:/root/.m2/repository/org/mybatis/mybatis-spring/2.0.2/mybatis-spring-2.0.2.jar:/root/.m2/repository/com/baomidou/mybatis-plus-boot-starter/3.2.0/mybatis-plus-boot-starter-3.2.0.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-jdbc/2.5.6/spring-boot-starter-jdbc-2.5.6.jar:/root/.m2/repository/org/postgresql/postgresql/42.2.5/postgresql-42.2.5.jar:/root/.m2/repository/com/h2database/h2/1.4.200/h2-1.4.200.jar:/root/.m2/repository/ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3.jar:/root/.m2/repository/org/apache/httpcomponents/httpclient/4.4.1/httpclient-4.4.1.jar:/root/.m2/repository/com/cronutils/cron-utils/9.1.3/cron-utils-9.1.3.jar:/root/.m2/repository/org/glassfish/javax.el/3.0.0/javax.el-3.0.0.jar:/root/.m2/repository/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar:/root/.m2/repository/org/yaml/snakeyaml/1.28/snakeyaml-1.28.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-spi/2.0.9/dolphinscheduler-spi-2.0.9.jar:/root/.m2/repository/org/apache/commons/commons-collections4/4.1/commons-collections4-4.1.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-registry-zookeeper/2.0.9/dolphinscheduler-registry-zookeeper-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-registry-api/2.0.9/dolphinscheduler-registry-api-2.0.9.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-quartz/2.5.6/spring-boot-starter-quartz-2.5.6.jar:/root/.m2/repository/org/springframework/spring-context-support/5.3.12/spring-context-support-5.3.12.jar:/root/.m2/repository/org/springframework/spring-tx/5.3.12/spring-tx-5.3.12.jar:/root/.m2/repository/com/github/ben-manes/caffeine/caffeine/2.9.2/caffeine-2.9.2.jar:/root/.m2/repository/org/checkerframework/checker-qual/3.10.0/checker-qual-3.10.0.jar:/root/.m2/repository/com/google/errorprone/error_prone_annotations/2.5.1/error_prone_annotations-2.5.1.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-all/2.0.9/dolphinscheduler-datasource-all-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-clickhouse/2.0.9/dolphinscheduler-datasource-clickhouse-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-api/2.0.9/dolphinscheduler-datasource-api-2.0.9.jar:/root/.m2/repository/org/springframework/spring-jdbc/5.3.12/spring-jdbc-5.3.12.jar:/root/.m2/repository/ru/yandex/clickhouse/clickhouse-jdbc/0.1.52/clickhouse-jdbc-0.1.52.jar:/root/.m2/repository/org/apache/httpcomponents/httpmime/4.5.13/httpmime-4.5.13.jar:/root/.m2/repository/net/jpountz/lz4/lz4/1.3.0/lz4-1.3.0.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-db2/2.0.9/dolphinscheduler-datasource-db2-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-hive/2.0.9/dolphinscheduler-datasource-hive-2.0.9.jar:/root/.m2/repository/org/apache/hive/hive-jdbc/2.1.0/hive-jdbc-2.1.0.jar:/root/.m2/repository/org/apache/hive/hive-common/2.1.0/hive-common-2.1.0.jar:/root/.m2/repository/org/apache/hive/hive-storage-api/2.1.0/hive-storage-api-2.1.0.jar:/root/.m2/repository/org/apache/hive/hive-orc/2.1.0/hive-orc-2.1.0.jar:/root/.m2/repository/org/iq80/snappy/snappy/0.2/snappy-0.2.jar:/root/.m2/repository/org/apache/logging/log4j/log4j-1.2-api/2.14.1/log4j-1.2-api-2.14.1.jar:/root/.m2/repository/org/apache/hive/hive-service/2.1.0/hive-service-2.1.0.jar:/root/.m2/repository/net/sf/jpam/jpam/1.1/jpam-1.1.jar:/root/.m2/repository/org/apache/thrift/libfb303/0.9.3/libfb303-0.9.3.jar:/root/.m2/repository/org/jamon/jamon-runtime/2.3.1/jamon-runtime-2.3.1.jar:/root/.m2/repository/org/apache/hive/hive-serde/2.1.0/hive-serde-2.1.0.jar:/root/.m2/repository/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar:/root/.m2/repository/org/apache/parquet/parquet-hadoop-bundle/1.8.1/parquet-hadoop-bundle-1.8.1.jar:/root/.m2/repository/org/apache/hive/hive-metastore/2.1.0/hive-metastore-2.1.0.jar:/root/.m2/repository/javolution/javolution/5.5.1/javolution-5.5.1.jar:/root/.m2/repository/com/jolbox/bonecp/0.8.0.RELEASE/bonecp-0.8.0.RELEASE.jar:/root/.m2/repository/org/apache/derby/derby/10.14.2.0/derby-10.14.2.0.jar:/root/.m2/repository/org/datanucleus/datanucleus-api-jdo/4.2.1/datanucleus-api-jdo-4.2.1.jar:/root/.m2/repository/org/datanucleus/datanucleus-core/4.1.6/datanucleus-core-4.1.6.jar:/root/.m2/repository/org/datanucleus/datanucleus-rdbms/4.1.7/datanucleus-rdbms-4.1.7.jar:/root/.m2/repository/commons-pool/commons-pool/1.6/commons-pool-1.6.jar:/root/.m2/repository/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar:/root/.m2/repository/javax/jdo/jdo-api/3.0.1/jdo-api-3.0.1.jar:/root/.m2/repository/javax/transaction/jta/1.1/jta-1.1.jar:/root/.m2/repository/org/datanucleus/javax.jdo/3.2.0-m3/javax.jdo-3.2.0-m3.jar:/root/.m2/repository/javax/transaction/transaction-api/1.1/transaction-api-1.1.jar:/root/.m2/repository/co/cask/tephra/tephra-api/0.6.0/tephra-api-0.6.0.jar:/root/.m2/repository/org/apache/hive/hive-service-rpc/2.1.0/hive-service-rpc-2.1.0.jar:/root/.m2/repository/org/apache/thrift/libthrift/0.9.3/libthrift-0.9.3.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-mysql/2.0.9/dolphinscheduler-datasource-mysql-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-oracle/2.0.9/dolphinscheduler-datasource-oracle-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-postgresql/2.0.9/dolphinscheduler-datasource-postgresql-2.0.9.jar:/root/.m2/repository/org/apache/dolphinscheduler/dolphinscheduler-datasource-sqlserver/2.0.9/dolphinscheduler-datasource-sqlserver-2.0.9.jar:/root/.m2/repository/com/microsoft/sqlserver/mssql-jdbc/6.1.0.jre8/mssql-jdbc-6.1.0.jre8.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-web/2.5.6/spring-boot-starter-web-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter/2.5.6/spring-boot-starter-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot/2.5.6/spring-boot-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/2.5.6/spring-boot-autoconfigure-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-logging/2.5.6/spring-boot-starter-logging-2.5.6.jar:/root/.m2/repository/org/slf4j/jul-to-slf4j/1.7.32/jul-to-slf4j-1.7.32.jar:/root/.m2/repository/jakarta/annotation/jakarta.annotation-api/1.3.5/jakarta.annotation-api-1.3.5.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-json/2.5.6/spring-boot-starter-json-2.5.6.jar:/root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.5/jackson-datatype-jdk8-2.12.5.jar:/root/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.12.5/jackson-datatype-jsr310-2.12.5.jar:/root/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.5/jackson-module-parameter-names-2.12.5.jar:/root/.m2/repository/org/springframework/spring-web/5.3.12/spring-web-5.3.12.jar:/root/.m2/repository/org/springframework/spring-webmvc/5.3.12/spring-webmvc-5.3.12.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-jetty/2.5.6/spring-boot-starter-jetty-2.5.6.jar:/root/.m2/repository/jakarta/servlet/jakarta.servlet-api/4.0.4/jakarta.servlet-api-4.0.4.jar:/root/.m2/repository/jakarta/websocket/jakarta.websocket-api/1.1.2/jakarta.websocket-api-1.1.2.jar:/root/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/9.0.54/tomcat-embed-el-9.0.54.jar:/root/.m2/repository/org/eclipse/jetty/jetty-servlets/9.4.44.v20210927/jetty-servlets-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-continuation/9.4.44.v20210927/jetty-continuation-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-http/9.4.44.v20210927/jetty-http-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-util/9.4.44.v20210927/jetty-util-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-io/9.4.44.v20210927/jetty-io-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-webapp/9.4.44.v20210927/jetty-webapp-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-xml/9.4.44.v20210927/jetty-xml-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-servlet/9.4.44.v20210927/jetty-servlet-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-security/9.4.44.v20210927/jetty-security-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-server/9.4.44.v20210927/jetty-server-9.4.44.v20210927.jar:/root/.m2/repository/org/eclipse/jetty/jetty-util-ajax/9.4.44.v20210927/jetty-util-ajax-9.4.44.v20210927.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-aop/2.5.6/spring-boot-starter-aop-2.5.6.jar:/root/.m2/repository/org/springframework/spring-aop/5.3.12/spring-aop-5.3.12.jar:/root/.m2/repository/org/aspectj/aspectjweaver/1.9.7/aspectjweaver-1.9.7.jar:/root/.m2/repository/org/springframework/spring-context/5.3.12/spring-context-5.3.12.jar:/root/.m2/repository/org/springframework/spring-beans/5.3.12/spring-beans-5.3.12.jar:/root/.m2/repository/org/springframework/spring-core/5.3.12/spring-core-5.3.12.jar:/root/.m2/repository/org/springframework/spring-jcl/5.3.12/spring-jcl-5.3.12.jar:/root/.m2/repository/org/springframework/spring-expression/5.3.12/spring-expression-5.3.12.jar:/root/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar:/root/.m2/repository/org/quartz-scheduler/quartz/2.3.0/quartz-2.3.0.jar:/root/.m2/repository/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar:/root/.m2/repository/org/quartz-scheduler/quartz-jobs/2.3.0/quartz-jobs-2.3.0.jar:/root/.m2/repository/io/springfox/springfox-swagger2/2.9.2/springfox-swagger2-2.9.2.jar:/root/.m2/repository/io/swagger/swagger-annotations/1.5.20/swagger-annotations-1.5.20.jar:/root/.m2/repository/io/springfox/springfox-spi/2.9.2/springfox-spi-2.9.2.jar:/root/.m2/repository/io/springfox/springfox-core/2.9.2/springfox-core-2.9.2.jar:/root/.m2/repository/io/springfox/springfox-schema/2.9.2/springfox-schema-2.9.2.jar:/root/.m2/repository/io/springfox/springfox-swagger-common/2.9.2/springfox-swagger-common-2.9.2.jar:/root/.m2/repository/io/springfox/springfox-spring-web/2.9.2/springfox-spring-web-2.9.2.jar:/root/.m2/repository/com/google/guava/guava/24.1-jre/guava-24.1-jre.jar:/root/.m2/repository/org/checkerframework/checker-compat-qual/2.0.0/checker-compat-qual-2.0.0.jar:/root/.m2/repository/com/google/j2objc/j2objc-annotations/1.1/j2objc-annotations-1.1.jar:/root/.m2/repository/org/codehaus/mojo/animal-sniffer-annotations/1.14/animal-sniffer-annotations-1.14.jar:/root/.m2/repository/com/fasterxml/classmate/1.5.1/classmate-1.5.1.jar:/root/.m2/repository/org/springframework/plugin/spring-plugin-core/1.2.0.RELEASE/spring-plugin-core-1.2.0.RELEASE.jar:/root/.m2/repository/org/springframework/plugin/spring-plugin-metadata/1.2.0.RELEASE/spring-plugin-metadata-1.2.0.RELEASE.jar:/root/.m2/repository/org/mapstruct/mapstruct/1.2.0.Final/mapstruct-1.2.0.Final.jar:/root/.m2/repository/io/springfox/springfox-swagger-ui/2.9.2/springfox-swagger-ui-2.9.2.jar:/root/.m2/repository/io/swagger/swagger-models/1.5.24/swagger-models-1.5.24.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.10.5/jackson-annotations-2.10.5.jar:/root/.m2/repository/com/github/xiaoymin/swagger-bootstrap-ui/1.9.3/swagger-bootstrap-ui-1.9.3.jar:/root/.m2/repository/org/apache/curator/curator-framework/4.3.0/curator-framework-4.3.0.jar:/root/.m2/repository/org/apache/curator/curator-client/4.3.0/curator-client-4.3.0.jar:/root/.m2/repository/org/apache/curator/curator-recipes/4.3.0/curator-recipes-4.3.0.jar:/root/.m2/repository/org/apache/hadoop/hadoop-common/2.7.3/hadoop-common-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-annotations/2.7.3/hadoop-annotations-2.7.3.jar:/opt/java/openjdk/jre/../lib/tools.jar:/root/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar:/root/.m2/repository/org/apache/commons/commons-math3/3.1.1/commons-math3-3.1.1.jar:/root/.m2/repository/xmlenc/xmlenc/0.52/xmlenc-0.52.jar:/root/.m2/repository/commons-httpclient/commons-httpclient/3.0.1/commons-httpclient-3.0.1.jar:/root/.m2/repository/commons-codec/commons-codec/1.11/commons-codec-1.11.jar:/root/.m2/repository/commons-io/commons-io/2.4/commons-io-2.4.jar:/root/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar:/root/.m2/repository/org/mortbay/jetty/jetty/6.1.26/jetty-6.1.26.jar:/root/.m2/repository/org/mortbay/jetty/jetty-util/6.1.26/jetty-util-6.1.26.jar:/root/.m2/repository/javax/servlet/jsp/jsp-api/2.1/jsp-api-2.1.jar:/root/.m2/repository/com/sun/jersey/jersey-core/1.9/jersey-core-1.9.jar:/root/.m2/repository/com/sun/jersey/jersey-json/1.9/jersey-json-1.9.jar:/root/.m2/repository/org/codehaus/jettison/jettison/1.1/jettison-1.1.jar:/root/.m2/repository/com/sun/xml/bind/jaxb-impl/2.2.3-1/jaxb-impl-2.2.3-1.jar:/root/.m2/repository/com/sun/jersey/jersey-server/1.9/jersey-server-1.9.jar:/root/.m2/repository/asm/asm/3.1/asm-3.1.jar:/root/.m2/repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar:/root/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar:/root/.m2/repository/net/java/dev/jets3t/jets3t/0.9.0/jets3t-0.9.0.jar:/root/.m2/repository/org/apache/httpcomponents/httpcore/4.4.1/httpcore-4.4.1.jar:/root/.m2/repository/com/jamesmurty/utils/java-xmlbuilder/0.4/java-xmlbuilder-0.4.jar:/root/.m2/repository/commons-lang/commons-lang/2.6/commons-lang-2.6.jar:/root/.m2/repository/commons-configuration/commons-configuration/1.10/commons-configuration-1.10.jar:/root/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.9.13/jackson-core-asl-1.9.13.jar:/root/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.9.13/jackson-mapper-asl-1.9.13.jar:/root/.m2/repository/org/apache/avro/avro/1.7.4/avro-1.7.4.jar:/root/.m2/repository/com/thoughtworks/paranamer/paranamer/2.3/paranamer-2.3.jar:/root/.m2/repository/org/xerial/snappy/snappy-java/1.0.4.1/snappy-java-1.0.4.1.jar:/root/.m2/repository/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar:/root/.m2/repository/com/google/code/gson/gson/2.8.8/gson-2.8.8.jar:/root/.m2/repository/org/apache/hadoop/hadoop-auth/2.7.3/hadoop-auth-2.7.3.jar:/root/.m2/repository/org/apache/directory/server/apacheds-kerberos-codec/2.0.0-M15/apacheds-kerberos-codec-2.0.0-M15.jar:/root/.m2/repository/org/apache/directory/server/apacheds-i18n/2.0.0-M15/apacheds-i18n-2.0.0-M15.jar:/root/.m2/repository/org/apache/directory/api/api-asn1-api/1.0.0-M20/api-asn1-api-1.0.0-M20.jar:/root/.m2/repository/org/apache/directory/api/api-util/1.0.0-M20/api-util-1.0.0-M20.jar:/root/.m2/repository/com/jcraft/jsch/0.1.42/jsch-0.1.42.jar:/root/.m2/repository/com/google/code/findbugs/jsr305/3.0.0/jsr305-3.0.0.jar:/root/.m2/repository/org/apache/htrace/htrace-core/3.1.0-incubating/htrace-core-3.1.0-incubating.jar:/root/.m2/repository/org/apache/zookeeper/zookeeper/3.4.14/zookeeper-3.4.14.jar:/root/.m2/repository/org/apache/yetus/audience-annotations/0.5.0/audience-annotations-0.5.0.jar:/root/.m2/repository/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1.jar:/root/.m2/repository/org/tukaani/xz/1.0/xz-1.0.jar:/root/.m2/repository/org/apache/hadoop/hadoop-client/2.7.3/hadoop-client-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-app/2.7.3/hadoop-mapreduce-client-app-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-common/2.7.3/hadoop-mapreduce-client-common-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-yarn-client/2.7.3/hadoop-yarn-client-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-yarn-server-common/2.7.3/hadoop-yarn-server-common-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-shuffle/2.7.3/hadoop-mapreduce-client-shuffle-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-yarn-api/2.7.3/hadoop-yarn-api-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-core/2.7.3/hadoop-mapreduce-client-core-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-jobclient/2.7.3/hadoop-mapreduce-client-jobclient-2.7.3.jar:/root/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.7.3/hadoop-hdfs-2.7.3.jar:/root/.m2/repository/commons-daemon/commons-daemon/1.0.13/commons-daemon-1.0.13.jar:/root/.m2/repository/io/netty/netty/3.6.2.Final/netty-3.6.2.Final.jar:/root/.m2/repository/io/netty/netty-all/4.1.53.Final/netty-all-4.1.53.Final.jar:/root/.m2/repository/xerces/xercesImpl/2.9.1/xercesImpl-2.9.1.jar:/root/.m2/repository/xml-apis/xml-apis/1.3.04/xml-apis-1.3.04.jar:/root/.m2/repository/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8.jar:/root/.m2/repository/org/apache/hadoop/hadoop-yarn-common/2.7.3/hadoop-yarn-common-2.7.3.jar:/root/.m2/repository/javax/xml/bind/jaxb-api/2.3.1/jaxb-api-2.3.1.jar:/root/.m2/repository/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar:/root/.m2/repository/com/sun/jersey/jersey-client/1.9/jersey-client-1.9.jar:/root/.m2/repository/org/codehaus/jackson/jackson-jaxrs/1.9.13/jackson-jaxrs-1.9.13.jar:/root/.m2/repository/org/codehaus/jackson/jackson-xc/1.9.13/jackson-xc-1.9.13.jar:/root/.m2/repository/com/google/inject/extensions/guice-servlet/3.0/guice-servlet-3.0.jar:/root/.m2/repository/com/google/inject/guice/3.0/guice-3.0.jar:/root/.m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar:/root/.m2/repository/aopalliance/aopalliance/1.0/aopalliance-1.0.jar:/root/.m2/repository/com/sun/jersey/contribs/jersey-guice/1.9/jersey-guice-1.9.jar:/root/.m2/repository/org/apache/hadoop/hadoop-aws/2.7.3/hadoop-aws-2.7.3.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.10.5/jackson-databind-2.10.5.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.10.5/jackson-core-2.10.5.jar:/root/.m2/repository/com/amazonaws/aws-java-sdk/1.7.4/aws-java-sdk-1.7.4.jar:/root/.m2/repository/joda-time/joda-time/2.14.2/joda-time-2.14.2.jar:/root/.m2/repository/org/springframework/boot/spring-boot-starter-test/2.5.6/spring-boot-starter-test-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot-test/2.5.6/spring-boot-test-2.5.6.jar:/root/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/2.5.6/spring-boot-test-autoconfigure-2.5.6.jar:/root/.m2/repository/com/jayway/jsonpath/json-path/2.5.0/json-path-2.5.0.jar:/root/.m2/repository/net/minidev/json-smart/2.4.7/json-smart-2.4.7.jar:/root/.m2/repository/net/minidev/accessors-smart/2.4.7/accessors-smart-2.4.7.jar:/root/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/2.3.3/jakarta.xml.bind-api-2.3.3.jar:/root/.m2/repository/jakarta/activation/jakarta.activation-api/1.2.2/jakarta.activation-api-1.2.2.jar:/root/.m2/repository/org/assertj/assertj-core/3.19.0/assertj-core-3.19.0.jar:/root/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter/5.7.2/junit-jupiter-5.7.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.7.2/junit-jupiter-api-5.7.2.jar:/root/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/root/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/root/.m2/repository/org/junit/platform/junit-platform-commons/1.7.2/junit-platform-commons-1.7.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.7.2/junit-jupiter-params-5.7.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.7.2/junit-jupiter-engine-5.7.2.jar:/root/.m2/repository/org/junit/platform/junit-platform-engine/1.7.2/junit-platform-engine-1.7.2.jar:/root/.m2/repository/org/mockito/mockito-core/2.21.0/mockito-core-2.21.0.jar:/root/.m2/repository/net/bytebuddy/byte-buddy-agent/1.10.22/byte-buddy-agent-1.10.22.jar:/root/.m2/repository/org/objenesis/objenesis/2.6/objenesis-2.6.jar:/root/.m2/repository/org/mockito/mockito-junit-jupiter/3.9.0/mockito-junit-jupiter-3.9.0.jar:/root/.m2/repository/org/skyscreamer/jsonassert/1.5.0/jsonassert-1.5.0.jar:/root/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/root/.m2/repository/org/springframework/spring-test/5.3.12/spring-test-5.3.12.jar:/root/.m2/repository/org/xmlunit/xmlunit-core/2.8.3/xmlunit-core-2.8.3.jar:/root/.m2/repository/org/hibernate/validator/hibernate-validator/6.2.2.Final/hibernate-validator-6.2.2.Final.jar:/root/.m2/repository/jakarta/validation/jakarta.validation-api/2.0.2/jakarta.validation-api-2.0.2.jar:/root/.m2/repository/org/jboss/logging/jboss-logging/3.4.2.Final/jboss-logging-3.4.2.Final.jar:/root/.m2/repository/org/powermock/powermock-module-junit4/2.0.2/powermock-module-junit4-2.0.2.jar:/root/.m2/repository/org/powermock/powermock-module-junit4-common/2.0.2/powermock-module-junit4-common-2.0.2.jar:/root/.m2/repository/org/powermock/powermock-reflect/2.0.2/powermock-reflect-2.0.2.jar:/root/.m2/repository/org/powermock/powermock-core/2.0.2/powermock-core-2.0.2.jar:/root/.m2/repository/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar:/root/.m2/repository/org/powermock/powermock-api-mockito2/2.0.2/powermock-api-mockito2-2.0.2.jar:/root/.m2/repository/org/powermock/powermock-api-support/2.0.2/powermock-api-support-2.0.2.jar:/root/.m2/repository/org/apache/curator/curator-test/2.12.0/curator-test-2.12.0.jar:/root/.m2/repository/junit/junit/4.12/junit-4.12.jar:/root/.m2/repository/org/jacoco/org.jacoco.agent/0.8.4/org.jacoco.agent-0.8.4-runtime.jar:/root/.m2/repository/org/springframework/boot/spring-boot-configuration-processor/2.5.6/spring-boot-configuration-processor-2.5.6.jar:/root/.m2/repository/com/google/auto/service/auto-service/1.0.1/auto-service-1.0.1.jar:/root/.m2/repository/com/google/auto/service/auto-service-annotations/1.0.1/auto-service-annotations-1.0.1.jar:/root/.m2/repository/com/google/auto/auto-common/1.2/auto-common-1.2.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..582cdc0
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,58 @@
++#!/usr/bin/env bash
++#
++# Proof-of-Vulnerability runner for finding-6ab3cd8c8d7b
++# (CWE-022 path traversal in the Apache DolphinScheduler resource center).
++#
++# The vulnerable code (ResourcesServiceImpl.createDirectory / createResource /
++# online-create) validates only the leaf resource "name" with
++# FileUtils.directoryTraversal(...) but NEVER validates the attacker-controlled
++# parent directory ("currentDir"). A traversal payload placed in currentDir
++# therefore flows unchanged into the persisted Resource.fullName and on into
++# HadoopUtils path creation (getHdfsFileName -> new Path -> mkdir). This driver
++# exercises the REAL ResourcesServiceImpl.createDirectory method.
++#
++#   Exit 0  => vulnerable behaviour reproduced (traversal reaches the Hadoop sink).
++#   Exit !0 => behaviour blocked (a correct patch rejects/normalises the traversal).
++#
++# NOTE ON EXECUTION: this project's unit tests are JUnit4 + PowerMock, but the
++# provided container image lacks the JUnit-vintage engine, so Surefire's JUnit5
++# platform provider silently discovers 0 JUnit4 tests. We therefore compile the
++# POV together with the module and run it directly via org.junit.runner.JUnitCore.
++# The external dependency classpath was captured once (dependency:build-classpath)
++# into cp.txt; sibling DolphinScheduler modules are taken from the freshly built
++# worktree target/classes so nothing needs to be resolved from the network.
++set -euo pipefail
++
++cd /workspace/repo
++
++POV_DIR=".security-pipeline/pov"
++POV_SRC="${POV_DIR}/ResourcesPathTraversalPovTest.java"
++DEST_DIR="dolphinscheduler-api/src/test/java/org/apache/dolphinscheduler/api/service"
++DEST="${DEST_DIR}/ResourcesPathTraversalPovTest.java"
++CP_FILE="${POV_DIR}/cp.txt"
++
++cp "$POV_SRC" "$DEST"
++# Keep the product test tree clean afterwards; the canonical POV lives under .security-pipeline/pov/.
++trap 'rm -f "$DEST"' EXIT
++
++# Remove any stale (possibly jacoco-instrumented) build output without needing the
++# maven-clean-plugin, which is not cached for offline use in this image.
++find . -type d -name target -prune -exec rm -rf {} + 2>/dev/null || true
++
++# Build the reactor slice offline and compile the POV test (do not run Surefire).
++mvn -B -o -pl dolphinscheduler-api -am -DskipTests \
++    -Djacoco.skip=true -Dcheckstyle.skip=true -Drat.skip=true \
++    -Dspotbugs.skip=true -Dmaven.javadoc.skip=true \
++    package
++
++# External (non-DolphinScheduler) dependencies come from the pre-captured list;
++# every jar there lives in the image's local Maven repo.
++EXT="$(tr ':' '\n' < "$CP_FILE" | grep -v '/org/apache/dolphinscheduler/' | paste -sd: -)"
++# Sibling DolphinScheduler modules come from the freshly compiled worktree classes.
++DS="$(find . -type d -path '*/target/classes' | paste -sd: -)"
++
++CP="dolphinscheduler-api/target/test-classes:dolphinscheduler-api/target/classes:${DS}:${EXT}"
++
++echo "[POV] launching JUnitCore against ResourcesPathTraversalPovTest"
++java -cp "$CP" org.junit.runner.JUnitCore \
++    org.apache.dolphinscheduler.api.service.ResourcesPathTraversalPovTest

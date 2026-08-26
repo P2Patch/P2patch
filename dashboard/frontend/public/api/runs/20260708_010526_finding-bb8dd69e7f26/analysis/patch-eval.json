@@ -1,0 +1,283 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T04:53:31.965939+00:00",
+    "finished_at": "2026-07-11T04:54:53.702986+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch modifies only ExternalResourceHandler.getResource(): it normalizes backslashes to '/' before the pre-existing UriPath.canonical() call and returns null when canonical() rejects an over-traversing path. This closes the observed external-location POV (which used a backslash bypass of canonical()), and regressions/added tests pass. However, it is a narrower and mechanically different fix than the official one: the official fix introduces an explicit post-resolution containment check (DirectoryTraversal.protectAgainst* verifying the resolved resource path stays inside the configured StaticFilesFolder) applied to BOTH ExternalResourceHandler and ClassPathResourceHandler. Our patch leaves the classpath sink entirely unprotected and relies on the unverified correctness of UriPath.canonical() rather than an explicit base-dir containment assertion.",
+    "root_cause": "Static-file resource handlers resolve a user-controlled request path into a File without verifying the resolved path stays within the configured static-files base directory, allowing '../' / '..\\' traversal to escape the served root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "Blocks the observed external backslash-traversal vector and forward-slash '..' via canonical(), but relies on UriPath.canonical() and leaves the classpath sink unaddressed.",
+        "evidence": "ExternalResourceHandler.java: path = UriPath.canonical(path.replace('\\\\','/')) + null-guard; POV after no longer reproduces, but ClassPathResourceHandler.getResource() unchanged.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Hardens the entry normalization for one handler rather than adding the base-directory containment verification the official fix uses at the trust boundary.",
+        "evidence": "Our diff only adds replace('\\\\','/') + null check; official adds DirectoryTraversal.protectAgainstForExternal(resource.getPath()) after resolution.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Only ExternalResourceHandler is fixed; ClassPathResourceHandler (a parallel tainted sink the official fix patches) is untouched, and encoded traversal variants are unverified.",
+        "evidence": "official_only includes ClassPathResourceHandler.java, DirectoryTraversal.java, StaticFilesFolder.java; our patch touches only ExternalResourceHandler.java.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Shares the goal of blocking traversal in the resource handler but uses a different mechanism (input normalization) and location (before addPaths) than the official post-resolution containment check.",
+        "evidence": "Ours: UriPath.canonical(path.replace('\\\\','/')); Official: containment check via StaticFilesFolder.external() after resource.exists().",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Regression suite (1) and added backslash test pass; backslash→slash normalization is safe for web paths, though only one regression was exercised.",
+        "evidence": "regressions_ran=1, regressions_passed=true; added testGetResource_whenPathUsesBackslashTraversal_thenReturnNull.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Minimal string replace plus a null guard whose null return is already a valid caller-handled outcome; no ReDoS/injection/TOCTOU introduced.",
+        "evidence": "path.replace('\\\\','/') and 'if (path == null) return null;' in ExternalResourceHandler.getResource().",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change to a single method plus a focused unit test.",
+        "evidence": "Two added statements in ExternalResourceHandler.java; one test in ExternalResourceHandlerTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Leans on canonicalization/rejection (a valid primitive) but supplements it with ad-hoc backslash normalization and omits an explicit base-directory containment assertion; does not resolve symlinks/real path.",
+        "evidence": "Relies on UriPath.canonical() correctness; no equivalent of DirectoryTraversal.protectAgainstForExternal containment check present in our patch.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "ClassPathResourceHandler.getResource() is left unprotected. The official fix applies DirectoryTraversal.protectAgainstInClassPath to the classpath sink; our patch only touches the external handler, so the classpath traversal path in the same vulnerability class remains open."
+      },
+      {
+        "severity": "medium",
+        "description": "No explicit base-directory containment verification (canonicalize-then-verify-inside-base). The fix depends entirely on UriPath.canonical() correctly collapsing/rejecting traversal; encoded variants (e.g. %2e%2e) and other normalization edge cases are unverified, unlike the official post-resolution startsWith(StaticFilesFolder) check."
+      },
+      {
+        "severity": "low",
+        "description": "Mechanism and location diverge from the official defense-in-depth approach, so the fix is a weaker subset rather than a semantic equivalent."
+      }
+    ],
+    "overall": {
+      "mean": 3.5,
+      "score": 70,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 70,
+        "score_mean": 73.3,
+        "score_min": 70,
+        "score_max": 80,
+        "score_stdev": 4.71,
+        "mean_median": 3.5,
+        "band_mode": "incomplete",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.23
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            3
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            4,
+            3
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            3,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            5,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.33,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 70,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 80,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 70,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ExternalResourceHandler.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "ClassPathResourceHandler.java",
+        "DirectoryTraversal.java",
+        "StaticFilesConfiguration.java",
+        "StaticFilesFolder.java",
+        "StringUtils.java"
+      ],
+      "jaccard": 0.167,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "src/main/java/spark/staticfiles/DirectoryTraversal.java",
+        "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "src/main/java/spark/staticfiles/StaticFilesFolder.java",
+        "src/main/java/spark/utils/StringUtils.java"
+      ],
+      "commits": [
+        "efcb46c710e3f56805b9257a63d1306882f4faf9"
+      ]
+    }
+  }
+}

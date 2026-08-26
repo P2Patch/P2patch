@@ -1,0 +1,22 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_035923_finding-df96980312d5/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-df96980312d5:1613738e8944 bash -lc mkdir -p .security-pipeline/pov/out && javac -cp target/classes:lib/junit-4.13.1.jar:lib/hamcrest-core-1.3.jar -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPovTest.java && java -cp .security-pipeline/pov/out:target/classes:lib/junit-4.13.1.jar:lib/hamcrest-core-1.3.jar org.junit.runner.JUnitCore net.sf.mpxj.common.ZipSlipPovTest
+exit_code=1
+timed_out=false
+
+--- stdout ---
+JUnit version 4.13.1
+.E
+Time: 0.011
+There was 1 failure:
+1) zipEntryEscapesExtractionDirectory(net.sf.mpxj.common.ZipSlipPovTest)
+java.io.IOException: Zip entry is outside of the target directory: pov-zipslip-marker-277630005.txt
+	at net.sf.mpxj.common.InputStreamHelper.validateZipEntryDestination(InputStreamHelper.java:168)
+	at net.sf.mpxj.common.InputStreamHelper.processZipStream(InputStreamHelper.java:127)
+	at net.sf.mpxj.common.InputStreamHelper.writeZipStreamToTempDir(InputStreamHelper.java:88)
+	at net.sf.mpxj.common.ZipSlipPovTest.zipEntryEscapesExtractionDirectory(ZipSlipPovTest.java:60)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+--- stderr ---
+

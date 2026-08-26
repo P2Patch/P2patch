@@ -1,0 +1,238 @@
+{
+  "run_id": "20260717_021931_finding-2fe2f5ad4d3b",
+  "finding_id": "finding-2fe2f5ad4d3b",
+  "timestamp": "2026-07-17T02:19:31",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "finding_id": "20260717_021931_finding-2fe2f5ad4d3b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-2fe2f5ad4d3b",
+    "cve_id": "CVE-2022-28367",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "project_slug": "nahsra__antisamy_CVE-2022-28367_1.6.5",
+    "alert_file": "NAHSRA_ANTISAMY_CVE_2022_28367.json",
+    "github_url": "https://github.com/nahsra/antisamy",
+    "repo": "nahsra/antisamy",
+    "github_tag": "1.6.5",
+    "advisory_id": "GHSA-3pqg-4rqg-pg9g",
+    "buggy_commit_id": "b7c151112dd19928e700ee48639942fd1079d1e3",
+    "fix_commit_ids": [
+      "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java",
+        "class": "AntiSamyDOMScanner",
+        "class_start": "70.0",
+        "class_end": "783.0",
+        "method": "processStyleTag",
+        "method_start": "403.0",
+        "method_end": "446.0",
+        "signature": "boolean processStyleTag(Element,Node)",
+        "is_test": false
+      },
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java",
+        "class": "AntiSamyTest",
+        "class_start": "87.0",
+        "class_end": "1693.0",
+        "method": "testGithubIssue151",
+        "method_start": "1693.0",
+        "method_end": "1703.0",
+        "signature": "void testGithubIssue151()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-28367",
+      "advisory": "https://github.com/advisories/GHSA-3pqg-4rqg-pg9g",
+      "repo": "https://github.com/nahsra/antisamy",
+      "buggy_commit": "https://github.com/nahsra/antisamy/commit/b7c151112dd19928e700ee48639942fd1079d1e3"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-079",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 484,
+              "message": "item(...) : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "attribute : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "getNodeValue(...) : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 516,
+              "message": "value : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 209,
+              "message": "taintedCss : String",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            },
+            {
+              "line": 225,
+              "message": "taintedCss",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-079",
+      "finding_id": "finding-2fe2f5ad4d3b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021931_finding-2fe2f5ad4d3b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81/Dockerfile",
+        "-t",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 801309,
+        "duration_api_ms": 731307,
+        "num_turns": 78,
+        "cost_usd": 4.0313658,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 148,
+          "output": 60525,
+          "cache_read": 7443456,
+          "cache_creation": 148335
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/owasp/validator/css/CssValidator.java",
+          "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java"
+        ],
+        "patch_notes": "In CssValidator.lexicalValueToString(), added a containsHtmlMetacharacters() check for the SAC_STRING_VALUE/SAC_IDENT and SAC_URI branches: if the decoded CSS token contains '<' or '>', the method now returns null instead of the raw text. Returning null is deliberate: it flows into isValidProperty()'s existing 'value == null -> invalid' check, so the whole property/value is dropped (with an error message) exactly like any other disallowed CSS value, and CssHandler.property() never appends it to the reconstructed stylesheet/style-attribute buffer. This is a single choke point shared by both scanInlineStyle() (style attribute) and scanStyleSheet() (<style> tag, including its CDATA wrapping), so the fix covers all CSS-echo call sites uniformly regardless of which bundled policy (antisamy.xml, -myspace, -ebay, -slashdot, -anythinggoes, -tinymce) or custom integrator policy is in effect -- it no longer relies solely on a given policy's value regexp to keep '<'/'>' out. I deliberately did NOT HTML-entity-encode the offending characters at this layer (rejecting the token by returning null instead): the value is independently re-validated by the caller and the attribute-value path already gets correctly HTML-escaped by the downstream serializer, so pre-encoding here would risk double-encoding legitimate punctuation for values that later also pass through that serializer. Added AntiSamyTest.testCssValueCannotSmuggleMarkup, which defines a deliberately permissive custom font-family Property (via TestPolicy.addCssProperty, mirroring the existing testLeadingDashOnPropertyName pattern) to prove the protection lives in the CSS validator itself and not merely in a tight bundled regexp; it exercises both the style-attribute path and the <style>-tag path and asserts the malicious '<'/'>' content never reaches the output. I confirmed by temporarily reverting the source change that this test fails against the old code with the exact smuggled '<style>...x<y...</style>' output shown above, and passes with the fix.",
+        "regression_commands": [
+          "mvn -B test -Dtest=AntiSamyTest#testCssValueCannotSmuggleMarkup",
+          "mvn -B test"
+        ],
+        "risk_notes": "Behavior change is narrowly scoped: any CSS string, unquoted identifier, or url() token whose decoded value contains a literal '<' or '>' is now rejected (property dropped) instead of being emitted with those characters intact. '<'/'>' have no legitimate use in font names, generic identifiers, or URLs for any of the bundled policies (their existing regexes already exclude these characters), so this should not affect any currently-passing legitimate CSS -- confirmed by the full existing test suite (100/100) passing unchanged. The only realistic behavior change is for custom/integrator-supplied policies with a value regexp broad enough to have previously allowed '<'/'>' through (e.g. a '.*' pattern); those now correctly have such property values stripped rather than silently emitting unsafe markup. No dependency, API signature, or build changes.",
+        "status": "patched",
+        "summary": "Root-caused the CWE-079 CSS-to-output XSS: CssValidator.lexicalValueToString() echoed the decoded content of CSS string/identifier/URI tokens (from font-family names, generic idents, and url() values) verbatim into the reconstructed 'clean' CSS, with no check for HTML metacharacters. When such a token contains '<'/'>' and a policy's value regex is permissive enough to allow it through (as bundled/custom policies can be, e.g. font-family's regex intentionally allows quotes/letters), those raw angle brackets survive into the sanitized output. For the <style>-tag path specifically, this is directly exploitable: I proved with a regression test that pre-patch, a CSS string value containing a literal '<' character lands unescaped inside the <style> element's raw-text content ('<style><![CDATA[p {\\n\\tfont-family: x<y;\\n}\\n]]></style>'), which lets an attacker smuggle a premature '</style>' close plus new markup (e.g. <script>) past the sanitizer -- exactly the 'STYLE tag smuggling' the alert describes. Verified the style-ATTRIBUTE path is already safe because the downstream DOM/SAX HTML serializer correctly escapes '<'/'>'/'\"' in attribute values, but the <style>-element text-node path is not escaped (correctly, per HTML5 raw-text rules) which is why the character must never reach that buffer unescaped in the first place."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.0314,
+    "num_turns": 78,
+    "agent_duration_ms": 801309
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:14.299834+00:00",
+    "finished_at": "2026-07-17T08:42:18.619814+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Backslash is now treated as a path separator before term-splitting, so `..\\` becomes a real \"..\" term subject to the existing above-root check; POV no longer reproduces.",
+        "evidence": "AbstractResource.java:104 `for (String term : relativePath.split(\"[/\\\\\\\\]+\"))` replaces `split(\"/\")`; pov_after_still_reproduces=false",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the shared chokepoint AbstractResource.forFile where separator interpretation diverged from the \"..\"/root-boundary canonicalization, not a caller or the reported entry point (ContextAssetRequestHandler/ChecksumPath left untouched, as upstream did).",
+        "evidence": "Only production hunk is in forFile (method_start 93 / method_end 142), the same method the official fix targets",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Every separator variant ('/', '\\', mixed, and runs of either) is normalized at the single sink all tainted paths funnel through, matching the coverage of the official fix; residual gaps (URL-decoded separators, symlink resolution) are equally absent upstream and handled elsewhere in the request chain.",
+        "evidence": "regex char class `[/\\\\]+` covers both separators and repeats; overlap_files=[AbstractResource.java], covers_all_official=true",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same file, same method, same defensive strategy (treat backslash as a separator prior to term parsing); only the mechanism differs (regex split vs `replace('\\\\','/')`), with identical resulting term lists since empty terms are skipped by the loop.",
+        "evidence": "ours AbstractResource.java:104 split(\"[/\\\\\\\\]+\") vs official AbstractResource.java:104 `relativePath = relativePath.replace('\\\\', '/'); ... split(\"/\")`",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 2,
+        "rationale": "The production one-liner is behaviorally equivalent to upstream and should not break legitimate resolution, but the pipeline reports the regression suite failing (3 ran, not passed) and the run rejected — a failing build/test state is disqualifying regardless of which hunk caused it.",
+        "evidence": "regressions_ran=3, regressions_passed=false, run_status=rejected; suspect the added ClasspathResourceSpec.groovy cases (unverified `PATH`/`SAME_FOLDER_RESOURCE_CONTENT`/`content()` symbols, assumed `IllegalStateException` + \"would go above root\" message)",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Regex is a single character class with `+` — linear, no ReDoS; no TOCTOU or new injection. Minor: a Pattern is compiled per forFile call where upstream uses a cheap char replace, and the patch's own test additions are unverified and plausibly the source of the red suite.",
+        "evidence": "`split(\"[/\\\\\\\\]+\")` at AbstractResource.java:104; +41 lines of new Spock specs in ClasspathResourceSpec.groovy",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is a single-line, correctly-placed edit; the accompanying test block is larger than needed (helper `BS` constant, unused `description` data column, four near-duplicate where-cases) and is the risky part of the diff.",
+        "evidence": "1 changed production line vs ~41 added test lines including `static final String BS = \"\\\\\"` and an unused `description` where-column",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Not a blocklist: it normalizes all separator variants and then relies on the existing canonicalization (drop \".\", pop on \"..\") plus an explicit boundary check that throws when the path would escape the root — the correct analogue of canonicalize-then-verify for this virtual resource namespace, and identical in kind to upstream. Short of 5 only because no real-filesystem/symlink canonicalization backs the virtual check (a limitation shared with the official fix).",
+        "evidence": "AbstractResource.forFile:104-130 term loop with `\"..\"` pop and empty-terms → \"would go above root\" IllegalStateException, now fed correctly-split terms",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Regression gate failed (regressions_ran=3, regressions_passed=false; run_status=rejected). The production hunk is semantically equivalent to upstream, so the most likely culprit is the patch's own added Spock specs in ClasspathResourceSpec.groovy: they assume symbols (`PATH`, `SAME_FOLDER_RESOURCE_CONTENT`, `content()`) and an exception contract (`IllegalStateException` with message containing \"would go above root\") that are not evidenced in the diff context, and the `\"..\\\\util\\\\same-folder.txt\"` case additionally assumes a fixture resource exists. A Groovy compile error in the spec class fails the whole suite. Must be verified/fixed before acceptance."
+      },
+      {
+        "severity": "low",
+        "description": "Divergence from upstream mechanism: `split(\"[/\\\\]+\")` compiles a Pattern on every forFile() call and collapses separator runs, whereas the official `replace('\\\\','/')` + `split(\"/\")` is cheaper and keeps the pre-existing \"sequential slashes\" empty-term path exercised. No behavioral difference (empty terms are skipped), but it makes future merges with upstream noisier."
+      },
+      {
+        "severity": "low",
+        "description": "Cosmetic: with our patch the \"would go above root\" IllegalStateException message echoes the original backslash-containing relativePath, while the official fix reports the normalized forward-slash form. Any test or log matcher keyed to the normalized form would differ."
+      },
+      {
+        "severity": "low",
+        "description": "Test hygiene: the `where:` block declares an unused `description` column and four largely redundant traversal cases; the `BS` constant indirection adds little over a plain escaped literal."
+      }
+    ],
+    "root_cause": "AbstractResource.forFile canonicalized and root-checked the relative path by splitting only on '/', so a backslash-delimited \\\"..\\\" segment survived as an opaque term, passed the above-root guard, and was later re-interpreted as a directory separator by the downstream container/filesystem, escaping the resource root.",
+    "summary": "Our patch fixes the real root cause at the same chokepoint as the official fix: it makes AbstractResource.forFile treat '\\' as a path separator before term-splitting, so backslash traversal segments become genuine \"..\" terms and hit the pre-existing pop/above-root boundary check. The mechanism differs cosmetically (regex `split(\"[/\\\\]+\")` vs upstream's `replace('\\\\','/')` + `split(\"/\")`) but is semantically equivalent, since empty terms are already skipped by the loop, and the POV no longer reproduces. The blocking problem is not the security logic but the patch's own test additions: the regression suite fails (3 ran, none passing) and the run was rejected, most plausibly because the new ClasspathResourceSpec cases reference unverified fixtures/constants and assume an exception type and message not evidenced here. Fix or drop those specs and this becomes an accept-quality fix.",
+    "overall": {
+      "mean": 4.25,
+      "score": 85,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractResource.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+      ],
+      "commits": [
+        "6dd7219fd4707467a36091e2f7f5f6460c619099"
+      ]
+    }
+  }
+}

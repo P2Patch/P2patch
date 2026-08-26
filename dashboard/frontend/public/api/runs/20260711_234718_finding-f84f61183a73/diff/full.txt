@@ -1,0 +1,27 @@
+diff --git a/src/main/java/com/diffplug/gradle/eclipserunner/launcher/Main.java b/src/main/java/com/diffplug/gradle/eclipserunner/launcher/Main.java
+index 9c49665..5096049 100644
+--- a/src/main/java/com/diffplug/gradle/eclipserunner/launcher/Main.java
++++ b/src/main/java/com/diffplug/gradle/eclipserunner/launcher/Main.java
+@@ -2292,7 +2292,22 @@ public class Main {
+ 		if (cache.endsWith(".jar")) //$NON-NLS-1$
+ 			cache = cache.substring(0, cache.length() - 4);
+ 		splash = new File(splash, cache);
++		File cacheDir = splash;
+ 		splash = new File(splash, jarEntry);
++		// guard against path traversal (Zip Slip): the entry must resolve to a
++		// location inside the cache directory, otherwise refuse to extract it
++		try {
++			String canonicalCacheDir = cacheDir.getCanonicalPath() + File.separator;
++			String canonicalSplash = splash.getCanonicalPath();
++			if (!canonicalSplash.startsWith(canonicalCacheDir)) {
++				log("Refusing to extract " + jarEntry + " from JAR'd plug-in: " + jarPath + " because it resolves outside of the cache directory"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
++				return null;
++			}
++		} catch (IOException e) {
++			log("Exception resolving " + jarEntry + " from JAR file: " + jarPath); //$NON-NLS-1$ //$NON-NLS-2$
++			log(e);
++			return null;
++		}
+ 		// if we have already extracted this file before, then return
+ 		if (splash.exists()) {
+ 			// if we are running with -clean then delete the cached splash file

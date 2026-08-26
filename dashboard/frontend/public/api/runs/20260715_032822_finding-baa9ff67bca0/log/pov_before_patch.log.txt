@@ -1,0 +1,11 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-baa9ff67bca0/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-baa9ff67bca0:5c546ef5848d bash -lc rm -rf /tmp/povcls && mkdir -p /tmp/povcls && javac -d /tmp/povcls $(find src/main/java/org/apache/commons/io -name '*.java') .security-pipeline/pov/PovCwe022.java && java -cp /tmp/povcls PovCwe022
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[pov] input     = //../foo
+[pov] normalize = //../foo
+[pov] VULNERABLE: '..' traversal segment survived normalization (path escapes the intended directory).
+
+--- stderr ---
+

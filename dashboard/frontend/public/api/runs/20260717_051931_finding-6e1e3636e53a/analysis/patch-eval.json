@@ -1,0 +1,143 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:30.286262+00:00",
+    "finished_at": "2026-07-17T15:42:20.574336+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch closes the CWE-094 flaw the same way the official fix does — it enforces a base-type (isAssignableFrom) allowlist before any reflective construction — but centralizes it in a reusable MappingUtil.loadClass helper and routes property creation through the already-guarded PropertyFactory. Every production sink the official fix touches (PropertiesParser, YamlParser, XmlParser property + flipstrategy paths, PropertyFactory.createProperty, MappingUtil.instanceFlippingStrategy, and both ConsoleOperations methods) is covered. POV no longer reproduces and 5 regressions pass. This is functionally equivalent to the reference fix with a cleaner, centralized implementation.",
+    "root_cause": "Config/web-console parsers pass attacker-controlled fully-qualified class names into Class.forName(...).newInstance()/getConstructor(...).newInstance() with no type restriction, allowing arbitrary class loading and constructor execution (code injection).",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Every reflective sink now verifies expectedType.isAssignableFrom before construction, so arbitrary attacker class names are rejected — the class, not just the observed payload, is closed.",
+        "evidence": "MappingUtil.loadClass() isAssignableFrom check; PropertyFactory.createProperty now calls loadClass(pType, Property.class); all three parsers + ConsoleOperations route through loadClass",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes at the trust boundary by centralizing the type-restriction guard before instantiation rather than patching a single caller.",
+        "evidence": "new MappingUtil.loadClass(className, expectedType) used by PropertiesParser/YamlParser/XmlParser/ConsoleOperations; PropertyFactory guarded too",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers all production sinks the official fix covers: property-type and flip-strategy paths across properties/yaml/xml, the shared factory, MappingUtil, and both web-console methods.",
+        "evidence": "overlap_files include PropertiesParser, YamlParser, XmlParser, PropertyFactory, MappingUtil, ConsoleOperations; each Class.forName sink replaced",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy (isAssignableFrom base-type allowlist before construction); centralized rather than inlined but semantically equivalent superset.",
+        "evidence": "loadClass performs !expectedType.isAssignableFrom(rawClazz) throw, mirroring official '!Property.class.isAssignableFrom' / '!FlippingStrategy.class.isAssignableFrom'",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "POV after no longer reproduces, 5 regressions pass, and added unit tests assert legitimate rejection without breaking valid types.",
+        "evidence": "execution results regressions_passed=true, pov_after_still_reproduces=false; new PropertyFactoryTest/MappingUtilsTest cases",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe reflection primitives (asSubclass, isAssignableFrom); check precedes constructor invocation avoiding side effects; only minor raw-generic warnings.",
+        "evidence": "loadClass returns rawClazz.asSubclass(expectedType); PropertyFactory check before getConstructor/newInstance",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Correct and localized but slightly broader than the official inline checks — adds a shared helper and re-routes PropertiesParser property creation through PropertyFactory.",
+        "evidence": "new loadClass method in MappingUtil; PropertiesParser property path changed to PropertyFactory.createProperty instead of inline check",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Applies the CWE-094 defense-of-record for dynamic class loading: restrict loaded types to an expected base type before instantiation, matching the official approach.",
+        "evidence": "expectedType.isAssignableFrom gate in loadClass and PropertyFactory, same as reference fix",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Type restriction is base-type (Property/FlippingStrategy) rather than an explicit class allowlist — same limitation as the official fix; a malicious class implementing those interfaces could still be constructed, but this matches developer intent."
+      },
+      {
+        "severity": "low",
+        "description": "loadClass uses raw Class<? extends Property> generics in PropertyFactory, producing unchecked-warning-level rawness; no functional impact."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ConsoleOperations.java",
+        "MappingUtil.java",
+        "PropertiesParser.java",
+        "PropertyFactory.java",
+        "XmlParser.java",
+        "YamlParser.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "test-ff4j-features.json",
+        "test-ff4j-features.properties",
+        "test-ff4j-features.xml",
+        "test-ff4j-features.yml",
+        "test-ff4j-strategy.json",
+        "test-ff4j-strategy.properties",
+        "test-ff4j-strategy.xml",
+        "test-ff4j-strategy.yml"
+      ],
+      "jaccard": 0.429,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 5,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+        "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+        "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.yml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.yml",
+        "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java"
+      ],
+      "commits": [
+        "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6"
+      ]
+    }
+  }
+}

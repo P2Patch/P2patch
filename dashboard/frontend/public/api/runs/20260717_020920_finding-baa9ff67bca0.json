@@ -1,0 +1,453 @@
+{
+  "run_id": "20260717_020920_finding-baa9ff67bca0",
+  "finding_id": "finding-baa9ff67bca0",
+  "timestamp": "2026-07-17T02:09:20",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_020920_finding-baa9ff67bca0",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-baa9ff67bca0",
+    "cve_id": "CVE-2021-29425",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "asf__commons-io_CVE-2021-29425_2.6",
+    "alert_file": "ASF_COMMONS_IO_CVE_2021_29425.json",
+    "github_url": "https://github.com/apache/commons-io",
+    "repo": "apache/commons-io",
+    "github_tag": "2.6",
+    "advisory_id": "GHSA-gwrp-pvrq-jmwv",
+    "buggy_commit_id": "2ae025fe5c4a7d2046c53072b0898e37a079fe62",
+    "fix_commit_ids": [
+      "fe7543eee5cd4b2f9e78aa44c31031b68eba204d"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+        "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+        "class": "FilenameUtilsTestCase",
+        "class_start": "44.0",
+        "class_end": "1154.0",
+        "method": "testNormalize_with_nullbytes",
+        "method_start": "280.0",
+        "method_end": "287.0",
+        "signature": "void testNormalize_with_nullbytes()",
+        "is_test": true
+      },
+      {
+        "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+        "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+        "class": "FilenameUtilsTestCase",
+        "class_start": "44.0",
+        "class_end": "1154.0",
+        "method": "testNormalize",
+        "method_start": "101.0",
+        "method_end": "274.0",
+        "signature": "void testNormalize()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2021-29425",
+      "advisory": "https://github.com/advisories/GHSA-gwrp-pvrq-jmwv",
+      "repo": "https://github.com/apache/commons-io",
+      "buggy_commit": "https://github.com/apache/commons-io/commit/2ae025fe5c4a7d2046c53072b0898e37a079fe62"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 209,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 210,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 178,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 179,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 209,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 210,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 147,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 148,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 436,
+              "message": "new String(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FilenameUtils.java"
+            },
+            {
+              "line": 243,
+              "message": "doNormalize(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FilenameUtils.java"
+            },
+            {
+              "line": 304,
+              "message": "normalize(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 313,
+              "message": "... + ... : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 313,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 316,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-baa9ff67bca0",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_020920_finding-baa9ff67bca0/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-io_[redacted]_2.6/19/Dockerfile",
+        "-t",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-io_[redacted]_2.6/19"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 380998,
+        "duration_api_ms": 259536,
+        "num_turns": 38,
+        "cost_usd": 1.3969261,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 66,
+          "output": 19469,
+          "cache_read": 1865557,
+          "cache_creation": 69006
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/apache/commons/io/FilenameUtils.java",
+          "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java"
+        ],
+        "patch_notes": "src/main/java/org/apache/commons/io/FilenameUtils.java: (1) added imports java.util.Arrays, java.util.List, java.util.regex.Matcher, java.util.regex.Pattern; (2) added constants EMPTY_STRING_ARRAY, IPV4_PATTERN, IPV4_MAX_OCTET_VALUE, IPV6_MAX_HEX_GROUPS, IPV6_MAX_HEX_DIGITS_PER_GROUP, MAX_UNSIGNED_SHORT, BASE_16, REG_NAME_PART_PATTERN; (3) in getPrefixLength(), the UNC/double-separator branch now computes hostnamePart = filename.substring(2, pos-1) and returns NOT_FOUND unless isValidHostName(hostnamePart) is true; (4) added private helper methods isValidHostName, isIPv4Address, isIPv6Address, isRFC3986HostName (ported from the upstream Apache Commons IO 2.7 fix for this class of bug). src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java: added testNormalize_CVE_2021_29425_pathTraversal(), asserting normalize()/getPrefixLength() reject '//../foo', '\\\\..\\foo', '//..\\foo', and malformed-hostname UNC prefixes like '//-server/foo' and '//.server/foo'.",
+        "regression_commands": [
+          "mvn -q -B -Dtest=FilenameUtilsTestCase test",
+          "mvn -q -B -Dtest=FileSystemUtilsTestCase test",
+          "mvn -B -DskipTests package"
+        ],
+        "risk_notes": "Behavior change is narrowly scoped to inputs with a leading double path separator (UNC-style paths) whose apparent host/share segment is not a syntactically valid RFC 3986 host name or IPv6 literal — such inputs now yield null from normalize()/normalizeNoEndSeparator() and -1 from getPrefixLength() instead of a previously-unvalidated result. Legitimate UNC paths ('//server/share/...', numeric-IP hosts, etc.) are unaffected, confirmed by the full pre-existing FilenameUtilsTestCase suite (38/38 pass, including the '//server/...' cases already in the suite) and FileSystemUtilsTestCase (28/28 pass). A full `mvn test` run shows 4 pre-existing failures (FileFilterTestCase.testCanRead/testCanWrite, FileUtilsCleanDirectoryTestCase.testThrowsOnCannotDeleteFile/testThrowsOnNullList) that reproduce identically on the unpatched baseline (verified via git stash) — they stem from file-permission-enforcement tests running as root in the container, unrelated to this change.",
+        "status": "patched",
+        "summary": "Fixed CWE-022 path traversal in FilenameUtils.normalize()/getPrefixLength() (the same root cause as CVE-2021-29425). For UNC-style inputs beginning with a double separator (e.g. '//../foo', '\\\\..\\foo'), getPrefixLength previously computed the prefix length purely from the position of the next separator, without validating that the intervening text was a plausible host/share name. That let a '..' segment be silently swallowed into the 'prefix' portion of the path, where it is never touched by doNormalize's '..'-collapsing logic — so normalize() returned the traversal sequence unchanged/mishandled instead of rejecting it, letting callers that trust normalize() to keep paths inside an allowed directory be bypassed. FileSystemUtils.performCommand/openUnixStat build OS commands from normalize()'d, attacker-influenced paths, so those call sites are covered too, but the fix is entirely in FilenameUtils at the trust boundary.\n\nFix (matches the upstream Apache Commons IO 2.7 fix for IO-556/IO-559): getPrefixLength() now extracts the candidate host/share substring between the leading '//' or '\\\\' and the following separator and validates it via isValidHostName() (RFC 3986 host name or IPv6 literal) before treating it as a legitimate prefix. If the substring isn't a valid host name (e.g. '..', '-server', '.server'), getPrefixLength returns NOT_FOUND (-1), which makes doNormalize() return null instead of an unsanitized/ambiguous path. This blocks the highlighted '//../foo' path plus same-class variants: backslash form ('\\\\..\\foo'), mixed separators ('//..\\foo'), and malformed host names in general (leading hyphen, leading dot, etc.), while preserving legitimate UNC paths like '//server/a/b' (existing test suite covers these and continues to pass)."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 1.3969,
+    "num_turns": 38,
+    "agent_duration_ms": 380998
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

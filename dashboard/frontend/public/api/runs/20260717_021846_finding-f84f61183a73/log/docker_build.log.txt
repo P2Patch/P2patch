@@ -1,0 +1,115 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38/Dockerfile -t simpleautosec-finding-f84f61183a73:e4500ff8cbcd /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38
+exit_code=1
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.54kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [builder 1/5] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72
+#4 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72 done
+#4 DONE 0.0s
+
+#5 [builder 2/5] WORKDIR /workspace
+#5 CACHED
+
+#6 [builder 3/5] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#6 CACHED
+
+#7 [builder 4/5] RUN set -eux;     git clone "https://github.com/diffplug/goomph" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "3.37.1" ]; then git checkout "3.37.1"; fi
+#7 0.126 + git clone https://github.com/diffplug/goomph repo
+#7 0.128 Cloning into 'repo'...
+#7 1.661 + cd repo
+#7 1.661 + [ -n [redacted] ]
+#7 1.661 + git checkout [redacted]
+#7 1.672 Note: switching to '[redacted]'.
+#7 1.672 
+#7 1.672 You are in 'detached HEAD' state. You can look around, make experimental
+#7 1.672 changes and commit them, and you can discard any commits you make in this
+#7 1.672 state without impacting any branches by switching back to a branch.
+#7 1.672 
+#7 1.672 If you want to create a new branch to retain commits you create, you may
+#7 1.672 do so (now or later) by using -c with the switch command. Example:
+#7 1.672 
+#7 1.672   git switch -c <new-branch-name>
+#7 1.672 
+#7 1.672 Or undo this operation with:
+#7 1.672 
+#7 1.672   git switch -
+#7 1.672 
+#7 1.672 Turn off this advice by setting config variable advice.detachedHead to false
+#7 1.672 
+#7 1.672 HEAD is now at fe20831 Published release/3.37.1
+#7 DONE 1.7s
+
+#8 [builder 5/5] RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test
+#8 0.089 + cd /workspace/repo
+#8 0.089 + chmod +x gradlew
+#8 0.091 + ./gradlew --no-daemon clean build -x test
+#8 0.135 Downloading https://services.gradle.org/distributions/gradle-6.8.2-bin.zip
+#8 1.020 ..........10%..........20%..........30%...........40%..........50%..........60%..........70%...........80%..........90%..........100%
+#8 8.362 
+#8 8.362 Welcome to Gradle 6.8.2!
+#8 8.362 
+#8 8.362 Here are the highlights of this release:
+#8 8.362  - Faster Kotlin DSL script compilation
+#8 8.362  - Vendor selection for Java toolchains
+#8 8.362  - Convenient execution of tasks in composite builds
+#8 8.362  - Consistent dependency resolution
+#8 8.362 
+#8 8.362 For more details see https://docs.gradle.org/6.8.2/release-notes.html
+#8 8.362 
+#8 8.362 To honour the JVM settings for this build a single-use Daemon process will be forked. See https://docs.gradle.org/6.8.2/userguide/gradle_daemon.html#sec:disabling_the_daemon.
+#8 8.660 Daemon will be stopped at the end of the build 
+#8 34.94 
+#8 34.94 FAILURE: Build failed with an exception.
+#8 34.94 
+#8 34.94 * Where:
+#8 34.94 Build file '/workspace/repo/build.gradle' line: 53
+#8 34.94 
+#8 34.94 * What went wrong:
+#8 34.94 A problem occurred evaluating root project 'goomph'.
+#8 34.94 > java.lang.ExceptionInInitializerError (no error message)
+#8 34.94 
+#8 34.94 * Try:
+#8 34.94 Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output. Run with --scan to get full insights.
+#8 34.94 
+#8 34.94 * Get more help at https://help.gradle.org
+#8 34.94 
+#8 34.94 BUILD FAILED in 34s
+#8 ERROR: process "/bin/sh -c set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test" did not complete successfully: exit code: 1
+------
+ > [builder 5/5] RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test:
+34.94 * What went wrong:
+34.94 A problem occurred evaluating root project 'goomph'.
+34.94 > java.lang.ExceptionInInitializerError (no error message)
+34.94 
+34.94 * Try:
+34.94 Run with --stacktrace option to get the stack trace. Run with --info or --debug option to get more log output. Run with --scan to get full insights.
+34.94 
+34.94 * Get more help at https://help.gradle.org
+34.94 
+34.94 BUILD FAILED in 34s
+------
+Dockerfile:28
+--------------------
+  26 |     
+  27 |     # Use Gradle Wrapper if present
+  28 | >>> RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test
+  29 |     
+  30 |     # Use the builder stage as final image (contains sources and built artifacts)
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test" did not complete successfully: exit code: 1
+

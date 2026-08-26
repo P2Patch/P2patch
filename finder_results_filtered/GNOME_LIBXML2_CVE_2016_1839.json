@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2016-1839",
+  "note": "htmlParseNameComplex() (HTMLparser.c) returns `xmlDictLookup(ctxt->dict, ctxt->input->cur - len, len)` with no check that `ctxt->input->cur - len` is still within the input buffer -- for a crafted HTML document the accumulated len can exceed the distance from ctxt->input->base to ctxt->input->cur, so the pointer/length pair handed to the dictionary already points before the start of the allocation. xmlDictLookup forwards it unchanged into xmlDictAddString (dict.c), whose `memcpy(pool->free, name, namelen)` then reads namelen bytes starting at that out-of-bounds pointer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "return(xmlDictLookup(ctxt->dict, ctxt->input->cur - len, len)); -- cur - len computed with no check against ctxt->input->base, can point before the start of the input buffer",
+            "uri": "HTMLparser.c",
+            "line": 2517
+          },
+          {
+            "message": "memcpy(pool->free, name, namelen); in xmlDictAddString -- reads namelen bytes from the unguarded pointer produced above.",
+            "uri": "dict.c",
+            "line": 285
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "finding_id": "finding-8ed861a75f95",
+  "cve_id": "CVE-2014-7816",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "undertow-io__undertow_CVE-2014-7816_1.0.16.Final",
+  "alert_file": "UNDERTOW_IO_UNDERTOW_CVE_2014_7816.json",
+  "github_url": "https://github.com/undertow-io/undertow",
+  "repo": "undertow-io/undertow",
+  "github_tag": "1.0.16.Final",
+  "advisory_id": "GHSA-h6p6-fc4w-cqhx",
+  "buggy_commit_id": "4aa98c80fa9962235c94f8666c30793d0018f95d",
+  "fix_commit_ids": [
+    "28f244e63f558ba99a197813cfd5eee461b52b4c"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+      "file": "core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java",
+      "class": "ResourceHandler",
+      "class_start": "56.0",
+      "class_end": "416.0",
+      "method": "serveResource",
+      "method_start": "123.0",
+      "method_end": "263.0",
+      "signature": "void serveResource(HttpServerExchange,boolean)",
+      "is_test": false
+    },
+    {
+      "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+      "file": "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java",
+      "class": "DefaultServlet",
+      "class_start": "69.0",
+      "class_end": "321.0",
+      "method": "doGet",
+      "method_start": "128.0",
+      "method_end": "160.0",
+      "signature": "void doGet(HttpServletRequest,HttpServletResponse)",
+      "is_test": false
+    },
+    {
+      "commit": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+      "file": "servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java",
+      "class": "ServletPathMatches",
+      "class_start": "54.0",
+      "class_end": "444.0",
+      "method": "findWelcomeFile",
+      "method_start": "128.0",
+      "method_end": "140.0",
+      "signature": "ServletPathMatch findWelcomeFile(String,boolean)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java",
+    "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java",
+    "servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2014-7816",
+    "advisory": "https://github.com/advisories/GHSA-h6p6-fc4w-cqhx",
+    "repo": "https://github.com/undertow-io/undertow",
+    "buggy_commit": "https://github.com/undertow-io/undertow/commit/4aa98c80fa9962235c94f8666c30793d0018f95d"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "28f244e63f558ba99a197813cfd5eee461b52b4c",
+      "url": "https://github.com/undertow-io/undertow/commit/28f244e63f558ba99a197813cfd5eee461b52b4c.diff",
+      "diff": "diff --git a/core/src/main/java/io/undertow/server/handlers/PathSeparatorHandler.java b/core/src/main/java/io/undertow/server/handlers/PathSeparatorHandler.java\nnew file mode 100644\nindex 0000000000..9acfcdb89d\n--- /dev/null\n+++ b/core/src/main/java/io/undertow/server/handlers/PathSeparatorHandler.java\n@@ -0,0 +1,95 @@\n+/*\n+ * JBoss, Home of Professional Open Source.\n+ * Copyright 2014 Red Hat, Inc., and individual contributors\n+ * as indicated by the @author tags.\n+ *\n+ * Licensed under the Apache License, Version 2.0 (the \"License\");\n+ * you may not use this file except in compliance with the License.\n+ * You may obtain a copy of the License at\n+ *\n+ *     http://www.apache.org/licenses/LICENSE-2.0\n+ *\n+ *  Unless required by applicable law or agreed to in writing, software\n+ *  distributed under the License is distributed on an \"AS IS\" BASIS,\n+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+ *  See the License for the specific language governing permissions and\n+ *  limitations under the License.\n+ */\n+\n+package io.undertow.server.handlers;\n+\n+import io.undertow.server.HandlerWrapper;\n+import io.undertow.server.HttpHandler;\n+import io.undertow.server.HttpServerExchange;\n+import io.undertow.server.handlers.builder.HandlerBuilder;\n+\n+import java.io.File;\n+import java.util.Collections;\n+import java.util.Map;\n+import java.util.Set;\n+\n+import static io.undertow.util.CanonicalPathUtils.canonicalize;\n+\n+/**\n+ * A handler that translates non slash separator characters in the URL into a slash.\n+ *\n+ * In general this will translate backslash into slash on windows systems.\n+ *\n+ * @author Stuart Douglas\n+ */\n+public class PathSeparatorHandler implements HttpHandler {\n+\n+    private final HttpHandler next;\n+\n+    public PathSeparatorHandler(final HttpHandler next) {\n+        this.next = next;\n+    }\n+\n+    @Override\n+    public void handleRequest(final HttpServerExchange exchange) throws Exception {\n+        boolean handlingRequired = File.separatorChar != '/';\n+        if (handlingRequired) {\n+            exchange.setRequestPath(canonicalize(exchange.getRequestPath().replace(File.separatorChar, '/')));\n+            exchange.setRelativePath(canonicalize(exchange.getRelativePath().replace(File.separatorChar, '/')));\n+            exchange.setResolvedPath(canonicalize(exchange.getResolvedPath().replace(File.separatorChar, '/')));\n+        }\n+        next.handleRequest(exchange);\n+    }\n+\n+\n+    public static class Builder implements HandlerBuilder {\n+\n+        @Override\n+        public String name() {\n+            return \"path-separator\";\n+        }\n+\n+        @Override\n+        public Map<String, Class<?>> parameters() {\n+            return Collections.emptyMap();\n+        }\n+\n+        @Override\n+        public Set<String> requiredParameters() {\n+            return Collections.emptySet();\n+        }\n+\n+        @Override\n+        public String defaultParameter() {\n+            return null;\n+        }\n+\n+        @Override\n+        public HandlerWrapper build(Map<String, Object> config) {\n+            return new Wrapper();\n+        }\n+\n+    }\n+\n+    private static class Wrapper implements HandlerWrapper {\n+        @Override\n+        public HttpHandler wrap(HttpHandler handler) {\n+            return new PathSeparatorHandler(handler);\n+        }\n+    }\n+}\ndiff --git a/core/src/main/java/io/undertow/server/handlers/URLDecodingHandler.java b/core/src/main/java/io/undertow/server/handlers/URLDecodingHandler.java\nindex db01df5cf7..3c0cc654d0 100644\n--- a/core/src/main/java/io/undertow/server/handlers/URLDecodingHandler.java\n+++ b/core/src/main/java/io/undertow/server/handlers/URLDecodingHandler.java\n@@ -19,13 +19,17 @@\n package io.undertow.server.handlers;\n \n import java.util.ArrayDeque;\n+import java.util.Collections;\n import java.util.Deque;\n import java.util.Map;\n+import java.util.Set;\n import java.util.TreeMap;\n \n import io.undertow.UndertowOptions;\n+import io.undertow.server.HandlerWrapper;\n import io.undertow.server.HttpHandler;\n import io.undertow.server.HttpServerExchange;\n+import io.undertow.server.handlers.builder.HandlerBuilder;\n import io.undertow.util.URLUtils;\n \n /**\n@@ -72,4 +76,49 @@ public void handleRequest(final HttpServerExchange exchange) throws Exception {\n         }\n         next.handleRequest(exchange);\n     }\n+\n+\n+    public static class Builder implements HandlerBuilder {\n+\n+        @Override\n+        public String name() {\n+            return \"url-decoding\";\n+        }\n+\n+        @Override\n+        public Map<String, Class<?>> parameters() {\n+            return Collections.<String,Class<?>>singletonMap(\"charset\", String.class);\n+        }\n+\n+        @Override\n+        public Set<String> requiredParameters() {\n+            return Collections.singleton(\"charset\");\n+        }\n+\n+        @Override\n+        public String defaultParameter() {\n+            return \"charset\";\n+        }\n+\n+        @Override\n+        public HandlerWrapper build(Map<String, Object> config) {\n+            return new Wrapper(config.get(\"charset\").toString());\n+        }\n+\n+    }\n+\n+    private static class Wrapper implements HandlerWrapper {\n+\n+        private final String charset;\n+\n+        private Wrapper(String charset) {\n+            this.charset = charset;\n+        }\n+\n+        @Override\n+        public HttpHandler wrap(HttpHandler handler) {\n+            return new URLDecodingHandler(handler, charset);\n+        }\n+    }\n+\n }\ndiff --git a/core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java b/core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java\nindex 21252f4f31..b5ab82a286 100644\n--- a/core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java\n+++ b/core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java\n@@ -160,7 +160,11 @@ private void serveResource(final HttpServerExchange exchange, final boolean send\n             public void run() {\n                 Resource resource = null;\n                 try {\n-                    resource = resourceManager.getResource(canonicalize(exchange.getRelativePath()));\n+                    if(File.separatorChar == '/' || !exchange.getRelativePath().contains(File.separator)) {\n+                        //we don't process resources that contain the sperator character if this is not /\n+                        //this prevents attacks where people use windows path seperators in file URLS's\n+                        resource = resourceManager.getResource(canonicalize(exchange.getRelativePath()));\n+                    }\n                 } catch (IOException e) {\n                     UndertowLogger.REQUEST_IO_LOGGER.ioException(e);\n                     exchange.setResponseCode(500);\ndiff --git a/core/src/main/resources/META-INF/services/io.undertow.server.handlers.builder.HandlerBuilder b/core/src/main/resources/META-INF/services/io.undertow.server.handlers.builder.HandlerBuilder\nindex 7ae1fc1bad..0364f4e086 100644\n--- a/core/src/main/resources/META-INF/services/io.undertow.server.handlers.builder.HandlerBuilder\n+++ b/core/src/main/resources/META-INF/services/io.undertow.server.handlers.builder.HandlerBuilder\n@@ -19,4 +19,6 @@ io.undertow.server.handlers.RequestDumpingHandler$Builder\n io.undertow.server.handlers.RequestLimitingHandler$Builder\n io.undertow.server.handlers.resource.ResourceHandler$Builder\n io.undertow.server.handlers.SSLHeaderHandler$Builder\n-io.undertow.server.handlers.ResponseRateLimitingHandler$Builder\n\\ No newline at end of file\n+io.undertow.server.handlers.ResponseRateLimitingHandler$Builder\n+io.undertow.server.handlers.URLDecodingHandler$Builder\n+io.undertow.server.handlers.PathSeparatorHandler$Builder\n\\ No newline at end of file\ndiff --git a/servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java b/servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java\nindex 86cff381bc..7d45af7585 100644\n--- a/servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java\n+++ b/servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java\n@@ -41,6 +41,7 @@\n import javax.servlet.http.HttpServlet;\n import javax.servlet.http.HttpServletRequest;\n import javax.servlet.http.HttpServletResponse;\n+import java.io.File;\n import java.io.FileNotFoundException;\n import java.io.IOException;\n import java.util.Arrays;\n@@ -126,12 +127,22 @@ public void init(ServletConfig config) throws ServletException {\n \n     @Override\n     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {\n-        final String path = getPath(req);\n+        String path = getPath(req);\n         if (!isAllowed(path, req.getDispatcherType())) {\n             resp.sendError(404);\n             return;\n         }\n-        final Resource resource = resourceManager.getResource(path);\n+        if(File.separatorChar != '/') {\n+            //if the separator char is not / we want to replace it with a / and canonicalise\n+            path = CanonicalPathUtils.canonicalize(path.replace(File.separatorChar, '/'));\n+        }\n+        final Resource resource;\n+        //we want to disallow windows characters in the path\n+        if(File.separatorChar == '/' || !path.contains(File.separator)) {\n+            resource = resourceManager.getResource(path);\n+        } else {\n+            resource = null;\n+        }\n         if (resource == null) {\n             if (req.getDispatcherType() == DispatcherType.INCLUDE) {\n                 //servlet 9.3\ndiff --git a/servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java b/servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java\nindex cd2a8fd2df..5518e76557 100644\n--- a/servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java\n+++ b/servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java\n@@ -34,6 +34,7 @@\n import io.undertow.servlet.handlers.security.ServletSecurityRoleHandler;\n \n import javax.servlet.DispatcherType;\n+import java.io.File;\n import java.io.IOException;\n import java.util.ArrayList;\n import java.util.EnumMap;\n@@ -126,9 +127,12 @@ private ServletPathMatchesData getData() {\n     }\n \n     private ServletPathMatch findWelcomeFile(final String path, boolean requiresRedirect) {\n+        if(File.separatorChar != '/' && path.contains(File.separator)) {\n+            return null;\n+        }\n         for (String i : welcomePages) {\n             try {\n-                String mergedPath = path + i;\n+                final String mergedPath = path + i;\n                 Resource resource = resourceManager.getResource(mergedPath);\n                 if (resource != null) {\n                     final ServletPathMatch handler = data.getServletHandlerByPath(mergedPath);\n",
+      "cached": true
+    }
+  ]
+}

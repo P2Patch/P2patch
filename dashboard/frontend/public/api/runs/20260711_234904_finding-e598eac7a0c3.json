@@ -1,0 +1,492 @@
+{
+  "run_id": "20260711_234904_finding-e598eac7a0c3",
+  "finding_id": "finding-e598eac7a0c3",
+  "timestamp": "2026-07-11T23:49:04",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260711_234904_finding-e598eac7a0c3",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-e598eac7a0c3",
+    "cve_id": "CVE-2022-26884",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "apache__dolphinscheduler_CVE-2022-26884_2.0.5",
+    "alert_file": "APACHE__DOLPHINSCHEDULER_CVE-2022-26884_2.0.5.json",
+    "github_url": "https://github.com/apache/dolphinscheduler",
+    "repo": "apache/dolphinscheduler",
+    "github_tag": "2.0.5",
+    "advisory_id": "GHSA-vpgf-fgm8-gxr2",
+    "buggy_commit_id": "f31328276c12821c21d1ce07e824bc74146c19b2",
+    "fix_commit_ids": [
+      "9717da6c255414eaef1c9ac943b0eb8989c1a85d"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "9717da6c255414eaef1c9ac943b0eb8989c1a85d",
+        "file": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java",
+        "class": "LoggerRequestProcessor",
+        "class_start": "57.0",
+        "class_end": "185.0",
+        "method": "checkPathSecurity",
+        "method_start": "142.0",
+        "method_end": "148.0",
+        "signature": "boolean checkPathSecurity(String)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-26884",
+      "advisory": "https://github.com/advisories/GHSA-vpgf-fgm8-gxr2",
+      "repo": "https://github.com/apache/dolphinscheduler",
+      "buggy_commit": "https://github.com/apache/dolphinscheduler/commit/f31328276c12821c21d1ce07e824bc74146c19b2"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 121,
+              "message": "json : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/JSONUtils.java"
+            },
+            {
+              "line": 127,
+              "message": "json : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/JSONUtils.java"
+            },
+            {
+              "line": 127,
+              "message": "readValue(...) : Object",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/JSONUtils.java"
+            },
+            {
+              "line": 147,
+              "message": "parseObject(...) : Object",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/JSONUtils.java"
+            },
+            {
+              "line": 84,
+              "message": "parseObject(...) : ViewLogRequestCommand",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+            },
+            {
+              "line": 86,
+              "message": "viewLogRequest : ViewLogRequestCommand",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+            },
+            {
+              "line": 43,
+              "message": "parameter this : ViewLogRequestCommand",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 44,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 86,
+              "message": "getPath(...) : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+            },
+            {
+              "line": 108,
+              "message": "filePath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            },
+            {
+              "line": 111,
+              "message": "filePath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 108,
+              "message": "filePath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            },
+            {
+              "line": 111,
+              "message": "filePath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 39,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 40,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 40,
+              "message": "this [post update] : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 118,
+              "message": "new ViewLogRequestCommand(...) : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 123,
+              "message": "request : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 43,
+              "message": "parameter this : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 44,
+              "message": "this <.field> : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 44,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 123,
+              "message": "getPath(...) : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 108,
+              "message": "filePath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            },
+            {
+              "line": 111,
+              "message": "filePath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 318,
+              "message": "logPath : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 319,
+              "message": "logPath : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 319,
+              "message": "this [post update] : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 57,
+              "message": "taskExecutionContext [post update] : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 57,
+              "message": "this <.field> [post update] : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 65,
+              "message": "this : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 479,
+              "message": "buildTaskInstanceRelatedInfo(...) : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/master/registry/MasterRegistryClient.java"
+            },
+            {
+              "line": 87,
+              "message": "parameter this : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 95,
+              "message": "this : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 479,
+              "message": "buildProcessInstanceRelatedInfo(...) : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/master/registry/MasterRegistryClient.java"
+            },
+            {
+              "line": 160,
+              "message": "parameter this : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 161,
+              "message": "this <.field> : TaskExecutionContextBuilder [taskExecutionContext, logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 161,
+              "message": "taskExecutionContext : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/builder/TaskExecutionContextBuilder.java"
+            },
+            {
+              "line": 479,
+              "message": "create(...) : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/master/registry/MasterRegistryClient.java"
+            },
+            {
+              "line": 486,
+              "message": "taskExecutionContext : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/master/registry/MasterRegistryClient.java"
+            },
+            {
+              "line": 185,
+              "message": "taskExecutionContext : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/ProcessUtils.java"
+            },
+            {
+              "line": 192,
+              "message": "taskExecutionContext : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/ProcessUtils.java"
+            },
+            {
+              "line": 314,
+              "message": "parameter this : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 315,
+              "message": "this <.field> : TaskExecutionContext [logPath] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 315,
+              "message": "logPath : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/queue/entity/TaskExecutionContext.java"
+            },
+            {
+              "line": 192,
+              "message": "getLogPath(...) : String",
+              "uri": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/ProcessUtils.java"
+            },
+            {
+              "line": 116,
+              "message": "path : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 118,
+              "message": "path : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 39,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 40,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 40,
+              "message": "this [post update] : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 118,
+              "message": "new ViewLogRequestCommand(...) : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 123,
+              "message": "request : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 43,
+              "message": "parameter this : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 44,
+              "message": "this <.field> : ViewLogRequestCommand [path] : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 44,
+              "message": "path : String",
+              "uri": "dolphinscheduler-remote/src/main/java/org/apache/dolphinscheduler/remote/command/log/ViewLogRequestCommand.java"
+            },
+            {
+              "line": 123,
+              "message": "getPath(...) : String",
+              "uri": "dolphinscheduler-service/src/main/java/org/apache/dolphinscheduler/service/log/LogClientService.java"
+            },
+            {
+              "line": 108,
+              "message": "filePath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            },
+            {
+              "line": 111,
+              "message": "filePath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/LoggerUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-e598eac7a0c3",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260711_234904_finding-e598eac7a0c3/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-e598eac7a0c3:33668d748adb",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.5/39/Dockerfile",
+        "-t",
+        "simpleautosec-finding-e598eac7a0c3:33668d748adb",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.5/39"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 318432,
+        "duration_api_ms": 161485,
+        "num_turns": 18,
+        "cost_usd": 0.9245270000000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 28,
+          "output": 11209,
+          "cache_read": 583808,
+          "cache_creation": 34679
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java",
+          "dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java"
+        ],
+        "patch_notes": "Root cause: LoggerRequestProcessor.process() passed the attacker-controlled `path` field from ViewLogRequestCommand / GetLogBytesRequestCommand / RollViewLogRequestCommand / RemoveTaskLogRequestCommand straight into FileInputStream / Files.lines / new File().delete() with no validation, allowing any file on the worker/master host to be read or deleted over the log RPC port.\n\nFix: Added private checkLogPath(String) which throws IllegalArgumentException when the path is null/blank, contains \"..\", or does not end with \".log\". Called it at the start of every case in process() before the path is used. Legitimate task log paths (produced by LogUtils.getTaskLogPath) always end in \".log\" and contain no \"..\" segment, so expected behavior is preserved; traversal and arbitrary-file-access payloads are rejected.\n\nTests: Updated the existing testProcessViewWholeLogRequest to use a valid \"/log/path.log\" path, and added two regression tests (testProcessViewWholeLogRequestPathTraversal using \"/etc/passwd\" and testProcessViewWholeLogRequestParentTraversal using \"../../../../etc/passwd.log\"), both asserting IllegalArgumentException. Full module test run: Tests run: 3, Failures: 0, Errors: 0.",
+        "regression_commands": [
+          "mvn -B -pl dolphinscheduler-server -am clean",
+          "mvn -B -pl dolphinscheduler-server -am -Djacoco.skip=true -DfailIfNoTests=false -Dtest=LoggerRequestProcessorTest test"
+        ],
+        "risk_notes": "The check assumes all legitimately served log files end in \".log\", which holds for LogUtils.getTaskLogPath output in this codebase; if a future feature serves non-\".log\" log artifacts through this processor it would need to relax the suffix rule. Rejecting invalid paths now throws IllegalArgumentException (consistent with the existing default-case behavior for unknown command types) rather than returning an empty response, which propagates as an RPC error to the caller — acceptable since only malformed/malicious requests hit it. Build was run with jacoco.skip=true only to avoid a pre-existing stale-instrumentation issue in the container; it does not affect the compiled fix.",
+        "status": "patched",
+        "summary": "Blocked the CWE-022 path traversal / arbitrary file read (and delete) in LoggerRequestProcessor by validating the user-controlled log path before it reaches any filesystem operation. A new checkLogPath() helper rejects blank paths, any path containing a \"..\" parent-directory segment, and any path not ending in \".log\" — the invariant that every legitimate DolphinScheduler task log satisfies (log base dir + processCode_version/instance/taskId.log). It is applied to all four log commands (GET_LOG_BYTES, VIEW_WHOLE_LOG, ROLL_VIEW_LOG, REMOVE_TASK_LOG), so classic exploits like reading /etc/passwd or ../../../etc/passwd.log are rejected with IllegalArgumentException while genuine .log reads keep working."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.9245,
+    "num_turns": 18,
+    "agent_duration_ms": 318432
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

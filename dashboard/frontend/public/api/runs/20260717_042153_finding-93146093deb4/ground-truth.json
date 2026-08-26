@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-93146093deb4",
+  "cve_id": "CVE-2022-22932",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "asf__karaf_CVE-2022-22932_4.3.5",
+  "alert_file": "ASF_KARAF_CVE_2022_22932.json",
+  "github_url": "https://github.com/apache/karaf",
+  "repo": "apache/karaf",
+  "github_tag": "4.3.5",
+  "advisory_id": "GHSA-544x-2jx9-4pfg",
+  "buggy_commit_id": "d0439e5b0dde1c7e3ff0207c557aa701093acd25",
+  "fix_commit_ids": [
+    "36a2bc430cc773db1cfd0b32e307d9da2d1697f7"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "36a2bc4",
+      "file": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java",
+      "class": "FileUtil",
+      "class_start": "34.0",
+      "class_end": "144.0",
+      "method": "unjar",
+      "method_start": "96.0",
+      "method_end": "140.0",
+      "signature": "void unjar(JarInputStream,File)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-22932",
+    "advisory": "https://github.com/advisories/GHSA-544x-2jx9-4pfg",
+    "repo": "https://github.com/apache/karaf",
+    "buggy_commit": "https://github.com/apache/karaf/commit/d0439e5b0dde1c7e3ff0207c557aa701093acd25"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "36a2bc430cc773db1cfd0b32e307d9da2d1697f7",
+      "url": "https://github.com/apache/karaf/commit/36a2bc430cc773db1cfd0b32e307d9da2d1697f7.diff",
+      "diff": "diff --git a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java\nindex 7725d584915..3dcbcc76b75 100644\n--- a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java\n+++ b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java\n@@ -110,7 +110,11 @@ public static void unjar(JarInputStream jis, File dir)\n             }\n \n             File target = new File(dir, je.getName());\n-            if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath())) {\n+            String canonicalizedDir = dir.getCanonicalPath();\n+            if (!canonicalizedDir.endsWith(File.separator)) {\n+                canonicalizedDir += File.separator;\n+            }\n+            if (!target.getCanonicalPath().startsWith(canonicalizedDir)) {\n                 throw new IOException(\"JAR resource cannot contain paths with .. characters\");\n             }\n \ndiff --git a/tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java b/tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java\nindex 60714b54c58..570e6fffc52 100644\n--- a/tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java\n+++ b/tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java\n@@ -436,7 +436,11 @@ private static void extract(ArchiveInputStream is, File targetDir) throws IOExce\n                 String name = entry.getName();\n                 name = name.substring(name.indexOf(\"/\") + 1);\n                 File file = new File(targetDir, name);\n-                if (!file.getCanonicalPath().startsWith(targetDir.getCanonicalPath())) {\n+                String canonicalizedTargetDir = targetDir.getCanonicalPath();\n+                if (!canonicalizedTargetDir.endsWith(File.separator)) {\n+                    canonicalizedTargetDir += File.separator;\n+                }\n+                if (!file.getCanonicalPath().startsWith(canonicalizedTargetDir)) {\n                     throw new IOException(\"Archive cannot contain paths with .. characters\");\n                 }\n \n",
+      "cached": true
+    }
+  ]
+}

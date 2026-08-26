@@ -1,0 +1,209 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080136_finding-6ab3cd8c8d7b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-6ab3cd8c8d7b:a57f2699a90e bash -lc EXT="$(tr ':' '\n' < .security-pipeline/pov/cp.txt | grep -v '/org/apache/dolphinscheduler/' | paste -sd: -)"; DS="$(find . -type d -path '*/target/classes' | paste -sd: -)"; CP="dolphinscheduler-api/target/test-classes:dolphinscheduler-api/target/classes:dolphinscheduler-common/target/test-classes:${DS}:${EXT}"; java -cp "$CP" org.junit.runner.JUnitCore org.apache.dolphinscheduler.api.service.ResourcesServiceTest
+exit_code=0
+timed_out=false
+
+--- stdout ---
+JUnit version 4.12
+.07:20:51.864 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.cpu.isalist
+07:20:51.876 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.io.unicode.encoding
+07:20:51.876 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.cpu.endian
+07:20:51.876 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor.url.bug
+07:20:51.876 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.separator
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.maintenance.version
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.boot.class.path
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.ext.dirs
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.version
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.info
+07:20:51.877 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: awt.toolkit
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.language
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.vendor
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.java.command
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.home
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.arch.data.model
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.version
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.class.path
+07:20:51.878 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.name
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.encoding
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.version
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.awt.printerjob
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.timezone
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.home
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.version
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.management.compiler
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.name
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.class.version
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.library.path
+07:20:51.879 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.jnu.encoding
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.name
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.vendor
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.io.tmpdir
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: line.separator
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.endorsed.dirs
+07:20:51.880 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.arch
+07:20:51.881 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.awt.graphicsenv
+07:20:51.881 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.runtime.version
+07:20:51.881 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.name
+07:20:51.881 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.dir
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.country
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.java.launcher
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.os.patch.level
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.name
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.encoding.pkg
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: path.separator
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.vendor
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor.url
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.boot.library.path
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.version
+07:20:51.882 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.runtime.name
+07:20:52.356 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='1300009', msg='The file name verify failed', data=null}
+.07:20:52.389 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='1300009', msg='The file name verify failed', data=null}
+.07:20:52.390 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.390 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.392 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - file is empty: null
+07:20:52.393 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10062', msg='resource file is empty', data=null}
+07:20:52.395 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - rename file suffix and original suffix must be consistent: test.pdf
+07:20:52.395 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20008', msg='resource suffix not allowed to be modified', data=null}
+07:20:52.396 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - UDF resource suffix name must be jar
+07:20:52.396 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20009', msg='UDF resource suffix name must be jar', data=null}
+.07:20:52.397 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.397 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.399 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20015', msg='parent resource not exist', data=null}
+07:20:52.399 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource type:FILE name:/directoryTest has exist, can't create again.
+07:20:52.399 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20005', msg='resource already exists', data=null}
+.07:20:52.400 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.400 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.401 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20004', msg='resource not exist', data=null}
+07:20:52.401 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='30001', msg='user has no operation privilege', data=null}
+07:20:52.401 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - test1 not exist
+07:20:52.430 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data={fileName=ResourcesServiceTest.jar, size=0, createTime=null, description=ResourcesServiceTest, fullName=/ResourcesServiceTest.jar, alias=ResourcesServiceTest.jar, pid=-1, updateTime=Fri Jul 17 07:20:52 UTC 2026, id=0, type=FILE, directory=false, userId=1}}
+07:20:52.430 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource ResourcesServiceTest1.jar already exists, can't recreate
+07:20:52.430 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20005', msg='resource already exists', data=null}
+07:20:52.431 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - user 1 not exists
+07:20:52.431 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10010', msg='user 1 not exists', data=null}
+07:20:52.431 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - tenant not exists
+07:20:52.431 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10017', msg='tenant not exists', data=null}
+07:20:52.468 [main] ERROR org.apache.dolphinscheduler.api.service.ResourcesServiceTest - 
+Invalid use of argument matchers!
+4 matchers expected, 2 recorded:
+-> at org.apache.dolphinscheduler.api.service.ResourcesServiceTest.testUpdateResource(ResourcesServiceTest.java:278)
+-> at org.apache.dolphinscheduler.api.service.ResourcesServiceTest.testUpdateResource(ResourcesServiceTest.java:278)
+
+This exception may occur if matchers are combined with raw values:
+    //incorrect:
+    someMethod(anyObject(), "raw String");
+When using matchers, all arguments have to be provided by matchers.
+For example:
+    //correct:
+    someMethod(anyObject(), eq("String by matcher"));
+
+For more info see javadoc for Matchers class.
+
+org.mockito.exceptions.misusing.InvalidUseOfMatchersException: 
+Invalid use of argument matchers!
+4 matchers expected, 2 recorded:
+-> at org.apache.dolphinscheduler.api.service.ResourcesServiceTest.testUpdateResource(ResourcesServiceTest.java:278)
+-> at org.apache.dolphinscheduler.api.service.ResourcesServiceTest.testUpdateResource(ResourcesServiceTest.java:278)
+
+This exception may occur if matchers are combined with raw values:
+    //incorrect:
+    someMethod(anyObject(), "raw String");
+When using matchers, all arguments have to be provided by matchers.
+For example:
+    //correct:
+    someMethod(anyObject(), eq("String by matcher"));
+
+For more info see javadoc for Matchers class.
+
+	at org.apache.dolphinscheduler.api.service.ResourcesServiceTest.testUpdateResource(ResourcesServiceTest.java:278)
+	at org.junit.internal.runners.TestMethod.invoke(TestMethod.java:68)
+	at org.junit.internal.runners.MethodRoadie$2.run(MethodRoadie.java:89)
+	at org.junit.internal.runners.MethodRoadie.runBeforesThenTestThenAfters(MethodRoadie.java:97)
+	at org.junit.internal.runners.MethodRoadie.runTest(MethodRoadie.java:87)
+	at org.junit.internal.runners.MethodRoadie.run(MethodRoadie.java:50)
+	at org.junit.internal.runners.ClassRoadie.runUnprotected(ClassRoadie.java:34)
+	at org.junit.internal.runners.ClassRoadie.runProtected(ClassRoadie.java:44)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:27)
+	at org.junit.runners.ParentRunner$3.run(ParentRunner.java:290)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:71)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:288)
+	at org.junit.runners.ParentRunner.access$000(ParentRunner.java:58)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:268)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:363)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at org.junit.runner.JUnitCore.runMain(JUnitCore.java:77)
+	at org.junit.runner.JUnitCore.main(JUnitCore.java:36)
+07:20:52.469 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - start hdfs copy test1 -> test1
+07:20:52.469 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data={fileName=ResourcesServiceTest1.jar, size=0, createTime=null, description=ResourcesServiceTest1.jar, fullName=/ResourcesServiceTest1.jar, alias=ResourcesServiceTest1.jar, pid=-1, updateTime=Fri Jul 17 07:20:52 UTC 2026, id=0, type=FILE, directory=false, userId=1}}
+.07:20:52.474 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data=org.apache.dolphinscheduler.api.utils.PageInfo@6707a4bf}
+.07:20:52.484 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=success, data=[ResourceComponent{id=0, pid=-1, name='ResourcesServiceTest.jar', currentDir='null', fullName='ResourcesServiceTest.jar', description='ResourcesServiceTest.jar', isDirctory=false, idValue='0_0', type=FILE, children=[]}], status=SUCCESS}
+.07:20:52.485 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.485 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.486 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20004', msg='resource not exist', data=null}
+07:20:52.486 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20004', msg='resource not exist', data=null}
+07:20:52.486 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - tenant not exists
+07:20:52.486 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10017', msg='tenant not exists', data=null}
+07:20:52.491 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data=null}
+.07:20:52.492 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource type:FILE name:/ResourcesServiceTest.jar has exist, can't create again.
+07:20:52.492 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20005', msg='resource already exists', data=null}
+07:20:52.492 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10017', msg='tenant not exists', data=null}
+07:20:52.492 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource type:FILE name:/ResourcesServiceTest.jar has exist, can't create again.
+07:20:52.492 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20005', msg='resource already exists', data=null}
+07:20:52.492 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data=null}
+.07:20:52.493 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.493 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.493 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20004', msg='resource not exist', data=null}
+07:20:52.494 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource suffix null not support view,  resource id 1
+07:20:52.494 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20006', msg='resource suffix do not support online viewing', data=null}
+07:20:52.494 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - user 1 not exists
+07:20:52.494 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10010', msg='user 1 not exists', data=null}
+07:20:52.494 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - tenant not exists
+07:20:52.494 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10017', msg='tenant not exists', data=null}
+07:20:52.494 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource hdfs path is null
+07:20:52.494 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - read file null not exist in hdfs
+07:20:52.494 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20012', msg='resource file null not exists in hdfs!', data=null}
+07:20:52.495 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource hdfs path is null
+07:20:52.495 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data={alias=ResourcesServiceTest.jar, content=test}}
+.07:20:52.496 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.496 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.496 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource suffix jar not support create
+07:20:52.496 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20006', msg='resource suffix do not support online viewing', data=null}
+07:20:52.504 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - file null fail, content is content
+07:20:52.504 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20006', msg='resource suffix do not support online viewing', data=null}
+07:20:52.504 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource hdfs path is null, resource dir is null
+07:20:52.505 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data=null}
+.07:20:52.506 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='1300009', msg='The file name verify failed', data=null}
+.07:20:52.506 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource upload startup state: false
+07:20:52.506 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='60001', msg='hdfs not startup', data=null}
+07:20:52.507 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - read file not exist,  resource id 2
+07:20:52.507 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20004', msg='resource not exist', data=null}
+07:20:52.507 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource suffix null not support updateProcessInstance,  resource id 1
+07:20:52.507 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='20006', msg='resource suffix do not support online viewing', data=null}
+07:20:52.507 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - user 1 not exists
+07:20:52.507 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10010', msg='user 1 not exists', data=null}
+07:20:52.507 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - tenant not exists
+07:20:52.507 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='10017', msg='tenant not exists', data=null}
+07:20:52.508 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource hdfs path is null, resource dir is null
+07:20:52.508 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - Status{code='0', msg='success', data=null}
+.07:20:52.520 [main] ERROR org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - download file not exist,  resource id 1
+07:20:52.520 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - resource hdfs path is null, download local filename is null
+.07:20:52.521 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=user has no operation privilege, status=USER_NO_OPERATION_PERM}
+07:20:52.521 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=success, data=[ResourceComponent{id=0, pid=-1, name='ResourcesServiceTest.jar', currentDir='null', fullName='ResourcesServiceTest.jar', description='ResourcesServiceTest.jar', isDirctory=false, idValue='0_0', type=FILE, children=[]}], status=SUCCESS}
+.07:20:52.522 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=user has no operation privilege, status=USER_NO_OPERATION_PERM}
+07:20:53.159 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=success, data=[{"id":1,"userId":0,"funcName":null,"className":null,"argTypes":null,"database":null,"description":null,"resourceId":0,"resourceName":null,"type":null,"createTime":null,"updateTime":null}], status=SUCCESS}
+.07:20:53.161 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=user has no operation privilege, status=USER_NO_OPERATION_PERM}
+07:20:53.161 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=success, data=[{"id":1,"userId":0,"funcName":null,"className":null,"argTypes":null,"database":null,"description":null,"resourceId":0,"resourceName":null,"type":null,"createTime":null,"updateTime":null}], status=SUCCESS}
+.07:20:53.161 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=user has no operation privilege, status=USER_NO_OPERATION_PERM}
+07:20:53.178 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - {"id":0,"pid":0,"name":null,"fullName":null,"description":null,"children":[{"id":0,"pid":-1,"name":"ResourcesServiceTest.jar","fullName":"ResourcesServiceTest.jar","description":"ResourcesServiceTest.jar","children":[],"type":"FILE","idValue":"0_0","dirctory":false}],"type":null,"idValue":null,"dirctory":true}
+07:20:53.179 [main] INFO org.apache.dolphinscheduler.api.service.impl.ResourcesServiceImpl - [{"id":0,"pid":-1,"name":"ResourcesServiceTest.jar","fullName":"ResourcesServiceTest.jar","description":"ResourcesServiceTest.jar","children":[],"type":"FILE","idValue":"0_0","dirctory":false}]
+07:20:53.179 [main] INFO org.apache.dolphinscheduler.api.service.ResourcesServiceTest - {msg=success, data=[ResourceComponent{id=0, pid=-1, name='ResourcesServiceTest.jar', currentDir='null', fullName='ResourcesServiceTest.jar', description='ResourcesServiceTest.jar', isDirctory=false, idValue='0_0', type=FILE, children=[]}], status=SUCCESS}
+.
+Time: 3.491
+
+OK (19 tests)
+
+
+--- stderr ---
+

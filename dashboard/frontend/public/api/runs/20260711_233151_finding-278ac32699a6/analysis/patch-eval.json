@@ -1,0 +1,282 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:31.806480+00:00",
+    "finished_at": "2026-07-11T23:29:32.837262+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Tightens a sibling-prefix bug in DirectoryTraversal but does not address the encoded-slash / cleanPath '../' traversal that is CVE-2018-9159's actual mechanism.",
+        "evidence": "DirectoryTraversal.isContainedWithin adds `path.equals(root) || path.startsWith(root + \"/\")`; for a path that truly escapes root (e.g. '../../etc/passwd') both old startsWith and new check already reject it, so behavior on the CVE payload is unchanged.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Fixes a prefix-boundary symptom, not the root cause the official fix targets (unvalidated '../' reaching ClassPathResource).",
+        "evidence": "Official fix adds isInvalidPath() in ClassPathResource(String,ClassLoader) rejecting '../' after StringUtils.cleanPath; our diff never touches ClassPathResource or the cleanPath sink in the trace.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Classpath '../' traversal, WEB-INF/META-INF, and file:/url: variants blocked by the official fix remain unaddressed.",
+        "evidence": "official isInvalidPath blocks 'WEB-INF','META-INF',':/'+isUrl, and cleanPath '../'; our patch only adds a '/' boundary to the two DirectoryTraversal folder-prefix checks.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same broad goal (block traversal) but different location and different mechanism than the reference; does not replicate the '../' rejection.",
+        "evidence": "overlap_files=[]; ours_only=DirectoryTraversal.java vs official ClassPathResource.java; mechanisms differ (containment prefix vs invalid-path substring/cleanPath check).",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Change is behavior-preserving for valid in-root paths and adds passing unit tests, though the official regression suite did not run.",
+        "evidence": "isContainedWithin still returns true for path==root and root+'/'; added DirectoryTraversalTest allows in-folder file; regressions_ran=0 so unverified against project suite.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Boundary check uses safe string primitives with null/empty guards; no injection, ReDoS, or crash introduced.",
+        "evidence": "isContainedWithin handles root==null (false) and root.isEmpty() (true) before startsWith; no new I/O or parsing.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized production change (one helper + two call-site swaps) plus a focused test.",
+        "evidence": "Only DirectoryTraversal.java production edit; added isContainedWithin helper and reused it in both protect methods.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Adds a partial containment check but omits canonicalization/symlink resolution (getCanonicalPath/toRealPath) and does not implement the CWE-022 defense at the actual sink.",
+        "evidence": "protectAgainstForExternal uses Paths.get(path).toAbsolutePath() (no symlink resolution); classpath variant does no canonicalization; sink new File(cleanPath(path)) in ExternalResource.java left unguarded.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_wrong",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Patch does not address the CVE-2018-9159 mechanism: the official fix rejects '../' (and WEB-INF/META-INF/file: URLs) in ClassPathResource after cleanPath, but our diff only tightens a sibling-prefix comparison in DirectoryTraversal, which does not change behavior for paths that actually escape the root."
+      },
+      {
+        "severity": "high",
+        "description": "No evidence the vulnerability is eliminated: pov_before_reproduced=false (the exploit never demonstrated the flaw on the unpatched build) and regressions_ran=0, so neither elimination nor absence of regressions is verified."
+      },
+      {
+        "severity": "medium",
+        "description": "Mitigation omits canonicalization/symlink resolution (toRealPath/getCanonicalPath); protectAgainstForExternal relies on toAbsolutePath, leaving symlink-based traversal and the new File(cleanPath(path)) sink in ExternalResource unguarded."
+      },
+      {
+        "severity": "low",
+        "description": "Zero file overlap with the official fix (jaccard=0.0, covers_all_official=false); the actually-patched ClassPathResource sink is untouched."
+      }
+    ],
+    "root_cause": "Untrusted request paths containing '../' (notably via encoded slashes) are passed to ClassPathResource without being canonicalized and confined to the static-files root, allowing the resolved file to escape the intended directory.",
+    "summary": "Our patch improves DirectoryTraversal by replacing a naive startsWith prefix check with a '/'-boundary containment check, closing a genuine sibling-folder prefix bypass — but that is orthogonal to CVE-2018-9159, whose root cause is unvalidated '../' traversal reaching ClassPathResource. The official fix rejects '../' (plus WEB-INF/META-INF/file: URLs) at the ClassPathResource constructor; our diff never touches that sink and does not change behavior for paths that truly escape the root. Combined with pov_before_reproduced=false and regressions_ran=0, there is no evidence the vulnerability class is eliminated. This is a valid hardening at the wrong target rather than a correct fix for this CVE.",
+    "overall": {
+      "mean": 2.75,
+      "score": 55,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 55,
+        "score_mean": 62.3,
+        "score_min": 52,
+        "score_max": 80,
+        "score_stdev": 12.55,
+        "mean_median": 2.75,
+        "band_mode": "incomplete",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.65
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 4,
+          "stdev": 0.94,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 2,
+          "max": 4,
+          "stdev": 0.94,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            4,
+            3
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 4,
+          "stdev": 0.94,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.33,
+        "no_regressions": 0.33
+      },
+      "per_sample": [
+        {
+          "score": 80,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 55,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 52,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "low",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "DirectoryTraversal.java"
+      ],
+      "official_only": [
+        "ClassPathResource.java",
+        "pom.xml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/spark/resource/ClassPathResource.java"
+      ],
+      "commits": [
+        "030e9d00125cbd1ad759668f85488aba1019c668",
+        "a221a864db28eb736d36041df2fa6eb8839fc5cd",
+        "ce9e11517eca69e58ed4378d1e47a02bd06863cc"
+      ]
+    }
+  }
+}

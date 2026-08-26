@@ -1,0 +1,274 @@
+diff --git a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+index 69e2518..a7642ed 100644
+--- a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
++++ b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+@@ -124,6 +124,8 @@ public class InputStreamHelper
+          }
+ 
+          File file = new File(dir, entry.getName());
++         validateZipEntryDestination(dir, file);
++
+          if (entry.isDirectory())
+          {
+             FileHelper.mkdirsQuietly(file);
+@@ -146,4 +148,24 @@ public class InputStreamHelper
+          fos.close();
+       }
+    }
++
++   /**
++    * Ensure that a zip entry's target file is contained within the target
++    * extraction directory. This prevents "Zip Slip" style path traversal
++    * attacks where a malicious zip entry name (e.g. containing "../"
++    * sequences or an absolute path) resolves to a location outside the
++    * intended extraction directory.
++    *
++    * @param dir target extraction directory
++    * @param file resolved destination file for a zip entry
++    */
++   private static void validateZipEntryDestination(File dir, File file) throws IOException
++   {
++      String dirCanonicalPath = dir.getCanonicalPath();
++      String fileCanonicalPath = file.getCanonicalPath();
++      if (!fileCanonicalPath.equals(dirCanonicalPath) && !fileCanonicalPath.startsWith(dirCanonicalPath + File.separator))
++      {
++         throw new IOException("Zip entry is outside of the target directory: " + file.getName());
++      }
++   }
+ }
+diff --git a/src/test/java/net/sf/mpxj/common/InputStreamHelperTest.java b/src/test/java/net/sf/mpxj/common/InputStreamHelperTest.java
+new file mode 100644
+index 0000000..27deddf
+--- /dev/null
++++ b/src/test/java/net/sf/mpxj/common/InputStreamHelperTest.java
+@@ -0,0 +1,230 @@
++/*
++ * file:       InputStreamHelperTest.java
++ * author:     MPXJ
++ * copyright:  (c) Packwood Software 2026
++ * date:       2026-07-17
++ */
++
++/*
++ * This library is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by the
++ * Free Software Foundation; either version 2.1 of the License, or (at your
++ * option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
++ * License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this library; if not, write to the Free Software Foundation, Inc.,
++ * 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++package net.sf.mpxj.common;
++
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.junit.Test;
++
++/**
++ * Tests to ensure that InputStreamHelper.writeZipStreamToTempDir does not
++ * allow zip entries to escape the extraction directory (Zip Slip / CWE-22).
++ */
++public class InputStreamHelperTest
++{
++   /**
++    * A zip entry using "../" to escape the extraction directory must be
++    * rejected, and must not result in a file being written outside the
++    * temporary extraction directory.
++    */
++   @Test public void testSimpleTraversalFileEntryIsRejected() throws Exception
++   {
++      assertEscapeIsBlocked("../evil.txt", false);
++   }
++
++   /**
++    * A zip entry which is not itself prefixed with "../" but whose parent
++    * path (via nested ".." segments) still escapes the extraction directory
++    * must also be rejected. This covers the parent-directory creation code
++    * path (mkdirsQuietly(parent)). The archive first creates a real
++    * sub-directory (so the ".." segments resolve against a directory which
++    * genuinely exists on disk), then attempts to traverse back out of it,
++    * mirroring the ordering-dependent escape the fix must also cover.
++    */
++   @Test public void testNestedTraversalFileEntryIsRejected() throws Exception
++   {
++      byte[] zipBytes = createMultiEntryZip(new String[]{"sub/", "sub/../../evil.txt"}, new String[]{null, "zip-slip-payload"}, new boolean[]{true, false});
++
++      File dir = null;
++      File target = null;
++      try
++      {
++         dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++
++         target = new File(dir, "sub/../../evil.txt");
++         String dirCanonical = dir.getCanonicalPath();
++         String targetCanonical = target.getCanonicalPath();
++         boolean isContained = targetCanonical.equals(dirCanonical) || targetCanonical.startsWith(dirCanonical + File.separator);
++         assertTrue("test entry name should attempt to escape the extraction directory", !isContained);
++
++         assertFalse("zip entry should not have been able to escape the extraction directory: " + targetCanonical, new File(targetCanonical).exists());
++      }
++      catch (IOException ex)
++      {
++         // Throwing is also an acceptable way to reject the malicious entry.
++      }
++      finally
++      {
++         if (dir != null)
++         {
++            FileHelper.deleteQuietly(dir);
++         }
++
++         if (target != null && target.exists())
++         {
++            FileHelper.deleteQuietly(target);
++         }
++      }
++   }
++
++   /**
++    * A directory zip entry using "../" to escape the extraction directory
++    * must be rejected. This covers the directory-entry code path
++    * (mkdirsQuietly(file)), which never reaches the FileOutputStream sink.
++    */
++   @Test public void testTraversalDirectoryEntryIsRejected() throws Exception
++   {
++      assertEscapeIsBlocked("../evil-dir/", true);
++   }
++
++   /**
++    * A well behaved zip entry should still be extracted normally.
++    */
++   @Test public void testNonTraversalEntryIsExtracted() throws Exception
++   {
++      String content = "hello world";
++      byte[] zipBytes = createZip("safe.txt", content, false);
++      File dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++      try
++      {
++         File extracted = new File(dir, "safe.txt");
++         assertTrue("expected extracted file to exist", extracted.exists());
++      }
++      finally
++      {
++         FileHelper.deleteQuietly(dir);
++      }
++   }
++
++   /**
++    * Helper which builds a single-entry zip file with the supplied
++    * (potentially malicious) entry name, extracts it via the public API
++    * under test, and asserts that no file/directory was created outside the
++    * returned extraction directory.
++    *
++    * @param entryName zip entry name to test
++    * @param isDirectory true if the entry should be a directory entry
++    */
++   private void assertEscapeIsBlocked(String entryName, boolean isDirectory) throws Exception
++   {
++      byte[] zipBytes = createZip(entryName, isDirectory ? null : "zip-slip-payload", isDirectory);
++
++      File dir = null;
++      File target = null;
++      try
++      {
++         dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++
++         // Compute exactly where the vulnerable code would have written this entry,
++         // using the same construction as InputStreamHelper.processZipStream.
++         target = new File(dir, entryName);
++         String dirCanonical = dir.getCanonicalPath();
++         String targetCanonical = target.getCanonicalPath();
++         boolean isContained = targetCanonical.equals(dirCanonical) || targetCanonical.startsWith(dirCanonical + File.separator);
++         assertTrue("test entry name '" + entryName + "' should attempt to escape the extraction directory", !isContained);
++
++         assertFalse("zip entry should not have been able to escape the extraction directory: " + targetCanonical, new File(targetCanonical).exists());
++      }
++      catch (IOException ex)
++      {
++         // Throwing is also an acceptable way to reject the malicious entry.
++      }
++      finally
++      {
++         if (dir != null)
++         {
++            FileHelper.deleteQuietly(dir);
++         }
++
++         if (target != null && target.exists())
++         {
++            FileHelper.deleteQuietly(target);
++         }
++      }
++   }
++
++   /**
++    * Build an in-memory zip file with a single entry.
++    *
++    * @param entryName name of the zip entry
++    * @param content content to write for a file entry (ignored for directory entries)
++    * @param isDirectory true to create a directory entry
++    * @return zip file bytes
++    */
++   private byte[] createZip(String entryName, String content, boolean isDirectory) throws IOException
++   {
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      try (ZipOutputStream zos = new ZipOutputStream(baos))
++      {
++         String name = isDirectory && !entryName.endsWith("/") ? entryName + "/" : entryName;
++         ZipEntry entry = new ZipEntry(name);
++         zos.putNextEntry(entry);
++         if (!isDirectory && content != null)
++         {
++            zos.write(content.getBytes("UTF-8"));
++         }
++         zos.closeEntry();
++      }
++      return baos.toByteArray();
++   }
++
++   /**
++    * Build an in-memory zip file containing multiple entries, processed in
++    * the supplied order.
++    *
++    * @param entryNames names of the zip entries
++    * @param contents content to write for each entry (null for directory entries)
++    * @param isDirectory whether each entry is a directory entry
++    * @return zip file bytes
++    */
++   private byte[] createMultiEntryZip(String[] entryNames, String[] contents, boolean[] isDirectory) throws IOException
++   {
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      try (ZipOutputStream zos = new ZipOutputStream(baos))
++      {
++         for (int index = 0; index < entryNames.length; index++)
++         {
++            String entryName = entryNames[index];
++            boolean directory = isDirectory[index];
++            String name = directory && !entryName.endsWith("/") ? entryName + "/" : entryName;
++            ZipEntry entry = new ZipEntry(name);
++            zos.putNextEntry(entry);
++            if (!directory && contents[index] != null)
++            {
++               zos.write(contents[index].getBytes("UTF-8"));
++            }
++            zos.closeEntry();
++         }
++      }
++      return baos.toByteArray();
++   }
++}

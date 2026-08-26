@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-359ec246c045",
+  "cve_id": "CVE-2018-1002202",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2",
+  "alert_file": "SRIKANTH_LINGALA_ZIP4J_CVE_2018_1002202.json",
+  "github_url": "https://github.com/iris-sast/zip4j",
+  "repo": "iris-sast/zip4j",
+  "github_tag": "1.3.2",
+  "advisory_id": "GHSA-2rpm-4x8c-pvqg",
+  "buggy_commit_id": "d87ffa2d64ffb3a0a1cf0c7a69c7b19d7015bfde",
+  "fix_commit_ids": [
+    "59aeea594ff885e06c25751dc6334dfea1bed8c6"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "59aeea594ff885e06c25751dc6334dfea1bed8c6",
+      "file": "src/main/java/net/lingala/zip4j/unzip/Unzip.java",
+      "class": "Unzip",
+      "class_start": "32.0",
+      "class_end": "237.0",
+      "method": "initExtractFile",
+      "method_start": "123.0",
+      "method_end": "179.0",
+      "signature": "void initExtractFile(FileHeader,String,UnzipParameters,String,ProgressMonitor)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "src/main/java/net/lingala/zip4j/unzip/Unzip.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1002202",
+    "advisory": "https://github.com/advisories/GHSA-2rpm-4x8c-pvqg",
+    "repo": "https://github.com/iris-sast/zip4j",
+    "buggy_commit": "https://github.com/iris-sast/zip4j/commit/d87ffa2d64ffb3a0a1cf0c7a69c7b19d7015bfde"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "59aeea594ff885e06c25751dc6334dfea1bed8c6",
+      "url": "https://github.com/iris-sast/zip4j/commit/59aeea594ff885e06c25751dc6334dfea1bed8c6.diff",
+      "diff": "diff --git a/pom.xml b/pom.xml\nindex c04aa8d..23573b5 100644\n--- a/pom.xml\n+++ b/pom.xml\n@@ -1,41 +1,83 @@\n-<project>\n+<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n <modelVersion>4.0.0</modelVersion>\n+<parent>\n+<groupId>org.sonatype.oss</groupId>\n+<artifactId>oss-parent</artifactId>\n+<version>9</version>\n+</parent>\n <groupId>net.lingala.zip4j</groupId>\n <artifactId>zip4j</artifactId>\n-<version>1.3.2</version>\n-<name>zip4j</name>\n-<description>An open source java library to handle zip files</description>\n-<url>http://www.lingala.net/zip4j/</url>\n-<licenses>\n-<license>\n-<name>The Apache Software License, Version 2.0</name>\n-<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>\n-<distribution>repo</distribution>\n-</license>\n-</licenses>\n-<developers>\n-<developer>\n-<id>Srikanth</id>\n-<name>Srikanth Lingala</name>\n-<email>lsr_hyd@yahoo.com</email>\n-</developer>\n-</developers>\n-<scm>\n-<connection>scm:hg:file:///Users/srikanthl/Zip4j/src</connection>\n-<developerConnection>scm:hg:file:///Users/srikanthl/Zip4j/src</developerConnection>\n-<url>http://www.lingala.net/zip4j/</url>\n-</scm>\n+<version>1.3.3</version>\n+<properties>\n+<maven.compiler.target>1.7</maven.compiler.target>\n+<maven.compiler.source>1.7</maven.compiler.source>\n+</properties>\n+<distributionManagement>\n+<snapshotRepository>\n+<id>ossrh</id>\n+<url>https://oss.sonatype.org/content/repositories/snapshots</url>\n+</snapshotRepository>\n+<repository>\n+<id>ossrh</id>\n+<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>\n+</repository>\n+</distributionManagement>\n <build>\n-  <plugins>\n-    <plugin>\n-      <groupId>org.apache.maven.plugins</groupId>\n-      <artifactId>maven-compiler-plugin</artifactId>\n-      <version>3.1</version>\n-      <configuration>\n-        <source>1.7</source>  \n-        <target>1.7</target>\n-      </configuration>\n-    </plugin>\n-  </plugins>\n+<plugins>\n+<plugin>\n+<groupId>org.apache.maven.plugins</groupId>\n+<artifactId>maven-source-plugin</artifactId>\n+<version>2.2.1</version>\n+<executions>\n+<execution>\n+<id>attach-sources</id>\n+<goals>\n+<goal>jar-no-fork</goal>\n+</goals>\n+</execution>\n+</executions>\n+</plugin>\n+<plugin>\n+<groupId>org.apache.maven.plugins</groupId>\n+<artifactId>maven-javadoc-plugin</artifactId>\n+<version>2.9.1</version>\n+<executions>\n+<execution>\n+<id>attach-javadocs</id>\n+<goals>\n+<goal>jar</goal>\n+</goals>\n+</execution>\n+</executions>\n+<configuration>\n+<source>7</source>\n+</configuration>\n+</plugin>\n+<plugin>\n+<groupId>org.apache.maven.plugins</groupId>\n+<artifactId>maven-gpg-plugin</artifactId>\n+<version>1.5</version>\n+<executions>\n+<execution>\n+<id>sign-artifacts</id>\n+<phase>verify</phase>\n+<goals>\n+<goal>sign</goal>\n+</goals>\n+</execution>\n+</executions>\n+</plugin>\n+<plugin>\n+<groupId>org.sonatype.plugins</groupId>\n+<artifactId>nexus-staging-maven-plugin</artifactId>\n+<version>1.6.7</version>\n+<extensions>true</extensions>\n+<configuration>\n+<serverId>ossrh</serverId>\n+<nexusUrl>https://oss.sonatype.org/</nexusUrl>\n+<autoReleaseAfterClose>true</autoReleaseAfterClose>\n+</configuration>\n+</plugin>\n+</plugins>\n </build>\n </project>\ndiff --git a/src/main/java/META-INF/MANIFEST.MF b/src/main/java/META-INF/MANIFEST.MF\nindex e625683..9d3bccb 100644\n--- a/src/main/java/META-INF/MANIFEST.MF\n+++ b/src/main/java/META-INF/MANIFEST.MF\n@@ -1,6 +1,6 @@\n Manifest-Version: 1.0\n-Built-By: Srikanth\n-Build-Jdk: 1.7.0_45\n-Created-By: Apache Maven\n Archiver-Version: Plexus Archiver\n+Created-By: Apache Maven\n+Built-By: slingala\n+Build-Jdk: 11.0.2\n \ndiff --git a/src/main/java/net/lingala/zip4j/io/InflaterInputStream.java b/src/main/java/net/lingala/zip4j/io/InflaterInputStream.java\nindex d7b68e9..bcb6142 100644\n--- a/src/main/java/net/lingala/zip4j/io/InflaterInputStream.java\n+++ b/src/main/java/net/lingala/zip4j/io/InflaterInputStream.java\n@@ -121,7 +121,7 @@ private void fill() throws IOException {\n      * @param n the number of bytes to skip\n      * @return the actual number of bytes skipped.\n      * @exception IOException if an I/O error has occurred\n-     * @exception IllegalArgumentException if n < 0\n+     * @exception IllegalArgumentException if n is less than 0\n      */\n \tpublic long skip(long n) throws IOException {\n         if (n < 0) {\n@@ -156,7 +156,6 @@ public void seek(long pos) throws IOException {\n      * of bytes that could be read without blocking.\n      *\n      * @return     1 before EOF and 0 after EOF.\n-     * @exception  IOException  if an I/O error occurs.\n      * \n      */\n \tpublic int available() {\ndiff --git a/src/main/java/net/lingala/zip4j/unzip/Unzip.java b/src/main/java/net/lingala/zip4j/unzip/Unzip.java\nindex 4e9be03..6497226 100644\n--- a/src/main/java/net/lingala/zip4j/unzip/Unzip.java\n+++ b/src/main/java/net/lingala/zip4j/unzip/Unzip.java\n@@ -133,16 +133,22 @@ private void initExtractFile(FileHeader fileHeader, String outPath,\n \t\t\tif (!outPath.endsWith(InternalZipConstants.FILE_SEPARATOR)) {\n \t\t\t\toutPath += InternalZipConstants.FILE_SEPARATOR;\n \t\t\t}\n-\t\t\t\n+\n+\t\t\t// make sure no file is extracted outside of the target directory (a.k.a zip slip)\n+\t\t\tString fileName = fileHeader.getFileName();\n+\t\t\tString completePath = outPath + fileName;\n+\t\t\tif (!new File(completePath).getCanonicalPath().startsWith(new File(outPath).getCanonicalPath())) {\n+\t\t\t\tthrow new ZipException(\n+\t\t\t\t\t\t\"illegal file name that breaks out of the target directory: \" + fileHeader.getFileName());\n+\t\t\t}\n+\n \t\t\t// If file header is a directory, then check if the directory exists\n \t\t\t// If not then create a directory and return\n \t\t\tif (fileHeader.isDirectory()) {\n \t\t\t\ttry {\n-\t\t\t\t\tString fileName = fileHeader.getFileName();\n \t\t\t\t\tif (!Zip4jUtil.isStringNotNullAndNotEmpty(fileName)) {\n \t\t\t\t\t\treturn;\n \t\t\t\t\t}\n-\t\t\t\t\tString completePath = outPath + fileName;\n \t\t\t\t\tFile file = new File(completePath);\n \t\t\t\t\tif (!file.exists()) {\n \t\t\t\t\t\tfile.mkdirs();\n",
+      "cached": true
+    }
+  ]
+}

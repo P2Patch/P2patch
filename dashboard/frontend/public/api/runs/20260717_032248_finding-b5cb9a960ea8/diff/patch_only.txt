@@ -1,0 +1,167 @@
+diff --git a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+index 338bccf..933f0e6 100644
+--- a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
++++ b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+@@ -411,7 +411,10 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+                 } else if ("gz".equals(archiveExt) || "tgz".equals(archiveExt)) {
+                     final String uncompressedName = GzipUtils.getUncompressedFilename(archive.getName());
+                     final File f = new File(destination, uncompressedName);
+-                    if (engine.accept(f)) {
++                    if (!isFileWithinDestination(destination, f)) {
++                        LOGGER.warn("Skipping decompression of '{}' as it would escape the destination directory.",
++                                archive.getName());
++                    } else if (engine.accept(f)) {
+                         in = new BufferedInputStream(fis);
+                         gin = new GzipCompressorInputStream(in);
+                         decompressFile(gin, f);
+@@ -419,7 +422,10 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+                 } else if ("bz2".equals(archiveExt) || "tbz2".equals(archiveExt)) {
+                     final String uncompressedName = BZip2Utils.getUncompressedFilename(archive.getName());
+                     final File f = new File(destination, uncompressedName);
+-                    if (engine.accept(f)) {
++                    if (!isFileWithinDestination(destination, f)) {
++                        LOGGER.warn("Skipping decompression of '{}' as it would escape the destination directory.",
++                                archive.getName());
++                    } else if (engine.accept(f)) {
+                         in = new BufferedInputStream(fis);
+                         bzin = new BZip2CompressorInputStream(in);
+                         decompressFile(bzin, f);
+@@ -514,6 +520,11 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         try {
+             while ((entry = input.getNextEntry()) != null) {
+                 final File file = new File(destination, entry.getName());
++                if (!isFileWithinDestination(destination, file)) {
++                    LOGGER.warn("Archive entry '{}' attempts to write outside of the destination directory "
++                            + "and will be skipped (potential path traversal/Zip Slip attempt).", entry.getName());
++                    continue;
++                }
+                 if (entry.isDirectory()) {
+                     if (!file.exists() && !file.mkdirs()) {
+                         final String msg = String.format("Unable to create directory '%s'.", file.getAbsolutePath());
+@@ -530,6 +541,32 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         }
+     }
+ 
++    /**
++     * Determines whether the given file is contained within the given
++     * destination directory. This is used to guard against path traversal
++     * (a.k.a. "Zip Slip") attacks where a malicious archive entry name -
++     * e.g. containing <code>../</code> sequences or an absolute path -
++     * could otherwise cause a file to be created outside of the intended
++     * extraction directory.
++     *
++     * @param destination the intended extraction destination directory
++     * @param file the candidate file, typically built from
++     * <code>new File(destination, entry.getName())</code>
++     * @return <code>true</code> if the file's canonical path is the
++     * destination directory or a descendant of it; otherwise
++     * <code>false</code>
++     */
++    private static boolean isFileWithinDestination(File destination, File file) {
++        try {
++            final String destinationPath = destination.getCanonicalPath();
++            final String filePath = file.getCanonicalPath();
++            return filePath.equals(destinationPath) || filePath.startsWith(destinationPath + File.separator);
++        } catch (IOException ex) {
++            LOGGER.debug("Unable to determine canonical path for '{}'", file, ex);
++            return false;
++        }
++    }
++
+     /**
+      * Extracts a file from an archive.
+      *
+diff --git a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+index 6d8f9d0..c3d8141 100644
+--- a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
++++ b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+@@ -16,10 +16,14 @@
+ package org.owasp.dependencycheck.analyzer;
+ 
+ import java.io.File;
++import java.io.FileOutputStream;
+ import java.lang.reflect.InvocationTargetException;
+ import java.lang.reflect.Method;
++import java.nio.file.Files;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
+ 
+ import org.junit.Before;
+ import org.junit.Test;
+@@ -27,6 +31,7 @@ import static org.junit.Assert.*;
+ import static org.junit.Assume.assumeFalse;
+ 
+ import org.owasp.dependencycheck.BaseTest;
++import org.owasp.dependencycheck.Engine;
+ import org.owasp.dependencycheck.utils.Settings;
+ 
+ /**
+@@ -56,6 +61,66 @@ public class ArchiveAnalyzerTest extends BaseTest {
+         assertFalse(instance.getFileFilter().accept(new File("c:/test.z4")));
+     }
+ 
++    /**
++     * Regression test for CWE-022 (Zip Slip / path traversal). A malicious
++     * archive entry name containing "../" must not be extracted outside of
++     * the destination directory, and legitimate entries must continue to be
++     * extracted normally.
++     */
++    @Test
++    public void testExtractFilesBlocksZipSlip() throws Exception {
++        final File sandbox = Files.createTempDirectory("dc-zipslip-test").toFile();
++        final File destination = new File(sandbox, "extract-here");
++        assertTrue(destination.mkdirs());
++
++        // A path-traversal entry that would resolve to a sibling of destination.
++        final File escapedTarget = new File(sandbox, "PWNED_outside_destination.txt");
++        final String maliciousEntryName = "../" + escapedTarget.getName();
++
++        // A normal entry that should still be extracted as expected.
++        final String benignEntryName = "safe.txt";
++
++        final File maliciousZip = new File(sandbox, "malicious.zip");
++        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(maliciousZip))) {
++            ZipEntry entry = new ZipEntry(maliciousEntryName);
++            zos.putNextEntry(entry);
++            zos.write("owned-by-zip-slip".getBytes("UTF-8"));
++            zos.closeEntry();
++
++            entry = new ZipEntry(benignEntryName);
++            zos.putNextEntry(entry);
++            zos.write("this is fine".getBytes("UTF-8"));
++            zos.closeEntry();
++        }
++
++        assertFalse("escaped target should not exist before extraction", escapedTarget.exists());
++
++        final Engine engine = new Engine(Engine.Mode.EVIDENCE_COLLECTION, getSettings()) {
++            @Override
++            public boolean accept(File file) {
++                return true;
++            }
++        };
++        try {
++            final ArchiveAnalyzer analyzer = new ArchiveAnalyzer();
++            analyzer.initialize(getSettings());
++
++            final Method extractFiles = ArchiveAnalyzer.class.getDeclaredMethod(
++                    "extractFiles", File.class, File.class, Engine.class);
++            extractFiles.setAccessible(true);
++            extractFiles.invoke(analyzer, maliciousZip, destination, engine);
++
++            assertFalse("path traversal entry must not be written outside of the destination directory",
++                    escapedTarget.exists());
++
++            final File extractedBenign = new File(destination, benignEntryName);
++            assertTrue("legitimate entries must still be extracted into the destination directory",
++                    extractedBenign.exists());
++        } finally {
++            engine.close();
++        }
++    }
++
+     private boolean isPreviouslyLoaded(String className) {
+         try {
+             Method m = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);

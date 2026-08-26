@@ -1,0 +1,175 @@
+diff --git a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+index e9adc3a..d4817b5 100755
+--- a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
++++ b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+@@ -470,6 +470,7 @@ public class AgentServlet extends HttpServlet {
+ 
+     private void sendResponse(HttpServletResponse pResp, HttpServletRequest pReq, JSONAware pJson) throws IOException {
+         String callback = pReq.getParameter(ConfigKey.CALLBACK.getKeyValue());
++        IoUtil.validateCallback(callback);
+         setContentType(pResp, callback != null ? "text/javascript" : getMimeType(pReq));
+ 
+         pResp.setStatus(HttpServletResponse.SC_OK);
+diff --git a/agent/core/src/main/java/org/jolokia/util/IoUtil.java b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+index eec9be6..d504ed6 100644
+--- a/agent/core/src/main/java/org/jolokia/util/IoUtil.java
++++ b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+@@ -3,6 +3,7 @@ package org.jolokia.util;
+ import java.io.IOException;
+ import java.io.OutputStreamWriter;
+ import java.io.Writer;
++import java.util.regex.Pattern;
+ 
+ import org.json.simple.JSONStreamAware;
+ 
+@@ -15,8 +16,40 @@ public class IoUtil {
+     // Marker for the end of the stream
+     private final static char[] STREAM_END_MARKER = {};
+ 
++    // JSONP callback names are used verbatim, unescaped, in the (non-JSON, text/javascript)
++    // response. Restrict them to valid (optionally dotted) Javascript identifiers so that a
++    // crafted "callback" request parameter cannot be used to smuggle arbitrary HTML/script
++    // into the response (reflected XSS).
++    private final static Pattern CALLBACK_PATTERN = Pattern.compile("[a-zA-Z0-9_$]+(\\.[a-zA-Z0-9_$]+)*");
++
+     private IoUtil() { }
+ 
++    /**
++     * Check whether a JSONP callback name is safe to be reflected unescaped into a
++     * <code>text/javascript</code> response, i.e. that it is <code>null</code> or a valid
++     * (optionally dotted) Javascript identifier.
++     *
++     * @param pCallback the callback name to check, may be <code>null</code>
++     * @return <code>true</code> if the callback is <code>null</code> or safe to use, <code>false</code> otherwise
++     */
++    public static boolean isValidCallback(String pCallback) {
++        return pCallback == null || CALLBACK_PATTERN.matcher(pCallback).matches();
++    }
++
++    /**
++     * Validate a JSONP callback name, throwing an exception if it is not a valid (optionally
++     * dotted) Javascript identifier. This is used to reject callback names which could be
++     * (ab-)used to inject arbitrary content into the JSONP response.
++     *
++     * @param pCallback the callback name to check, may be <code>null</code>
++     * @throws IllegalArgumentException if the callback name is invalid
++     */
++    public static void validateCallback(String pCallback) {
++        if (!isValidCallback(pCallback)) {
++            throw new IllegalArgumentException("Invalid callback name '" + pCallback + "' given. Must be a valid (optionally dotted) Javascript identifier");
++        }
++    }
++
+     /**
+      * Stream a JSON stream to a given writer, potentiall wrap it in a callback for a
+      * JSONP response and then flush & close the writer. The writer is closed in any case,
+@@ -30,6 +63,7 @@ public class IoUtil {
+     public static void streamResponseAndClose(Writer pWriter, JSONStreamAware pJson, String callback)
+         throws IOException {
+         try {
++            validateCallback(callback);
+             if (callback == null) {
+                 pJson.writeJSONString(pWriter);
+             } else {
+diff --git a/agent/core/src/test/java/org/jolokia/http/AgentServletTest.java b/agent/core/src/test/java/org/jolokia/http/AgentServletTest.java
+index 52e7f3d..a07e33c 100755
+--- a/agent/core/src/test/java/org/jolokia/http/AgentServletTest.java
++++ b/agent/core/src/test/java/org/jolokia/http/AgentServletTest.java
+@@ -493,6 +493,22 @@ public class AgentServletTest {
+         servlet.destroy();
+     }
+ 
++    @Test(expectedExceptions = IllegalArgumentException.class)
++    public void withMaliciousCallbackIsRejected() throws IOException, ServletException {
++        prepareStandardInitialisation();
++
++        initRequestResponseMocks(
++                "\"></script><script>alert(1)</script>",
++                getStandardRequestSetup(),
++                getStandardResponseSetup());
++        expect(request.getPathInfo()).andReturn(HttpTestUtil.HEAP_MEMORY_GET_REQUEST);
++        expect(request.getAttribute("subject")).andReturn(null);
++
++        replay(request, response);
++
++        servlet.doGet(request, response);
++    }
++
+     @Test
+     public void withException() throws ServletException, IOException {
+         servlet = new AgentServlet(new AllowAllRestrictor());
+diff --git a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+index 4ab2efd..b21447f 100644
+--- a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
++++ b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+@@ -64,6 +64,32 @@ public class IoUtilTest {
+         assertWriterClosed(writer);
+     }
+ 
++    @Test(expectedExceptions = IllegalArgumentException.class)
++    public void checkWriteWithMaliciousCallbackIsRejected() throws IOException {
++        ByteArrayOutputStream out = new ByteArrayOutputStream();
++        OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8");
++
++        JSONObject resp = new JSONObject();
++        resp.put("value", "hello");
++
++        IoUtil.streamResponseAndClose(writer, resp, "\"></script><script>alert(1)</script>");
++    }
++
++    @Test
++    public void checkValidCallbackNames() {
++        assertTrue(IoUtil.isValidCallback(null));
++        assertTrue(IoUtil.isValidCallback("callbackFunc"));
++        assertTrue(IoUtil.isValidCallback("my.namespaced.callback$_1"));
++    }
++
++    @Test
++    public void checkInvalidCallbackNames() {
++        assertTrue(!IoUtil.isValidCallback(""));
++        assertTrue(!IoUtil.isValidCallback("\"></script><script>alert(1)</script>"));
++        assertTrue(!IoUtil.isValidCallback("alert(1)"));
++        assertTrue(!IoUtil.isValidCallback("foo bar"));
++    }
++
+     private void assertWriterClosed(OutputStreamWriter writer) {
+         try {
+             writer.write(1);
+diff --git a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+index 9dc0df0..7e7cc13 100644
+--- a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
++++ b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+@@ -327,6 +327,7 @@ public class JolokiaHttpHandler implements HttpHandler {
+     }
+ 
+     private void sendResponse(HttpExchange pExchange, ParsedUri pParsedUri, JSONAware pJson) throws IOException {
++        IoUtil.validateCallback(pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue()));
+         boolean streaming = configuration.getAsBoolean(ConfigKey.STREAMING);
+         if (streaming) {
+             JSONStreamAware jsonStream = (JSONStreamAware)pJson;
+diff --git a/agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java b/agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java
+index bdeccd4..682ba50 100644
+--- a/agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java
++++ b/agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java
+@@ -109,6 +109,21 @@ public class JolokiaHttpHandlerTest {
+         assertTrue(parsedExpires.before(now) || parsedExpires.equals(now));
+     }
+ 
++    @Test(expectedExceptions = IllegalArgumentException.class)
++    public void testCallbackWithMaliciousNameIsRejected() throws IOException, URISyntaxException {
++        // Payload decodes to: "><script>alert(1)</script>
++        HttpExchange exchange = prepareExchange(
++                "http://localhost:8080/jolokia/read/java.lang:type=Memory/HeapMemoryUsage" +
++                "?callback=%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E");
++
++        expect(exchange.getRequestMethod()).andReturn("GET");
++
++        Headers header = new Headers();
++        prepareResponse(handler, exchange, header);
++
++        handler.doHandle(exchange);
++    }
++
+     @Test
+     public void invalidMethod() throws URISyntaxException, IOException, ParseException {
+         HttpExchange exchange = prepareExchange("http://localhost:8080/");

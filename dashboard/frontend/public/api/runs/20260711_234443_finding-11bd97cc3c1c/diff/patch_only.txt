@@ -1,0 +1,83 @@
+diff --git a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+index 75a4b6c..bc9bcbd 100644
+--- a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
++++ b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+@@ -52,7 +52,28 @@ public class ContextAssetRequestHandler implements AssetRequestHandler
+             return false;
+         }
+ 
+-        return path.stream(rootContextResource.forFile(path.resourcePath));
++        Resource resource;
++
++        try
++        {
++            resource = rootContextResource.forFile(path.resourcePath);
++        }
++        catch (IllegalStateException ex)
++        {
++            // forFile() throws when the relative path attempts to navigate above the
++            // context root (e.g. via ".." segments). Treat that as a missing resource.
++            return false;
++        }
++
++        // Re-screen the *resolved* path: forFile() collapses any ".." segments, so a
++        // request such as "../WEB-INF/..." bypasses the check on the raw resourcePath
++        // above but resolves to a protected location. Reject it here.
++        if (resource == null || illegal.matcher(resource.getPath()).matches())
++        {
++            return false;
++        }
++
++        return path.stream(resource);
+     }
+ 
+ }
+diff --git a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+index 767ed12..1bbd6d3 100644
+--- a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
++++ b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+@@ -14,7 +14,10 @@
+ 
+ package org.apache.tapestry5.internal.services.assets;
+ 
++import org.apache.tapestry5.internal.services.ContextResource;
++import org.apache.tapestry5.ioc.Resource;
+ import org.apache.tapestry5.ioc.test.TestBase;
++import org.apache.tapestry5.services.Context;
+ import org.testng.annotations.DataProvider;
+ import org.testng.annotations.Test;
+ 
+@@ -41,4 +44,33 @@ public class ContextAssetRequestHandlerTest extends TestBase
+         assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
+                 "Handler should return false for invalid path.");
+     }
++
++    @DataProvider
++    public Object[][] traversal_paths()
++    {
++        return new Object[][]
++                {
++                        {"../WEB-INF/web.xml"},
++                        {"foo/../../WEB-INF/classes/hibernate.cfg.xml"},
++                        {"../META-INF/MANIFEST.MF"},
++                        {"foo/../../META-INF/MANIFEST.MF"}};
++    }
++
++    @Test(dataProvider = "traversal_paths")
++    public void ensure_traversal_assets_are_rejected(String path) throws IOException
++    {
++        // The resolved path (after ".." normalization) reaches a protected location,
++        // even though the raw request path does not literally start with WEB-INF/META-INF.
++        Context context = newMock(Context.class);
++        Resource root = new ContextResource(context, "/");
++
++        replay();
++
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(null, root);
++
++        assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
++                "Handler should return false for path traversal attempt.");
++
++        verify();
++    }
+ }

@@ -1,0 +1,278 @@
+diff --git a/src/main/java/org/owasp/validator/css/CssHandler.java b/src/main/java/org/owasp/validator/css/CssHandler.java
+index a6081a8..97845ab 100644
+--- a/src/main/java/org/owasp/validator/css/CssHandler.java
++++ b/src/main/java/org/owasp/validator/css/CssHandler.java
+@@ -481,7 +481,7 @@ public class CssHandler implements DocumentHandler {
+ 						styleSheet.append(',');
+ 						styleSheet.append(' ');
+ 					}
+-					styleSheet.append(selectorName);
++					styleSheet.append(CssValidator.escapeSelectorForOutput(selectorName));
+ 
+ 					selectorCount++;
+ 
+@@ -556,7 +556,7 @@ public class CssHandler implements DocumentHandler {
+ 			// append all values
+ 			while (value != null) {
+ 				styleSheet.append(' ');
+-				styleSheet.append(validator.lexicalValueToString(value));
++				styleSheet.append(validator.lexicalValueToOutputString(value));
+ 				value = value.getNextLexicalUnit();
+ 			}
+ 			if (important) { styleSheet.append(" !important"); }
+diff --git a/src/main/java/org/owasp/validator/css/CssValidator.java b/src/main/java/org/owasp/validator/css/CssValidator.java
+index 8c92a50..b9d6d78 100644
+--- a/src/main/java/org/owasp/validator/css/CssValidator.java
++++ b/src/main/java/org/owasp/validator/css/CssValidator.java
+@@ -317,11 +317,143 @@ public class CssValidator {
+ 		return isValid;
+ 	}
+ 
++	/**
++	 * Converts the given lexical unit to a String representation that is
++	 * safe to write directly into the "clean" CSS text produced by
++	 * {@link org.owasp.validator.css.CssHandler}. That text is written
++	 * verbatim into DOM attribute/text node values by
++	 * {@code AntiSamyDOMScanner} (e.g. the "style" attribute, or the text
++	 * content of a &lt;style&gt; tag) with no further HTML-neutralization,
++	 * and is reachable by any caller of the public, documented
++	 * {@code CleanResults.getCleanXMLDocumentFragment()} API - not only by
++	 * consumers that happen to route the DOM back through AntiSamy's own
++	 * HTML serializer. Unlike {@link #lexicalValueToString(LexicalUnit)}
++	 * (which returns the raw, decoded token value and is used purely for
++	 * policy validation), this method HTML-entity-encodes any '"', ''',
++	 * '&lt;', '&gt;' or '&amp;' character present in a string/identifier or
++	 * URI value so that CSS-derived, attacker-controlled content can never
++	 * introduce a raw HTML/XML-significant character into the DOM.
++	 *
++	 * @param lu
++	 *            the lexical unit to convert
++	 * @return an HTML-safe <code>String</code> representation of the given
++	 *         lexical unit, suitable for inclusion in generated CSS output
++	 */
++	public String lexicalValueToOutputString(LexicalUnit lu) {
++		switch (lu.getLexicalUnitType()) {
++		case LexicalUnit.SAC_STRING_VALUE:
++		case LexicalUnit.SAC_IDENT: {
++			String stringValue = lu.getStringValue();
++			String escaped = htmlEscapeSensitiveChars(stringValue);
++			if (!escaped.equals(stringValue)) {
++				// The value contains characters that are significant to an
++				// HTML parser. Never wrap already-escaped content in raw
++				// quotes here - those quotes would themselves be usable to
++				// break out of a surrounding HTML attribute value.
++				return escaped;
++			}
++			if (stringValue.indexOf(' ') != -1) {
++				return "\"" + stringValue + "\"";
++			}
++			return stringValue;
++		}
++		case LexicalUnit.SAC_URI:
++			// this is a URL
++			return "url(" + htmlEscapeSensitiveChars(lu.getStringValue()) + ")";
++		default:
++			return lexicalValueToString(lu);
++		}
++	}
++
++	/**
++	 * Escapes any character that is significant to an HTML parser
++	 * ('"', ''', '&lt;', '&gt;', '&amp;') using standard numeric/named HTML
++	 * entities. Every other character (including CSS syntax characters such
++	 * as ':', ';', '-', '(', ')', ',' and whitespace) is left untouched so
++	 * that ordinary CSS structure is preserved.
++	 *
++	 * @param value
++	 *            the raw, decoded CSS token value
++	 * @return the value with HTML-sensitive characters entity-encoded; the
++	 *         same String instance is returned unchanged if no such
++	 *         characters are present
++	 */
++	private static String htmlEscapeSensitiveChars(String value) {
++		StringBuilder sb = null;
++		for (int i = 0; i < value.length(); i++) {
++			char ch = value.charAt(i);
++			String entity;
++			switch (ch) {
++			case '"':
++				entity = "&#34;";
++				break;
++			case '\'':
++				entity = "&#39;";
++				break;
++			case '<':
++				entity = "&lt;";
++				break;
++			case '>':
++				entity = "&gt;";
++				break;
++			case '&':
++				entity = "&amp;";
++				break;
++			default:
++				entity = null;
++			}
++
++			if (entity != null) {
++				if (sb == null) {
++					sb = new StringBuilder(value.length() + 16);
++					sb.append(value, 0, i);
++				}
++				sb.append(entity);
++			} else if (sb != null) {
++				sb.append(ch);
++			}
++		}
++		return sb == null ? value : sb.toString();
++	}
++
++	/**
++	 * Neutralizes any literal '&lt;' character in a CSS selector or
++	 * attribute-condition string that is about to be written into generated
++	 * CSS output. Selector text can legitimately contain structurally
++	 * significant characters (for example the '&gt;' child combinator) that
++	 * must be preserved verbatim, so - unlike
++	 * {@link #lexicalValueToOutputString(LexicalUnit)} - only '&lt;' is
++	 * neutralized here; it is the one character that could otherwise allow
++	 * CSS-derived selector text written into the text content of a
++	 * &lt;style&gt; tag to be confused with the start of a closing
++	 * &lt;/style&gt; tag (or any other markup) by an HTML parser.
++	 *
++	 * @param selectorText
++	 *            the raw selector or condition text (as produced by
++	 *            {@code Selector#toString()}/{@code Condition#toString()})
++	 * @return the selector text with any literal '&lt;' HTML-entity-encoded
++	 */
++	public static String escapeSelectorForOutput(String selectorText) {
++		if (selectorText.indexOf('<') == -1) {
++			return selectorText;
++		}
++		StringBuilder sb = new StringBuilder(selectorText.length() + 16);
++		for (int i = 0; i < selectorText.length(); i++) {
++			char ch = selectorText.charAt(i);
++			if (ch == '<') {
++				sb.append("&lt;");
++			} else {
++				sb.append(ch);
++			}
++		}
++		return sb.toString();
++	}
++
+ 	/**
+ 	 * Converts the given lexical unit to a <code>String</code>
+ 	 * representation. This method does not perform any validation - it is meant
+ 	 * to be used in conjunction with the validator/logging methods.
+-	 * 
++	 *
+ 	 * @param lu
+ 	 *            the lexical unit to convert
+ 	 * @return a <code>String</code> representation of the given lexical unit
+diff --git a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+index e15a2bc..8286b63 100644
+--- a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
++++ b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+@@ -1574,6 +1574,102 @@ static final String test33 = "<html>\n"
+         assertThat(as.scan("<select><option><style><script>alert(1)</script></style></option></select>", policy, AntiSamy.SAX).getCleanHTML(), not(containsString("<script>")));
+     }
+ 
++    @Test
++    public void testCssDerivedContentIsNeutralizedInRawDomStyleAttribute() throws ScanException, PolicyException {
++        // CWE-079: CssScanner/CssHandler used to write CSS-derived text into the "clean"
++        // stylesheet with no HTML-neutralization of its own, relying entirely on a separate,
++        // optional downstream serializer to escape it before it reached an HTML consumer.
++        // AntiSamyDOMScanner.processAttributes() then wrote that raw text directly into the DOM
++        // "style" Attr node's value (setNodeValue()), which is reachable, unserialized, via the
++        // public CleanResults.getCleanXMLDocumentFragment() API. The shipped font-family
++        // regexp-list (`[\w,\-'" ]+`) is the only shipped CSS property whose regex admits quote
++        // characters, so a value like font-family: 'a"b' could smuggle a raw '"' character into
++        // the DOM attribute value untouched.
++        String html = "<div style=\"font-family: 'a&#34;b'\">test</div>";
++        CleanResults cr = as.scan(html, policy, AntiSamy.DOM);
++
++        String rawStyleAttr = getFirstElementAttr(cr.getCleanXMLDocumentFragment(), "div", "style");
++        assertNotNull(rawStyleAttr);
++        assertThat(rawStyleAttr, not(containsString("\"")));
++        assertThat(rawStyleAttr, not(containsString("'")));
++        // sanity: the (now-neutralized) font-family value should still be present
++        assertThat(rawStyleAttr, containsString("font-family"));
++    }
++
++    @Test
++    public void testCssDerivedContentIsNeutralizedInRawDomStyleAttributeWithPermissivePolicy() throws ScanException, PolicyException {
++        // Same root cause as testCssDerivedContentIsNeutralizedInRawDomStyleAttribute, but shows
++        // the impact under a plausible custom policy that widens the font-family regexp-list to
++        // accept any value: a fully-formed, literal <script> element used to reach the raw DOM
++        // "style" Attr node untouched.
++        TestPolicy permissivePolicy = policy.addCssProperty(new Property(
++                "font-family",
++                Collections.singletonList(Pattern.compile(".*", Pattern.DOTALL)),
++                Collections.<String>emptyList(),
++                Collections.<String>emptyList(),
++                "permissive font-family for testing",
++                "removeAttribute"));
++
++        String html = "<div style=\"font-family: '&lt;script&gt;alert(1)&lt;/script&gt;'\">test</div>";
++        CleanResults cr = as.scan(html, permissivePolicy, AntiSamy.DOM);
++
++        String rawStyleAttr = getFirstElementAttr(cr.getCleanXMLDocumentFragment(), "div", "style");
++        assertNotNull(rawStyleAttr);
++        assertThat(rawStyleAttr, not(containsString("<script>")));
++        assertThat(rawStyleAttr, not(containsString("<")));
++        assertThat(rawStyleAttr, not(containsString(">")));
++    }
++
++    @Test
++    public void testCssDerivedContentIsNeutralizedInRawDomStyleTagContent() throws ScanException, PolicyException {
++        // Sibling sink to the style-attribute case above: AntiSamyDOMScanner.processStyleTag()
++        // writes CssScanner.scanStyleSheet()'s output directly into the <style> tag's Text node
++        // via setNodeValue(). A policy permissive enough to allow '<' through a selector or
++        // property value could otherwise smuggle markup into that raw DOM text node.
++        TestPolicy permissivePolicy = policy.addCssProperty(new Property(
++                "font-family",
++                Collections.singletonList(Pattern.compile(".*", Pattern.DOTALL)),
++                Collections.<String>emptyList(),
++                Collections.<String>emptyList(),
++                "permissive font-family for testing",
++                "removeAttribute"));
++
++        String html = "<style>h1{font-family:'<script>alert(1)<'}</style>";
++        CleanResults cr = as.scan(html, permissivePolicy, AntiSamy.DOM);
++
++        String rawStyleText = getFirstElementText(cr.getCleanXMLDocumentFragment(), "style");
++        assertNotNull(rawStyleText);
++        assertThat(rawStyleText, not(containsString("<script>")));
++        assertThat(rawStyleText, not(containsString("<")));
++    }
++
++    private static String getFirstElementAttr(org.w3c.dom.Node root, String tagName, String attrName) {
++        org.w3c.dom.Element el = findFirstElement(root, tagName);
++        return el == null ? null : el.getAttribute(attrName);
++    }
++
++    private static String getFirstElementText(org.w3c.dom.Node root, String tagName) {
++        org.w3c.dom.Element el = findFirstElement(root, tagName);
++        if (el == null || el.getFirstChild() == null) {
++            return null;
++        }
++        return el.getFirstChild().getNodeValue();
++    }
++
++    private static org.w3c.dom.Element findFirstElement(org.w3c.dom.Node node, String tagName) {
++        if (node instanceof org.w3c.dom.Element && tagName.equalsIgnoreCase(((org.w3c.dom.Element) node).getTagName())) {
++            return (org.w3c.dom.Element) node;
++        }
++        org.w3c.dom.NodeList children = node.getChildNodes();
++        for (int i = 0; i < children.getLength(); i++) {
++            org.w3c.dom.Element found = findFirstElement(children.item(i), tagName);
++            if (found != null) {
++                return found;
++            }
++        }
++        return null;
++    }
++
+     @Test
+     public void testImportedStylesParsing() throws ScanException, PolicyException {
+         // Test that imported style sheets can be parsed and order is correct

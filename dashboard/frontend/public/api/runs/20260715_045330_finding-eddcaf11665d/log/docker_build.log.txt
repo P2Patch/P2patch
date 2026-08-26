@@ -1,0 +1,57 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codecentric__spring-boot-admin_[redacted]_2.6.9/113/Dockerfile -t simpleautosec-finding-eddcaf11665d:088b42050eb9 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codecentric__spring-boot-admin_[redacted]_2.6.9/113
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.13kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:17-jdk
+#2 ...
+
+#3 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:17-jdk
+#2 DONE 0.8s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 1/7] FROM docker.io/library/eclipse-temurin:17-jdk@sha256:89dc1a6e09920ea26b2ede6fddfcac1a7508b50159a6d04c918a46132953aab6
+#5 resolve docker.io/library/eclipse-temurin:17-jdk@sha256:89dc1a6e09920ea26b2ede6fddfcac1a7508b50159a6d04c918a46132953aab6 done
+#5 DONE 0.0s
+
+#6 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#6 CACHED
+
+#7 [builder 2/7] WORKDIR /workspace
+#7 CACHED
+
+#8 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.9.8/binaries/apache-maven-3.9.8-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#8 CACHED
+
+#9 [builder 5/7] RUN set -eux;     git clone "https://github.com/codecentric/spring-boot-admin" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "2.6.9" ]; then git checkout "2.6.9"; fi
+#9 CACHED
+
+#10 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#10 CACHED
+
+#11 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#11 CACHED
+
+#12 exporting to image
+#12 exporting layers done
+#12 exporting manifest sha256:4cf4719ca3eac80a84caaf8adb5d53c6970edbb9bdb3c7187e613d1654a5d40f done
+#12 exporting config sha256:529fb66d01c9f68e6c2546734ea329ee54c56cd1738234dd6df001b50d982bd4 done
+#12 exporting attestation manifest sha256:e20572d27104d922e7abf1b7e9b66cf077c4b487a6d6336c3859caec3ca875be done
+#12 exporting manifest list sha256:3ad795ace547e46a55a04c9483cead90d1eb08dfb85f6fcc66007fa8ce619d6a done
+#12 naming to docker.io/library/simpleautosec-finding-eddcaf11665d:088b42050eb9 done
+#12 DONE 0.0s
+

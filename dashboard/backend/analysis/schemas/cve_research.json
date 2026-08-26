@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["known_exploitation_summary", "best_exploit", "candidates_reviewed"],
+  "properties": {
+    "known_exploitation_summary": {
+      "type": "string",
+      "description": "2-4 sentences: is this CVE known-exploited (KEV), and is a genuine public exploit/PoC available and where."
+    },
+    "best_exploit": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["source", "kind", "url", "name", "confidence", "rationale"],
+      "properties": {
+        "source": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["metasploit", "exploit-db", "nuclei", "poc-repo", "writeup", "none"]
+        },
+        "url": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rationale": {
+          "type": "string",
+          "description": "Why this is (or is not) a genuine exploit for THIS CVE — cite the matching product/vuln-class/version evidence."
+        }
+      }
+    },
+    "candidates_reviewed": {
+      "type": "array",
+      "description": "Verdict on each aggregated candidate repo/link considered.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "genuine", "reason"],
+        "properties": {
+          "url": { "type": ["string", "null"] },
+          "genuine": { "type": "boolean" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

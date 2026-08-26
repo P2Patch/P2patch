@@ -1,0 +1,26 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080827_finding-8b1319a81d0f/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-8b1319a81d0f:020d2af46e6b bash -lc set -e; mvn -q -B -o -DskipTests compile; CP="target/classes"; for j in $(find /root/.m2/repository -name "*.jar"); do CP="$CP:$j"; done; mkdir -p /tmp/povbuild; javac -cp "$CP" -d /tmp/povbuild .security-pipeline/pov/TarSymlinkEscapePov.java; java -cp "/tmp/povbuild:$CP" TarSymlinkEscapePov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+warning: Supported source version 'RELEASE_6' from annotation processor 'org.eclipse.sisu.scanners.index.SisuIndexAPT6' less than -source '1.8'
+1 warning
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/root/.m2/repository/org/slf4j/slf4j-jdk14/1.5.6/slf4j-jdk14-1.5.6.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/root/.m2/repository/org/slf4j/slf4j-simple/1.7.36/slf4j-simple-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/root/.m2/repository/org/slf4j/slf4j-nop/1.6.4/slf4j-nop-1.6.4.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.JDK14LoggerFactory]
+SLF4J: The requested version 1.5.6 by your slf4j binding is not compatible with [1.6, 1.7]
+SLF4J: See http://www.slf4j.org/codes.html#version_mismatch for further details.
+Jul 17, 2026 7:21:16 AM org.codehaus.plexus.archiver.tar.TarUnArchiver execute
+INFO: Expanding: /tmp/plexus-symlink-pov3540717208958259757/evil.tar into /tmp/plexus-symlink-pov3540717208958259757/dest
+Exception in thread "main" org.codehaus.plexus.archiver.ArchiverException: Entry pwn is trying to create a symlink whose target (/tmp/plexus-symlink-pov3540717208958259757/outside-secret) escapes the target directory
+	at org.codehaus.plexus.archiver.AbstractUnArchiver.extractFile(AbstractUnArchiver.java:403)
+	at org.codehaus.plexus.archiver.tar.TarUnArchiver.execute(TarUnArchiver.java:119)
+	at org.codehaus.plexus.archiver.tar.TarUnArchiver.execute(TarUnArchiver.java:93)
+	at org.codehaus.plexus.archiver.AbstractUnArchiver.extract(AbstractUnArchiver.java:162)
+	at TarSymlinkEscapePov.main(TarSymlinkEscapePov.java:69)
+

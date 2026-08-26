@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink text-txt font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  ::selection {
+    background: rgba(140, 124, 245, 0.3);
+  }
+  /* Instrument-panel scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a333f;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #384252;
+    background-clip: padding-box;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-hairline bg-panel shadow-panel;
+  }
+  .eyebrow {
+    @apply font-mono text-2xs uppercase tracking-[0.18em] text-txt-faint;
+  }
+  .card-hover {
+    @apply transition-colors duration-150 hover:border-hairline-strong hover:bg-elevated;
+  }
+  .focusable:focus-visible {
+    @apply outline-none ring-2 ring-iris/70 ring-offset-2 ring-offset-ink;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-hairline bg-elevated px-2 py-0.5 font-mono text-2xs text-txt-dim;
+  }
+}

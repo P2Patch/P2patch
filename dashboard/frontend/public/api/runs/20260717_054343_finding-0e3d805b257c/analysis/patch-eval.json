@@ -1,0 +1,130 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:36.794514+00:00",
+    "finished_at": "2026-07-17T15:43:14.727932+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "POV no longer reproduces and the two collector flows are hardened with normalize+containment, but not provably safe for the whole class.",
+        "evidence": "NamedScriptResourceCollector: ResourceUtil.normalize(...) + isContained(location.getPath(), path); ResourceCollector: current=(next!=null && isContained(...))?next:null; but findScript and absolute-resourceType branch untouched.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Applies a genuine canonicalize-then-contain guard at the collector level covering the reported flow, but not at the shared entry points the official fix chose.",
+        "evidence": "isContained() added to AbstractResourceCollector and applied in NamedScriptResourceCollector/ResourceCollector, whereas official guards resolveServletInternal + findScript via isInvalidPath().",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Misses SlingScriptResolverImpl.findScript entirely and the absolute-path resourceType branch of resolveServletInternal; a '...'-style segment that ResourceUtil.normalize does not collapse would still satisfy the string prefix check in NamedScriptResourceCollector.",
+        "evidence": "official_only files SlingScriptResolverImpl.java/SlingServletResolver.java have no overlap (jaccard 0.0); our NamedScriptResourceCollector checks the normalized string, not the resolved resource path.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same defensive goal (prevent traversal to out-of-tree scripts) but a different mechanism (containment vs invalid-path rejection) at different locations.",
+        "evidence": "ours_only: AbstractResourceCollector/NamedScriptResourceCollector/ResourceCollector vs official isInvalidPath() in SlingServletResolver/SlingScriptResolverImpl.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "2 regressions ran and passed; containment restricts descent to the location subtree which is the intended scope, though selector-descent restriction could marginally over-restrict cross-tree lookups.",
+        "evidence": "regressions_passed:true; ResourceCollector selector guard current=(next!=null && isContained(location.getPath(), next.getPath()))?next:null.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses a safe separator-aware prefix check that avoids sibling false-matches; no crash/TOCTOU/ReDoS introduced.",
+        "evidence": "isContained: path.equals(basePath) || path.startsWith(basePath + '/'); early return on current==null prevents NPE.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Change is localized to the two collectors plus a small shared helper, with focused tests.",
+        "evidence": "single isContained() helper reused in NamedScriptResourceCollector and ResourceCollector.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Adopts the CWE-022 defense-of-record (normalize then verify within base), but one branch checks the normalized string rather than the resolved resource path and relies on ResourceUtil.normalize semantics that may not neutralize multi-dot segments.",
+        "evidence": "NamedScriptResourceCollector normalizes and prefix-checks the string; ResourceCollector checks next.getPath(); official instead rejects >2-dot segments outright via isInvalidPath().",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "SlingScriptResolverImpl.findScript — a separate attacker-reachable entry point that the official fix guards with isInvalidPath — is left completely unpatched, so that path to the sink remains vulnerable."
+      },
+      {
+        "severity": "medium",
+        "description": "The absolute-path resourceType branch of SlingServletResolver.resolveServletInternal (scriptNameOrResourceType.charAt(0)=='/') bypasses the collectors entirely and is not covered by the isContained checks."
+      },
+      {
+        "severity": "medium",
+        "description": "NamedScriptResourceCollector's isContained operates on the normalized string, not the resolved resource path; a multi-dot segment ('...') that ResourceUtil.normalize does not collapse (precisely what the official isInvalidPath targets) can stay within the base prefix and slip through."
+      },
+      {
+        "severity": "low",
+        "description": "NamedScriptResourceCollectorTest extends HelperTestBase with an un-annotated test method (JUnit3/4 style mismatch); it may silently not execute, giving false confidence in coverage."
+      }
+    ],
+    "root_cause": "The resolver appends caller-controlled segments (script name, selectors, resource type) to a trusted base path and resolves the result without verifying that the canonicalized path stays inside the allowed script tree, permitting traversal to arbitrary scripts.",
+    "summary": "Our patch blocks the observed POV and applies a legitimate canonicalize-then-contain guard (ResourceUtil.normalize + isContained) inside the two AbstractResourceCollector subclasses, which is the right CWE-022 primitive for the collector-driven resolution flow. However it fixes a different location than the official reference and leaves gaps: the SlingScriptResolverImpl.findScript entry point and the absolute-path resourceType branch are untouched, and one branch checks the normalized string rather than the resolved resource path, so a multi-dot ('...') segment that the official isInvalidPath specifically rejects may slip through. It is a weaker subset of the official fix — good for the reported trigger but not demonstrably closing the whole class.",
+    "overall": {
+      "mean": 3.25,
+      "score": 65,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "AbstractResourceCollector.java",
+        "NamedScriptResourceCollector.java",
+        "ResourceCollector.java"
+      ],
+      "official_only": [
+        "SlingScriptResolverImpl.java",
+        "SlingServletResolver.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/apache/sling/servlets/resolver/internal/SlingScriptResolverImpl.java",
+        "src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java"
+      ],
+      "commits": [
+        "b54d4e6693e0bcd63a97a0328f4f065b8a81b75e"
+      ]
+    }
+  }
+}

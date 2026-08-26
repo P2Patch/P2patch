@@ -1,0 +1,422 @@
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+index f6e23f0..b2d0501 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+@@ -31,6 +31,7 @@ import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
+ import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
+ import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
+ import org.apache.dolphinscheduler.remote.utils.Constants;
++import org.apache.dolphinscheduler.server.utils.LogUtils;
+ 
+ import java.io.ByteArrayOutputStream;
+ import java.io.File;
+@@ -76,6 +77,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case GET_LOG_BYTES_REQUEST:
+                 GetLogBytesRequestCommand getLogRequest = JSONUtils.parseObject(
+                         command.getBody(), GetLogBytesRequestCommand.class);
++                checkPathSecurity(getLogRequest.getPath());
+                 byte[] bytes = getFileContentBytes(getLogRequest.getPath());
+                 GetLogBytesResponseCommand getLogResponse = new GetLogBytesResponseCommand(bytes);
+                 channel.writeAndFlush(getLogResponse.convert2Command(command.getOpaque()));
+@@ -83,6 +85,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case VIEW_WHOLE_LOG_REQUEST:
+                 ViewLogRequestCommand viewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), ViewLogRequestCommand.class);
++                checkPathSecurity(viewLogRequest.getPath());
+                 String msg = LoggerUtils.readWholeFileContent(viewLogRequest.getPath());
+                 ViewLogResponseCommand viewLogResponse = new ViewLogResponseCommand(msg);
+                 channel.writeAndFlush(viewLogResponse.convert2Command(command.getOpaque()));
+@@ -90,6 +93,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case ROLL_VIEW_LOG_REQUEST:
+                 RollViewLogRequestCommand rollViewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), RollViewLogRequestCommand.class);
++                checkPathSecurity(rollViewLogRequest.getPath());
+                 List<String> lines = readPartFileContent(rollViewLogRequest.getPath(),
+                         rollViewLogRequest.getSkipLineNum(), rollViewLogRequest.getLimit());
+                 StringBuilder builder = new StringBuilder();
+@@ -104,6 +108,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+                         command.getBody(), RemoveTaskLogRequestCommand.class);
+ 
+                 String taskLogPath = removeTaskLogRequest.getPath();
++                checkPathSecurity(taskLogPath);
+ 
+                 File taskLogFile = new File(taskLogPath);
+                 Boolean status = true;
+@@ -127,6 +132,34 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+         return this.executor;
+     }
+ 
++    /**
++     * Confine a caller-supplied log file path to the server's configured task-log root
++     * directory. This is the shared trust-boundary check for every log path that arrives
++     * over the wire (GET_LOG_BYTES_REQUEST, VIEW_WHOLE_LOG_REQUEST, ROLL_VIEW_LOG_REQUEST
++     * and REMOVE_TAK_LOG_REQUEST) so none of them can be used to read or delete arbitrary
++     * files outside the log directory (CWE-22 path traversal).
++     *
++     * @param filePath caller-supplied file path
++     * @throws IllegalArgumentException if the path is empty or resolves outside the log root
++     */
++    private void checkPathSecurity(String filePath) {
++        if (filePath == null || filePath.isEmpty()) {
++            throw new IllegalArgumentException("filePath must not be empty");
++        }
++        String logBase = LogUtils.getTaskLogBasePath();
++        try {
++            String logBaseCanonicalPath = new File(logBase).getCanonicalPath();
++            String targetCanonicalPath = new File(filePath).getCanonicalPath();
++            if (!targetCanonicalPath.equals(logBaseCanonicalPath)
++                    && !targetCanonicalPath.startsWith(logBaseCanonicalPath + File.separator)) {
++                throw new IllegalArgumentException(
++                        String.format("filePath [%s] is not within the authorized log directory", filePath));
++            }
++        } catch (IOException e) {
++            throw new IllegalArgumentException(String.format("filePath [%s] is invalid", filePath), e);
++        }
++    }
++
+     /**
+      * get files content bytes，for down load file
+      *
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
+index bffb380..d9366dc 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
+@@ -65,4 +65,18 @@ public class LogUtils {
+                 taskExecutionContext.getTaskInstanceId());
+     }
+ 
++    /**
++     * get the configured task log base directory (the root directory that all task log
++     * paths must be confined to)
++     */
++    public static String getTaskLogBasePath() {
++        // Optional.map will be skipped if null
++        return Optional.of(LoggerFactory.getILoggerFactory())
++                .map(e -> (AppenderAttachable<ILoggingEvent>) (e.getLogger("ROOT")))
++                .map(e -> (SiftingAppender) (e.getAppender("TASKLOGFILE")))
++                .map(e -> ((TaskLogDiscriminator) (e.getDiscriminator())))
++                .map(TaskLogDiscriminator::getLogBase)
++                .orElse("");
++    }
++
+ }
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+index e245395..714afe3 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+@@ -44,7 +44,10 @@ public class LoggerRequestProcessorTest {
+         PowerMockito.mockStatic(LoggerUtils.class);
+         PowerMockito.when(LoggerUtils.readWholeFileContent(Mockito.anyString())).thenReturn("");
+ 
+-        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("/log/path");
++        // a relative path resolves under the process's working directory, which is the
++        // task-log root LoggerRequestProcessor's path-confinement check falls back to
++        // when no logback SiftingAppender is configured (as in this unit test)
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("target/log-request-processor-test/path");
+ 
+         Command command = new Command();
+         command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerServerTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerServerTest.java
+index 74bdcea..8a156b7 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerServerTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerServerTest.java
+@@ -45,29 +45,38 @@ public class LoggerServerTest {
+         this.logClientService = new LogClientService();
+     }
+ 
++    // LoggerRequestProcessor now confines every requested log path to the server's
++    // configured task-log root (CWE-022 fix); with no logback SiftingAppender configured
++    // in this unit test, that root resolves to the process's working directory, so the
++    // fixtures below live under a relative "target/..." path instead of an arbitrary
++    // "/tmp/..." path that would fall outside the log root and be rejected.
++    private static final String ROLL_VIEW_LOG_TEST_FILE = "target/logger-server-test/demo.txt";
++
++    private static final String REMOVE_TASK_LOG_TEST_FILE = "target/logger-server-test/remove.txt";
++
+     @Test
+     public void testRollViewLog() throws IOException {
+         String expectedTmpDemoString = "testRolloViewLog";
+-        org.apache.commons.io.FileUtils.writeStringToFile(new File("/tmp/demo.txt"), expectedTmpDemoString, Charset.defaultCharset());
++        org.apache.commons.io.FileUtils.writeStringToFile(new File(ROLL_VIEW_LOG_TEST_FILE), expectedTmpDemoString, Charset.defaultCharset());
+ 
+         String resultTmpDemoString = this.logClientService.rollViewLog(
+-                "localhost", Constants.RPC_PORT,"/tmp/demo.txt", 0, 1000);
++                "localhost", Constants.RPC_PORT, ROLL_VIEW_LOG_TEST_FILE, 0, 1000);
+ 
+         Assert.assertEquals(expectedTmpDemoString, resultTmpDemoString.replaceAll("[\r|\n|\t]", StringUtils.EMPTY));
+ 
+-        FileUtils.deleteFile("/tmp/demo.txt");
++        FileUtils.deleteFile(ROLL_VIEW_LOG_TEST_FILE);
+     }
+ 
+     @Test
+     public void testRemoveTaskLog() throws IOException {
+         String expectedTmpRemoveString = "testRemoveTaskLog";
+-        org.apache.commons.io.FileUtils.writeStringToFile(new File("/tmp/remove.txt"), expectedTmpRemoveString, Charset.defaultCharset());
++        org.apache.commons.io.FileUtils.writeStringToFile(new File(REMOVE_TASK_LOG_TEST_FILE), expectedTmpRemoveString, Charset.defaultCharset());
+ 
+-        Boolean b = this.logClientService.removeTaskLog("localhost", Constants.RPC_PORT,"/tmp/remove.txt");
++        Boolean b = this.logClientService.removeTaskLog("localhost", Constants.RPC_PORT, REMOVE_TASK_LOG_TEST_FILE);
+ 
+         Assert.assertTrue(b);
+ 
+-        String result = this.logClientService.viewLog("localhost", Constants.RPC_PORT,"/tmp/demo.txt");
++        String result = this.logClientService.viewLog("localhost", Constants.RPC_PORT, ROLL_VIEW_LOG_TEST_FILE);
+ 
+         Assert.assertEquals(StringUtils.EMPTY, result);
+     }
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/utils/LogUtilsTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/utils/LogUtilsTest.java
+index cf886f8..a946f2e 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/utils/LogUtilsTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/utils/LogUtilsTest.java
+@@ -23,6 +23,7 @@ import org.apache.dolphinscheduler.service.queue.entity.TaskExecutionContext;
+ import java.nio.file.Path;
+ import java.nio.file.Paths;
+ 
++import org.junit.After;
+ import org.junit.Assert;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
+@@ -36,6 +37,21 @@ import ch.qos.logback.classic.sift.SiftingAppender;
+ @RunWith(MockitoJUnitRunner.class)
+ public class LogUtilsTest {
+ 
++    private Logger rootLogger;
++
++    private SiftingAppender appender;
++
++    @After
++    public void tearDown() {
++        // this test registers a mock "TASKLOGFILE" appender directly on the shared ROOT
++        // logger; it must be detached again so it doesn't leak into other test classes
++        // that run in the same JVM and also resolve the task-log base via that appender
++        // (e.g. LoggerRequestProcessor's path-confinement check)
++        if (rootLogger != null && appender != null) {
++            rootLogger.detachAppender(appender);
++        }
++    }
++
+     @Test
+     public void testGetTaskLogPath() {
+         TaskExecutionContext taskExecutionContext = new TaskExecutionContext();
+@@ -44,10 +60,10 @@ public class LogUtilsTest {
+         taskExecutionContext.setProcessDefineCode(1L);
+         taskExecutionContext.setProcessDefineVersion(1);
+ 
+-        Logger rootLogger = (Logger) LoggerFactory.getILoggerFactory().getLogger("ROOT");
++        rootLogger = (Logger) LoggerFactory.getILoggerFactory().getLogger("ROOT");
+         Assert.assertNotNull(rootLogger);
+ 
+-        SiftingAppender appender = Mockito.mock(SiftingAppender.class);
++        appender = Mockito.mock(SiftingAppender.class);
+         // it's a trick to mock logger.getAppend("TASKLOGFILE")
+         Mockito.when(appender.getName()).thenReturn("TASKLOGFILE");
+         rootLogger.addAppender(appender);
+diff --git a/dolphinscheduler-common/test/testFile.txt b/dolphinscheduler-common/test/testFile.txt
+new file mode 100644
+index 0000000..be188e1
+--- /dev/null
++++ b/dolphinscheduler-common/test/testFile.txt
+@@ -0,0 +1 @@
++正正正faffdasfasdfas
+\ No newline at end of file
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorPathSecurityTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorPathSecurityTest.java
+new file mode 100644
+index 0000000..4ab7ea6
+--- /dev/null
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorPathSecurityTest.java
+@@ -0,0 +1,194 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *    http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package org.apache.dolphinscheduler.server.log;
++
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++import static org.mockito.Mockito.any;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.verify;
++import static org.mockito.Mockito.when;
++
++import org.apache.dolphinscheduler.common.utils.JSONUtils;
++import org.apache.dolphinscheduler.remote.command.Command;
++import org.apache.dolphinscheduler.remote.command.log.GetLogBytesRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.GetLogBytesResponseCommand;
++import org.apache.dolphinscheduler.remote.command.log.RollViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.RollViewLogResponseCommand;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
++
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++
++import org.junit.Test;
++import org.mockito.ArgumentCaptor;
++
++import io.netty.channel.Channel;
++
++/**
++ * Regression tests for CWE-022 path traversal in {@link LoggerRequestProcessor}.
++ *
++ * <p>{@code VIEW_WHOLE_LOG_REQUEST}, {@code GET_LOG_BYTES_REQUEST} and
++ * {@code ROLL_VIEW_LOG_REQUEST} all take a caller-supplied "path" straight off the wire
++ * and used to pass it, completely unvalidated, into a raw {@code FileInputStream}/{@code
++ * File}/{@code Files.lines} call. These tests assert that {@code
++ * LoggerRequestProcessor.checkPathSecurity(...)} now confines every one of those paths to
++ * the server's configured log root, both for "../" traversal and for absolute paths that
++ * bypass the log root entirely, while still allowing legitimate in-root reads to succeed.
++ */
++public class LoggerRequestProcessorPathSecurityTest {
++
++    private final LoggerRequestProcessor processor = new LoggerRequestProcessor();
++
++    @Test
++    public void viewWholeLogRequest_blocksDotDotTraversalOutsideLogRoot() throws IOException {
++        String marker = "DS-REGRESSION-SECRET-view-dotdot";
++        Path root = Files.createTempDirectory("ds-security-test-root");
++        Path logsDir = root.resolve("logs");
++        Files.createDirectories(logsDir);
++        Path secretFile = writeSecret(root.resolve("secret").resolve("secret.txt"), marker);
++
++        String traversalPath = logsDir.toString() + "/../secret/secret.txt";
++        assertViewRequestDoesNotLeak(traversalPath, marker);
++    }
++
++    @Test
++    public void viewWholeLogRequest_blocksAbsolutePathOutsideLogRoot() throws IOException {
++        String marker = "DS-REGRESSION-SECRET-view-absolute";
++        Path secretFile = Files.createTempFile("ds-security-test-secret", ".txt");
++        writeSecret(secretFile, marker);
++
++        assertViewRequestDoesNotLeak(secretFile.toString(), marker);
++    }
++
++    @Test
++    public void getLogBytesRequest_blocksDotDotTraversalOutsideLogRoot() throws IOException {
++        String marker = "DS-REGRESSION-SECRET-bytes-dotdot";
++        Path root = Files.createTempDirectory("ds-security-test-root");
++        Path logsDir = root.resolve("logs");
++        Files.createDirectories(logsDir);
++        writeSecret(root.resolve("secret").resolve("secret.txt"), marker);
++
++        String traversalPath = logsDir.toString() + "/../secret/secret.txt";
++
++        Channel channel = mock(Channel.class);
++        when(channel.writeAndFlush(any(Command.class))).thenReturn(null);
++
++        boolean rejected = false;
++        try {
++            processor.process(channel, new GetLogBytesRequestCommand(traversalPath).convert2Command());
++        } catch (IllegalArgumentException expected) {
++            rejected = true;
++        }
++
++        if (!rejected) {
++            ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++            verify(channel).writeAndFlush(captor.capture());
++            GetLogBytesResponseCommand response =
++                    JSONUtils.parseObject(captor.getValue().getBody(), GetLogBytesResponseCommand.class);
++            byte[] data = response == null ? null : response.getData();
++            String content = data == null ? "" : new String(data, StandardCharsets.UTF_8);
++            assertFalse("must not leak content outside log root", content.contains(marker));
++        }
++    }
++
++    @Test
++    public void rollViewLogRequest_blocksDotDotTraversalOutsideLogRoot() throws IOException {
++        String marker = "DS-REGRESSION-SECRET-roll-dotdot";
++        Path root = Files.createTempDirectory("ds-security-test-root");
++        Path logsDir = root.resolve("logs");
++        Files.createDirectories(logsDir);
++        writeSecret(root.resolve("secret").resolve("secret.txt"), marker);
++
++        String traversalPath = logsDir.toString() + "/../secret/secret.txt";
++
++        Channel channel = mock(Channel.class);
++        when(channel.writeAndFlush(any(Command.class))).thenReturn(null);
++
++        boolean rejected = false;
++        try {
++            processor.process(channel, new RollViewLogRequestCommand(traversalPath, 0, 100).convert2Command());
++        } catch (IllegalArgumentException expected) {
++            rejected = true;
++        }
++
++        if (!rejected) {
++            ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++            verify(channel).writeAndFlush(captor.capture());
++            RollViewLogResponseCommand response =
++                    JSONUtils.parseObject(captor.getValue().getBody(), RollViewLogResponseCommand.class);
++            String msg = response == null ? "" : response.getMsg();
++            assertFalse("must not leak content outside log root", msg != null && msg.contains(marker));
++        }
++    }
++
++    @Test
++    public void viewWholeLogRequest_allowsReadWithinResolvedLogRoot() throws IOException {
++        // With no logback SiftingAppender configured (as in this unit test), the log
++        // root resolves to the process's working directory - mirror that here so a
++        // legitimate in-root request is exercised without depending on runtime logback
++        // wiring, and verify confinement doesn't break normal access.
++        String marker = "DS-REGRESSION-LEGITIMATE-CONTENT";
++        Path legitDir = Paths.get(System.getProperty("user.dir"), "target", "ds-security-test-legit-logs");
++        Files.createDirectories(legitDir);
++        Path legitFile = writeSecret(legitDir.resolve("legit.log"), marker);
++
++        Channel channel = mock(Channel.class);
++        when(channel.writeAndFlush(any(Command.class))).thenReturn(null);
++
++        processor.process(channel, new ViewLogRequestCommand(legitFile.toString()).convert2Command());
++
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++        verify(channel).writeAndFlush(captor.capture());
++        ViewLogResponseCommand response =
++                JSONUtils.parseObject(captor.getValue().getBody(), ViewLogResponseCommand.class);
++        String msg = response == null ? "" : response.getMsg();
++        assertTrue("legitimate in-root reads must still succeed", msg != null && msg.contains(marker));
++    }
++
++    private void assertViewRequestDoesNotLeak(String requestedPath, String marker) {
++        Channel channel = mock(Channel.class);
++        when(channel.writeAndFlush(any(Command.class))).thenReturn(null);
++
++        boolean rejected = false;
++        try {
++            processor.process(channel, new ViewLogRequestCommand(requestedPath).convert2Command());
++        } catch (IllegalArgumentException expected) {
++            rejected = true;
++        }
++
++        if (!rejected) {
++            ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++            verify(channel).writeAndFlush(captor.capture());
++            ViewLogResponseCommand response =
++                    JSONUtils.parseObject(captor.getValue().getBody(), ViewLogResponseCommand.class);
++            String msg = response == null ? "" : response.getMsg();
++            assertFalse("must not leak content outside log root", msg != null && msg.contains(marker));
++        }
++    }
++
++    private Path writeSecret(Path file, String marker) throws IOException {
++        Files.createDirectories(file.getParent());
++        Files.write(file, (marker + "\n").getBytes(StandardCharsets.UTF_8));
++        return file;
++    }
++}

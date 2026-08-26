@@ -1,0 +1,134 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:41:05.833907+00:00",
+    "finished_at": "2026-07-17T08:42:10.304202+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds the canonical defense-of-record for Zip Slip: it canonicalizes the extraction directory once (after mkdir, so symlinked bases resolve to their real path) and, for every zip entry, canonicalizes the resolved destination and rejects anything that is not the base dir itself or prefixed by `destDirCanonicalPath + File.separator` — thrown as IOException before any `mkdirs()`/`FileOutputStream` touches the filesystem. The guard sits at the sink inside `IOUtils.unzip`, applies to directory and file entries alike, and closes the whole class (nested `../`, absolute-ish names, encoded/odd names — `ZipEntry.getName()` is already decoded, so no bypass via encoding). The official fix instead deleted the entire (unused) `unzip` method plus a release version bump; ours preserves the API and hardens it, which is security-equivalent for callers. POV no longer reproduces, both regression suites pass, and the added test proves legitimate nested extraction still works.",
+    "root_cause": "`IOUtils.unzip` resolved attacker-controlled `ZipEntry.getName()` directly into `new File(newPath, currentEntry)` and then created parents/wrote the file without ever verifying the resolved path stayed inside `extractFolder`, letting `../` sequences write arbitrary files outside the extraction root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical containment check runs for every entry before any filesystem mutation, closing the class rather than one payload.",
+        "evidence": "IOUtils.java: `String destFileCanonicalPath = destFile.getCanonicalPath(); if (!destFileCanonicalPath.equals(destDirCanonicalPath) && !destFileCanonicalPath.startsWith(destDirCanonicalPath + File.separator)) throw new IOException(...)` placed above `File destinationParent = destFile.getParentFile();`",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard is at the sink (the resolved File used for mkdirs/FileOutputStream) inside the vulnerable method, not at a caller or on the raw entry string.",
+        "evidence": "Check inserted between `new File(newPath, currentEntry)` (trace line 124) and `destinationParent.mkdirs()` (trace line 126/129).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers every entry in the enumeration, both directory and file entries, and the parent-mkdirs path; `unzip` is the only path to this sink and getName() is already decoded so no encoding variant survives.",
+        "evidence": "Check sits inside the `while (zipFileEntries.hasMoreElements())` loop before the `if (!entry.isDirectory())` branch; tests cover `../x`, `../../evil.txt`, and `../evildir/` (directory entry).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive goal in the same file/method as the official localization, but official removed the dead method outright while ours hardens it in place — security-equivalent for callers, functionality-preserving.",
+        "evidence": "Official 359603b63f deletes `unzip(String, String)` from IOUtils.java entirely (plus 0.0.2-SNAPSHOT→0.0.2 pom bumps); ours modifies the same method that the official localization names.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate extraction preserved and verified; 2 regression suites pass and POV no longer reproduces.",
+        "evidence": "`testUnzipStillExtractsNormalEntries` asserts `safe/nested/file.txt` still extracts; pipeline: regressions_ran=2, regressions_passed=true, pov_after_still_reproduces=false. Equality branch keeps the base dir entry itself legal.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses java.io canonicalization correctly; getCanonicalPath's IOException is already in the method's throws clause; separator-boundary check avoids the classic `/tmp/foo-evil` prefix-confusion bug; destDir canonicalized after mkdir so a symlinked base resolves correctly.",
+        "evidence": "`File destDir = new File(newPath); destDir.mkdir(); String destDirCanonicalPath = destDir.getCanonicalPath();` and `startsWith(destDirCanonicalPath + File.separator)`; method signature already `throws IOException`.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "~10 production lines confined to the vulnerable loop plus a focused new test class; no unrelated edits.",
+        "evidence": "Only hunks are the destDir hoist at line ~112 and the containment check at line ~125 in IOUtils.java; new file IOUtilsUnzipTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks), then verify containment under the allowed base — no blocklisting of '../'.",
+        "evidence": "`getCanonicalPath()` on both base and destination + equals/startsWith-with-separator containment test, fail-closed via thrown IOException.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Theoretical TOCTOU: canonicalization happens before the write, so a locally-privileged concurrent attacker who plants a symlink inside the extraction directory between the check and FileOutputStream could still redirect a write. This is inherent to the canonicalize-then-write pattern (the accepted defense-of-record) and unreachable via the zip itself, since this unzip never creates symlinks."
+      },
+      {
+        "severity": "low",
+        "description": "`destDir.mkdir()` (single-level, unchanged from original) does not create missing intermediate parents, so `destDirCanonicalPath` may be computed for a non-existent directory. Canonicalization still yields a correct absolute path and the containment check remains sound; this is pre-existing behavior, not a regression."
+      },
+      {
+        "severity": "low",
+        "description": "Divergence from the official fix's strategy: upstream deleted the unused `unzip` method entirely, whereas ours keeps the API surface alive (hardened). Equivalent in security terms, but future callers depend on the guard remaining in place. The official pom.xml version bumps (0.0.2-SNAPSHOT→0.0.2) are release plumbing, not security-relevant, so the 0.5 Jaccard/covers_all_official=false signal is not a real gap."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "IOUtils.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "pom.xml"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "bytekit-demo-plugin/pom.xml",
+        "demo-agent/pom.xml",
+        "demo-plugin/pom.xml",
+        "dubbo-test-instrument/pom.xml",
+        "dubbo-test-plugin-common/pom.xml",
+        "dubbo-test-plugin/pom.xml",
+        "fastjson-demo-plugin/pom.xml",
+        "one-java-agent-plugin/pom.xml",
+        "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+        "one-java-agent-spy/pom.xml",
+        "one-java-agent/pom.xml",
+        "pom.xml"
+      ],
+      "commits": [
+        "359603b63fc6c59d8b57e061c171954bab3433bf",
+        "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+      ]
+    }
+  }
+}

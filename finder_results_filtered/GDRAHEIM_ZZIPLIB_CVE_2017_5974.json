@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2017-5974",
+  "note": "zzip_mem_entry_new() (zzip/memdisk.c) trusts the zip64 \"largefile\" extra-block pointer returned by zzip_mem_entry_extra_block() to be a full 40-byte struct zzip_extra_zip64 once it is merely non-null -- the finder only matches on the block's 2-byte datatype code, never on whether the block's own declared datasize actually covers the struct being overlaid. block->z_diskstart is then read via ZZIP_GET32 32 bytes into that struct; when the matched block sits near the tail of the heap-allocated extra-data copy (the same finder function scans forward with no bound on how far it walks), this read runs past the end of the allocation -- a heap-based out-of-bounds read.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "zzip_mem_entry_extra_block(item, ZZIP_EXTRA_zip64) : returns a block matched purely on its 2-byte datatype code, with no check that its declared datasize covers struct zzip_extra_zip64",
+            "uri": "zzip/memdisk.c",
+            "line": 218
+          },
+          {
+            "message": "if (block) : bare non-null guard, no size validation",
+            "uri": "zzip/memdisk.c",
+            "line": 219
+          },
+          {
+            "message": "item->zz_diskstart = ZZIP_GET32(block->z_diskstart) : reads 4 bytes 32 bytes into the (possibly truncated) block -- heap-based out-of-bounds read",
+            "uri": "zzip/memdisk.c",
+            "line": 224
+          }
+        ]
+      ]
+    }
+  ]
+}

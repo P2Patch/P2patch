@@ -1,0 +1,227 @@
+{
+  "run_id": "20260717_021630_finding-eff26c0d176b",
+  "finding_id": "finding-eff26c0d176b",
+  "timestamp": "2026-07-17T02:16:30",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_021630_finding-eff26c0d176b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-eff26c0d176b",
+    "cve_id": "CVE-2022-25842",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "alibaba__one-java-agent_CVE-2022-25842_0.0.1",
+    "alert_file": "ALIBABA__ONE-JAVA-AGENT_CVE-2022-25842_0.0.1.json",
+    "github_url": "https://github.com/alibaba/one-java-agent",
+    "repo": "alibaba/one-java-agent",
+    "github_tag": "0.0.1",
+    "advisory_id": "GHSA-9hr3-j9mc-xmq2",
+    "buggy_commit_id": "b911af2bb779917c84a016350700745dc31c642a",
+    "fix_commit_ids": [
+      "359603b63fc6c59d8b57e061c171954bab3433bf",
+      "e0149bb36488fede2a12cb1ab3c2095e56dd7571"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "359603b63fc6c59d8b57e061c171954bab3433bf",
+        "file": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+        "class": "IOUtils",
+        "class_start": "24.0",
+        "class_end": "106.0",
+        "method": "unzip",
+        "method_start": "",
+        "method_end": "",
+        "signature": "unzip(String zipFile, String extractFolder)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-25842",
+      "advisory": "https://github.com/advisories/GHSA-9hr3-j9mc-xmq2",
+      "repo": "https://github.com/alibaba/one-java-agent",
+      "buggy_commit": "https://github.com/alibaba/one-java-agent/commit/b911af2bb779917c84a016350700745dc31c642a"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 122,
+              "message": "getName(...) : String",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 124,
+              "message": "currentEntry : String",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 124,
+              "message": "new File(...) : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 126,
+              "message": "destFile : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 126,
+              "message": "getParentFile(...) : File",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            },
+            {
+              "line": 129,
+              "message": "destinationParent",
+              "uri": "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-eff26c0d176b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021630_finding-eff26c0d176b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-eff26c0d176b:2be5285b1e2a",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/alibaba__one-java-agent_[redacted]_0.0.1/26/Dockerfile",
+        "-t",
+        "simpleautosec-finding-eff26c0d176b:2be5285b1e2a",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/alibaba__one-java-agent_[redacted]_0.0.1/26"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 81763,
+        "duration_api_ms": 71987,
+        "num_turns": 15,
+        "cost_usd": 0.397596,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 28,
+          "output": 6692,
+          "cache_read": 507280,
+          "cache_creation": 24158
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+          "one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsTest.java"
+        ],
+        "patch_notes": "Root-cause fix in IOUtils.unzip: after resolving `newPath` (mkdir'd destination) and each `destFile = new File(newPath, currentEntry)`, compute canonical paths via File.getCanonicalPath() and verify destFile's canonical path is the destination directory itself or a path nested strictly under it (prefix match with a trailing File.separator to avoid false positives like `dest2` matching `dest`). If the check fails, throw IOException before any mkdirs()/file write occurs, so no partial writes happen outside the sandbox. Added IOUtilsTest with two JUnit4 tests (Java 6 compatible, no try-with-resources): one builds a malicious zip with entry name `../../evil.txt` and asserts unzip() throws IOException and no file is created outside the destination; another confirms a normal nested entry (`sub/hello.txt`) still extracts correctly, guarding against regressions in legitimate extraction behavior.",
+        "regression_commands": [
+          "cd one-java-agent-plugin && mvn -B test -Dtest=IOUtilsTest -pl . -am",
+          "cd one-java-agent-plugin && mvn -B test -pl . -am"
+        ],
+        "risk_notes": "Low risk: the change only adds a validation check before existing directory-creation/write logic; it does not alter behavior for well-formed zip entries whose paths resolve inside the destination directory. getCanonicalPath() can throw IOException (already declared on the method) and can be marginally slower than getPath() due to filesystem resolution, but this is negligible for typical zip sizes and unzip() already does file I/O per entry. One behavioral change: zips containing traversal entries now abort extraction entirely (throwing) rather than silently extracting to unintended locations — this is the intended fix, but any caller that relied on unzip() silently tolerating malformed zips would now see an exception surface.",
+        "status": "patched",
+        "summary": "Fixed a Zip Slip / path traversal vulnerability (CWE-22) in IOUtils.unzip. The method built the extraction target directly from the untrusted ZipEntry name (`new File(newPath, currentEntry)`) with no validation, letting a crafted entry name (e.g. `../../evil.txt`, or an absolute path) write files outside the configured destination directory before its parent directories were even created. Added a canonical-path containment check at the single sink: the destination directory's canonical path is computed once, and each entry's resolved canonical path must equal it or be nested under it (`destinationDirCanonical + File.separator` prefix) before any directory creation or file write happens; otherwise an IOException is thrown and extraction aborts. This closes the root cause for all encodings/variants of the traversal (relative `..` segments, absolute paths, symlink-resolved escapes) since the check happens after canonicalization rather than pattern-matching the raw entry name."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.3976,
+    "num_turns": 15,
+    "agent_duration_ms": 81763
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

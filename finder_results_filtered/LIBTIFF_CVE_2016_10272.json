@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2016-10272",
+  "note": "libtiff tools/tiffcrop.c, readContigStripsIntoBuffer(): the function allocates its output buffer sized for `nstrips * stripsize` bytes and copies each strip in with `bytes_read = TIFFReadEncodedStrip(in, strip, bufp, -1); ... bufp += bytes_read;` (tools/tiffcrop.c:3673-3705). In tiffcrop's `-i` (ignore-errors) mode a malformed/truncated strip can legitimately decode fewer bytes than `stripsize` without being fatal, so `bufp` is advanced by less than the codec actually wrote for that strip -- yet every strip codec always writes exactly `stripsize` bytes starting at whatever `bufp` it is handed next. For a crafted image with NeXT-compressed strips, that next call is `libtiff/tif_next.c`'s `NeXTDecode()`, whose first act is a white-fill loop over the whole requested amount: `for (op = (unsigned char*) buf, cc = occ; cc-- > 0;) *op++ = 0xff;` (tif_next.c:63-64, occ == stripsize). Because bufp is positioned earlier than it should be, this fill loop's stripsize-byte write runs past the end of the buffer allocated for the whole image on the final strip -- a heap-buffer-overflow WRITE. This is a WRITE-primitive overflow (CWE-787-shaped), confirmed directly by inspecting the fill loop's write direction. The defect is entirely in the caller's (readContigStripsIntoBuffer's) pointer bookkeeping, not in NeXTDecode() itself, which behaves correctly given the buffer position and size it is handed.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "bufp += bytes_read; -- advances the strip output pointer by the per-strip READ COUNT rather than the fixed stripsize; in -i (ignore-errors) mode a short/malformed strip under-advances bufp",
+            "uri": "tools/tiffcrop.c",
+            "line": 3701
+          },
+          {
+            "message": "for (op = (unsigned char*) buf, cc = occ; cc-- > 0;) *op++ = 0xff; -- NeXTDecode's white-fill loop, invoked for the next strip with a stripsize-byte write starting at the under-advanced bufp, running past the buffer's allocated end on the final strip",
+            "uri": "libtiff/tif_next.c",
+            "line": 64
+          }
+        ]
+      ]
+    }
+  ]
+}

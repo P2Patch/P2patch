@@ -1,0 +1,121 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:44.475419+00:00",
+    "finished_at": "2026-07-17T08:50:10.886287+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "POV no longer reproduces and the whole traversal class is closed, not just the observed payload — every mixed-separator and multi-level variant now returns null.",
+        "evidence": "pov_after_patch.log: 'normalize(\"//../secret.txt\") rejected = true -> returned [null] ... SAFE'. Direct probe of the patched build: //../secret.txt, \\\\..\\secret.txt, //..\\secret.txt, \\\\../secret.txt, //./secret.txt, //../../secret.txt, ///../secret.txt, //..//secret.txt, //.././secret.txt, //a/../../secret.txt all -> normalize=[null]. The host part is by construction separator-free (indexOf from idx 2), so '.' and '..' are the only components with traversal semantics.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the flaw at the exact sink — the prefix computation that swallowed '..' — not a caller or symptom guard; identical location to the official fix.",
+        "evidence": "FilenameUtils.java:679-692 replaces 'return Math.min(posUnix, posWin) + 1;' in the isSeparator(ch0)&&isSeparator(ch1) UNC branch of getPrefixLength — the same statement upstream commit 2736b6fe0 replaces. Root flaw: doNormalize only rejects '..' after the prefix (i == prefix + 2 -> return null), so a '..' absorbed into the prefix was never evaluated.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "All traversal paths and separator variants covered via the single shared chokepoint; only the non-traversal invalid-hostname hardening from the official fix is missing.",
+        "evidence": "All normalize/normalizeNoEndSeparator overloads funnel through doNormalize -> getPrefixLength, so one fix covers every entry point (verified: normalizeNoEndSeparator(\"//../secret.txt\") -> null). Both separator flavors handled (posUnix/posWin). Gap: getPrefixLength(\"\\\\\\\\-server\\\\a\\\\b\\\\c.txt\") returns 10, official returns -1 — a malformed host name, not a directory escape.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy at the identical location (validate the UNC host component, return NOT_FOUND), but a strictly weaker mechanism than the official allowlist.",
+        "evidence": "Ours: 'final String hostPart = filename.substring(2, pos); if (\".\".equals(hostPart) || \"..\".equals(hostPart)) return NOT_FOUND;'. Official 2736b6fe0: 'String hostnamePart = fileName.substring(2, pos - 1); return isValidHostName(hostnamePart) ? pos : NOT_FOUND;' — same extracted substring, same return contract, allowlist (isIPv4Address || isIPv6Address || isRFC3986HostName) instead of blocklist.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "No patch-attributable regressions: targeted suite fully green and all legitimate UNC forms preserved; the suite failures are pre-existing environmental noise proven on pristine code.",
+        "evidence": "regression_2.log: 'Tests run: 38, Failures: 0 - FilenameUtilsTestCase' + 'Tests run: 28, Failures: 0 - FileSystemUtilsTestCase', BUILD SUCCESS. Stashing the patch and re-running the 4 failures reproduces them identically on pristine code ('Tests run: 52, Failures: 4') — chmod/read-only assertions invalid under root; neither failing class references FilenameUtils. Legit paths intact: //server/a, //server/a/b/c.txt, //1.2.3.4/share/f, \\\\::1\\a\\b\\c.txt, \\\\server.example.org\\..., \\\\server.\\... all unchanged.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "No new weakness: substring bounds are provably safe, no regex introduced, no TOCTOU or crash surface.",
+        "evidence": "FilenameUtils.java:682 'filename.substring(2, pos)' — the pre-existing guard 'posUnix == 2 || posWin == 2' returns NOT_FOUND first, so pos >= 3, making substring(2, pos) always in-bounds (no StringIndexOutOfBounds). Pure string comparison, no Pattern/regex, so unlike the official fix it adds zero ReDoS surface. Probe of 21 inputs produced no exceptions.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized diff: one return statement in the correct method plus a focused regression test, no unrelated edits.",
+        "evidence": "patch_only.diff touches exactly one production hunk (FilenameUtils.java:679-692, ~10 lines) and one test method (FilenameUtilsTestCase.testNormalize_rejectsDoubleSeparatorDotDotPrefix). Compare: the official fix adds 147 lines to the same file.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Works and is exhaustive for traversal semantics, but uses a blocklist where the defense-of-record (and upstream) uses a host-name allowlist — the more fragile primitive.",
+        "evidence": "Ours enumerates the bad set: '\".\".equals(hostPart) || \"..\".equals(hostPart)'. Official validates the good set: isValidHostName = isIPv4Address || isIPv6Address || isRFC3986HostName (REG_NAME_PART_PATTERN '^[a-zA-Z0-9][a-zA-Z0-9-]*$'). The canonicalize-then-verify-under-base anchor does not map here — this is a pure string-normalization API with no base dir — but the blocklist's under-rejection is demonstrable: '\\\\-server\\a\\b\\c.txt' is accepted (official rejects).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Strictly weaker than the official fix on host-name validation. Replaying the official upstream assertions (commit 2736b6fe0) against our patch yields 12/14 pass, 2 fail: normalize(\"\\\\\\\\-server\\\\a\\\\b\\\\c.txt\") returns \"//-server/a/b/c.txt\" (official: null) and getPrefixLength(\"\\\\\\\\-server\\\\a\\\\b\\\\c.txt\") returns 10 (official: -1). These are malformed-UNC hardening cases, not directory escapes, so they carry no traversal impact — but if the project later adopts the upstream test suite, these two assertions fail."
+      },
+      {
+        "severity": "low",
+        "description": "Blocklist mechanism ({\".\", \"..\"}) rather than the allowlist upstream chose. It is exhaustive here because the host part is separator-free by construction (indexOf from index 2), so only \".\" and \"..\" carry traversal semantics — but the primitive is inherently less future-proof than isValidHostName if the surrounding prefix-parsing logic ever changes."
+      },
+      {
+        "severity": "low",
+        "description": "The supplied taint trace points at FileSystemUtils.java (freeSpaceKb path -> Runtime.exec at line 573), which the patch does not touch. This appears to be finder mislocalization rather than a patch gap: CVE-2021-29425/IO-559 is FilenameUtils.normalize, the POV exercises normalize, and the official fix likewise touches only FilenameUtils.java."
+      },
+      {
+        "severity": "low",
+        "description": "Pipeline-level, not a patch defect: the run was auto-rejected with 'Regression command failed: mvn -B test', but all 4 failures (FileFilterTestCase.testCanRead/testCanWrite, FileUtilsCleanDirectoryTestCase.testThrowsOnNullList/testThrowsOnCannotDeleteFile) reproduce identically on pristine unpatched code because Maven runs as root and chmod-based read-only assertions do not hold for root. The rejection is a false positive and the verdict should be revisited."
+      }
+    ],
+    "root_cause": "FilenameUtils.getPrefixLength blindly treated any text between a leading double separator and the next separator as a UNC host name and folded it into the immutable prefix, so a \".\" or \"..\" in that slot was never evaluated by doNormalize's parent-traversal check (which only rejects \"..\" occurring after the prefix via `i == prefix + 2 -> return null`), letting \"//../foo\" normalize to itself while the equivalent \"/../foo\" correctly returned null.",
+    "summary": "This is a good, correctly-located fix that the pipeline rejected for the wrong reason. It replaces the exact same statement in getPrefixLength's UNC branch that the official upstream fix (commit 2736b6fe0, IO-559) replaces, extracting the identical host substring, and it closes the entire traversal class — every probed variant (mixed separators \\\\..\\, //..\\, \\\\../, multi-level //../../, ///../, //..//, //.././) now returns null, while legitimate UNC, IPv4, IPv6, and FQDN paths are preserved. The reported regression failure is a false positive: the same 4 tests (chmod/read-only assertions invalid under root in Docker) fail identically on pristine unpatched code and never touch FilenameUtils, while the targeted FilenameUtils/FileSystemUtils suite is 66/66 green. The one real shortfall is mechanism: a {\".\", \"..\"} blocklist instead of upstream's RFC3986/IPv4/IPv6 host-name allowlist, which makes it a strict subset — it passes 12/14 official assertions, failing only the non-traversal \"\\\\-server\\...\" malformed-hostname hardening cases.",
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "FilenameUtils.java"
+      ],
+      "official_only": [],
+      "jaccard": 0.0
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [],
+      "commits": [
+        "fe7543eee5cd4b2f9e78aa44c31031b68eba204d"
+      ]
+    }
+  }
+}

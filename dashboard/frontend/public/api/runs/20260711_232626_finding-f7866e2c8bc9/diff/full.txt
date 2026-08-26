@@ -1,0 +1,95 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index bd462d9..4fd81f9 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -308,6 +308,16 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+         // Hmm. Symlinks re-evaluate back to the original file here. Unsure if this is a good thing...
+         final File f = FileUtils.resolveFile( dir, entryName );
+ 
++        // Guard against path traversal ("Zip Slip"): ensure the resolved file stays
++        // within the destination directory.
++        final String canonicalDirPath = dir.getCanonicalPath() + File.separator;
++        final String canonicalDestPath = f.getCanonicalPath();
++
++        if ( !canonicalDestPath.startsWith( canonicalDirPath ) )
++        {
++            throw new ArchiverException( "Entry is outside of the target directory (" + entryName + ")" );
++        }
++
+         try
+         {
+             if ( !isOverwrite() && f.exists() && ( f.lastModified() >= entryDate.getTime() ) )
+diff --git a/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverPathTraversalTest.java b/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverPathTraversalTest.java
+new file mode 100644
+index 0000000..b2ab3be
+--- /dev/null
++++ b/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverPathTraversalTest.java
+@@ -0,0 +1,68 @@
++package org.codehaus.plexus.archiver.tar;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.nio.charset.StandardCharsets;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.codehaus.plexus.PlexusTestCase;
++import org.codehaus.plexus.archiver.ArchiverException;
++import org.codehaus.plexus.archiver.UnArchiver;
++import org.codehaus.plexus.util.FileUtils;
++
++/**
++ * Regression test for the "Zip Slip" path traversal (CWE-022): a tar entry whose
++ * name escapes the destination directory must not be written outside of it.
++ */
++public class TarUnArchiverPathTraversalTest extends PlexusTestCase
++{
++
++    public void testEntryOutsideDestinationIsRejected()
++        throws Exception
++    {
++        File outputDirectory = new File( getBasedir(), "target/tar-unarchiver-traversal-tests/dest" );
++        FileUtils.deleteDirectory( outputDirectory.getParentFile() );
++        outputDirectory.mkdirs();
++
++        // The malicious entry tries to escape the destination directory.
++        File evilTarget = new File( outputDirectory.getParentFile(), "evil.txt" );
++        if ( evilTarget.exists() )
++        {
++            evilTarget.delete();
++        }
++
++        File maliciousTar = new File( getBasedir(), "target/tar-unarchiver-traversal-tests/malicious.tar" );
++        byte[] payload = "owned".getBytes( StandardCharsets.UTF_8 );
++        TarArchiveOutputStream tos = new TarArchiveOutputStream( new FileOutputStream( maliciousTar ) );
++        try
++        {
++            TarArchiveEntry entry = new TarArchiveEntry( "../evil.txt" );
++            entry.setSize( payload.length );
++            tos.putArchiveEntry( entry );
++            tos.write( payload );
++            tos.closeArchiveEntry();
++        }
++        finally
++        {
++            tos.close();
++        }
++
++        TarUnArchiver tarUn = (TarUnArchiver) lookup( UnArchiver.ROLE, "tar" );
++        tarUn.setSourceFile( maliciousTar );
++        tarUn.setDestDirectory( outputDirectory );
++
++        try
++        {
++            tarUn.extract();
++            fail( "Extraction of an entry outside of the destination directory should have failed" );
++        }
++        catch ( ArchiverException expected )
++        {
++            // expected
++        }
++
++        assertFalse( "Malicious entry must not be written outside the destination directory",
++                     evilTarget.exists() );
++    }
++
++}

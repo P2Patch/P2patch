@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2016-5314",
+  "note": "PixarLogDecode() (libtiff/tif_pixarlog.c) computes `nsamples` from the caller-supplied `occ` byte count and the image's `user_datafmt`/`td_bitspersample` (switch at lines 751-770), then at line 780 sets `sp->stream.avail_out = (uInt)(nsamples * sizeof(uint16))` and hands that to zlib's inflate() at line 787, which writes up to avail_out bytes into sp->tbuf. At this buggy commit PixarLogState carries no field recording sp->tbuf's real allocation size -- PixarLogSetupDecode() computes it into a purely local `tbuf_size` variable (line 688) and discards it -- so PixarLogDecode() has no way to detect a mismatched user_datafmt driving avail_out past the buffer's actual capacity, and inflate() overflows sp->tbuf. This is exploitable to overwrite adjacent heap data, such as a nearby function pointer. The sanitizer-detected fault typically surfaces a few lines after the avail_out assignment, in the tail of the inflate() call region, rather than at the exact assignment that sets avail_out.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "nsamples = occ / sizeof(uint16) (or /sizeof(float) at line 753, or = occ at line 762, depending on sp->user_datafmt) : sample count derived from the caller's byte-count and the image's user data format, with no relation kept to the buffer's actual allocation",
+            "uri": "libtiff/tif_pixarlog.c",
+            "line": 758
+          },
+          {
+            "message": "sp->stream.avail_out = (uInt)(nsamples * sizeof(uint16)) : avail_out set from nsamples with no check against sp->tbuf's real allocated size -- PixarLogState carries no field recording that size for this to check against",
+            "uri": "libtiff/tif_pixarlog.c",
+            "line": 780
+          },
+          {
+            "message": "int state = inflate(&sp->stream, Z_PARTIAL_FLUSH) : zlib writes up to avail_out bytes into sp->tbuf, past its real allocation once avail_out was oversized -- CWE-787 out-of-bounds write, typically surfacing a few lines later in the inflate() call region rather than at the exact avail_out assignment",
+            "uri": "libtiff/tif_pixarlog.c",
+            "line": 787
+          }
+        ]
+      ]
+    }
+  ]
+}

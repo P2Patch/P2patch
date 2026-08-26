@@ -1,0 +1,126 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:10.473003+00:00",
+    "finished_at": "2026-07-17T08:46:07.188763+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch contains the official fix's exact semantics — `relativePath.replace('\\\\','/')` before `split(\"/\")` in `AbstractResource.forFile` (line 109), applied inline in the for-each instead of via reassignment; the only observable difference is the `relativePath` echoed in the \"would go above root\" IllegalStateException message (line 122), which is cosmetic. On top of that it adds a genuine defense-in-depth check in `ContextAssetRequestHandler.handleAssetRequest` (lines 55-65) that re-applies the `illegal` denylist to the *resolved* `resource.getPath()`. I verified this second check is effective and not fail-open: `AbstractResource`'s constructor strips the leading slash (line 62), so `forFile(\"folder/../WEB-INF/web.xml\")` yields a ContextResource whose `getPath()` is `WEB-INF/web.xml`, which fully matches `^(((web|meta)-inf.*)|(.*\\.tml$))` — closing a residual denylist bypass (raw path passes the pre-check, then resolves into WEB-INF, and `ChecksumPath.stream` offers no protection since a wrong checksum only triggers a redirect to the correct URL) that the official one-line fix leaves open. Main weakness is evidentiary, not semantic: the POV never reproduced before the patch and zero regression tests ran, so nothing here is empirically confirmed.",
+    "root_cause": "`AbstractResource.forFile` canonicalized only on `/`, so on backslash-separated input a segment like `..\\..\\WEB-INF\\web.xml` survived as one opaque term that escaped `..` collapsing and the WEB-INF denylist, reaching the context/filesystem still un-normalized.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Backslash normalization lands at the shared sink exactly as the official fix does, and the handler additionally validates the post-resolution path, so both separator variants and dot-segment resolution into WEB-INF are closed.",
+        "evidence": "AbstractResource.java:109 `for (String term : relativePath.replace('\\\\', '/').split(\"/\"))`; traced `folder\\..\\WEB-INF\\web.xml` -> `folder/../WEB-INF/web.xml` -> terms [\"\"],[\"\",folder],[\"\"],[\"\",WEB-INF],... -> resource path `WEB-INF/web.xml` -> rejected at ContextAssetRequestHandler.java:62",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Normalization is applied inside the final `forFile` method on AbstractResource — the single canonicalization point every Resource subclass and every asset handler funnels through — not at a caller or entry point.",
+        "evidence": "AbstractResource.java:93 `public final Resource forFile(String relativePath)`, fix at line 109 before the `..`/`.` collapsing loop (lines 113-135); identical location/method to the official localization (forFile, lines 93-142)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "The sink-level fix covers ContextResource, ClasspathResource and FileResource alike (forFile is final on AbstractResource), and the handler re-check covers the residual `..`-into-WEB-INF variant the official fix leaves reachable.",
+        "evidence": "AbstractResource.java:109 (all subclasses via `createResource`/`newResource`, e.g. ContextResource.java:56); ContextAssetRequestHandler.java:62 covers `folder/../WEB-INF/web.xml` and `folder/../index.tml`, which pass the raw pre-check at line 50",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Strict superset: same defensive strategy in the same method as the official fix, plus an extra post-resolution check; nothing contradicts the reference.",
+        "evidence": "Official: `relativePath = relativePath.replace('\\\\', '/');` before `relativePath.split(\"/\")`. Ours: same replace inlined at AbstractResource.java:109; only divergence is the un-normalized `relativePath` in the exception text at line 122 (cosmetic)",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "No test evidence exists (regressions_ran=0), but code analysis shows legitimate assets are unaffected and the four new test cases all resolve to `WEB-INF/web.xml` and correctly return false.",
+        "evidence": "regressions_ran: 0, regressions_passed: null; legit path `css/app.css` resolves unchanged and fails `illegal` at ContextAssetRequestHandler.java:62; ContextAssetRequestHandlerTest.java:66-79 mock Context receives no calls since exists()/toURL() are never reached",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No new weakness; only minor edges — a dead null branch and an unauthenticated IllegalStateException (HTTP 500) now reachable via backslash above-root paths, though that behavior is inherited from the official fix itself.",
+        "evidence": "ContextAssetRequestHandler.java:62 `resource == null` is unreachable (forFile always returns createResource(...) at AbstractResource.java:147); AbstractResource.java:120-123 throws for `..\\..\\..\\x` after normalization",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "The core fix is a one-line change identical to the official; the extra ~12-line handler block is justified defense-in-depth but exceeds the minimal correct change, and all edits stay within the two relevant files.",
+        "evidence": "1 changed line at AbstractResource.java:109 vs official's 1 line; +11 lines at ContextAssetRequestHandler.java:55-65; no unrelated edits",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Correct normalize-then-check shape (validation runs on the resolved path, not raw input), which is the CWE-022 pattern, but containment is enforced by a WEB-INF/META-INF/.tml denylist rather than a base-dir allowlist, and there is no real-path/symlink canonicalization.",
+        "evidence": "ContextAssetRequestHandler.java:38 `Pattern.compile(\"^(((web|meta)-inf.*)|(.*\\\\.tml$))\")` re-applied to `resource.getPath()` at line 62; `..` collapsing is string-level (AbstractResource.java:118-128), no File.getCanonicalPath()/startsWith(base) check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "No execution evidence supports the verdict: pov_before_reproduced=false (the POV never demonstrated the vulnerability pre-patch), pov_after_present=false, and regressions_ran=0. Both gates rest entirely on manual code tracing, not on the pipeline's results. The four added TestNG cases in ContextAssetRequestHandlerTest were never executed."
+      },
+      {
+        "severity": "low",
+        "description": "Containment is still a denylist ('^(web|meta)-inf.*' or '*.tml'), not a base-directory allowlist. It happens to be sound here because AbstractResource strips the leading slash and forFile emits no leading separator, but the check is coupled to that formatting invariant — any future change to path rendering in forFile/AbstractResource would silently make the re-check at ContextAssetRequestHandler.java:62 fail open rather than fail closed."
+      },
+      {
+        "severity": "low",
+        "description": "Dead branch: `resource == null` at ContextAssetRequestHandler.java:62 can never be true, since AbstractResource.forFile always returns createResource(...) (line 147). Harmless but misleading."
+      },
+      {
+        "severity": "low",
+        "description": "The explanatory comment at AbstractResource.java:104-108 is partly inaccurate — it claims the un-normalized segment reaches 'the filesystem largely unnormalized, which the underlying OS or servlet container may still interpret as real traversal', which understates the concrete pre-fix behavior (the whole `..\\..\\WEB-INF\\web.xml` string becomes a single term appended verbatim to the resource path, escaping the context root on Windows)."
+      }
+    ],
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractResource.java"
+      ],
+      "ours_only": [
+        "ContextAssetRequestHandler.java"
+      ],
+      "official_only": [],
+      "jaccard": 0.5,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+      ],
+      "commits": [
+        "6dd7219fd4707467a36091e2f7f5f6460c619099"
+      ]
+    }
+  }
+}

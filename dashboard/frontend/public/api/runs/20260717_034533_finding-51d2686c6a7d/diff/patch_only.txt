@@ -1,0 +1,56 @@
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+index b7d1ea0..7636013 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+@@ -128,7 +128,13 @@ public class StaticHandlerImpl implements StaticHandler {
+       if (log.isTraceEnabled()) log.trace("Not GET or HEAD so ignoring request");
+       context.next();
+     } else {
+-      String path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false));
++      // Normalize backslashes to forward slashes before dot-segment removal. removeDots() only
++      // recognises '/' as a path separator (per RFC 3986 5.2.4), but some filesystems (notably
++      // Windows) also honour '\' as a separator. Without this, a request such as
++      // "/..%5csecret.txt" decodes to "/..\secret.txt", survives removeDots() unmodified (its
++      // ".." is never recognised as a segment), and later resolves outside webRoot once the
++      // backend filesystem treats '\' as a separator (CVE-2023-24815 class path traversal).
++      String path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false).replace('\\', '/'));
+       // if the normalized path is null it cannot be resolved
+       if (path == null) {
+         log.warn("Invalid path: " + context.request().path());
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+index c561c01..9d16301 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+@@ -90,6 +90,32 @@ public class StaticHandlerTest extends WebTestBase {
+     testRequest(HttpMethod.GET, "/somedir/something.html", 200, "OK", "<html><body>Blah page</body></html>");
+   }
+ 
++  @Test
++  public void testBackslashEncodedDirectorySeparatorIsNormalized() throws Exception {
++    // Regression test for CWE-22 / CVE-2023-24815-class path traversal: HttpUtils.removeDots()
++    // only recognises '/' as a path separator (RFC 3986 5.2.4), so a percent-encoded backslash
++    // ("%5c") used to survive dot-segment sanitisation completely unmodified. On filesystems
++    // that also honour '\' as a directory separator (notably Windows), a request such as
++    // "/..%5csecret.txt" (decoding to "/..\secret.txt") could therefore escape the configured
++    // webRoot even though the equivalent forward-slash payload ("/../secret.txt") is blocked.
++    // StaticHandlerImpl now normalizes '\' to '/' before running removeDots(), so a
++    // backslash-separated request path is treated exactly like its forward-slash equivalent:
++    // here "/somedir%5cotherpage.html" must resolve to the real "somedir/otherpage.html" file
++    // instead of (pre-fix) looking for a literal file named "somedir\otherpage.html" and
++    // returning 404.
++    testRequest(HttpMethod.GET, "/somedir%5cotherpage.html", 200, "OK", "<html><body>Subdirectory other page</body></html>");
++  }
++
++  @Test
++  public void testBackslashEncodedTraversalIsBlocked() throws Exception {
++    // Same root cause as above, exercised directly against a ".." segment: without backslash
++    // normalization the raw ".." in "/..%5csecret.txt" is never recognised as a dot-segment by
++    // removeDots() and would be handed to the filesystem sink verbatim. This asserts the
++    // request path is still safely rejected (404, no directory-listing/500 leak) once '\' is
++    // treated as a separator, matching the existing behaviour for the forward-slash equivalent.
++    testRequest(HttpMethod.GET, "/..%5csecret.txt", 404, "Not Found");
++  }
++
+   @Test
+   public void testBadPathNoLeadingSlash() throws Exception {
+     testRequest(HttpMethod.GET, "otherpage.html", 404, "Not Found");

@@ -1,0 +1,279 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:23:34.146672+00:00",
+    "finished_at": "2026-07-11T23:24:50.059922+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Only adds cmd.exe/command.com metachar quoting on Windows shells; keeps shell interpretation and leaves the Unix/BourneShell runtime path and Commandline.execute untouched.",
+        "evidence": "CmdShell/CommandShell.getQuotingTriggerChars() returns blocklist {' ','&','|','<','>','(',')','^','%'}; no change to BourneShell or Commandline.execute().",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Symptom-level: expands a quoting blocklist rather than removing shell evaluation. Official fix used a literal executable + array-based exec and unconditional quoting.",
+        "evidence": "Official Commandline.execute() switched to getCommandline()/getLiteralExecutable(); ours only edits getQuotingTriggerChars() in two Windows subclasses.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 1,
+        "rationale": "Fixes only cmd.exe/command.com; BourneShell (the CI/Linux path in the taint trace's real runtime), and % / quote-breakout bypasses remain.",
+        "evidence": "ours_only=[CmdShell.java,CommandShell.java]; official_only=[BourneShell.java,Commandline.java,Shell.java]; jaccard 0.0.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same defensive goal (quote injection chars) but different mechanism and location; touches none of the official files and omits the unconditional-quoting/literal-executable strategy.",
+        "evidence": "No overlap with official fix files; official added setUnconditionalQuoting(true) + quoteOneItem single-quote escaping in BourneShell/Shell.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 3,
+        "rationale": "Added unit tests likely pass and Unix path is untouched, but no regression suite ran and Windows behavior for executables containing % could change.",
+        "evidence": "regressions_ran=0; new CmdShellTest asserts nested-quote outputs; only Windows subclasses altered.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "No crash, but produces nested double-quotes in cmd.exe where % expansion and \" breakout are not neutralized, a marginal edge risk.",
+        "evidence": "testExecutableWithMetacharacterIsQuoted expects \"\\\"\\\"ping&calc\\\"\\\"\"; '%' quoting via double-quotes does not stop cmd.exe var expansion.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Small localized diff, but placed in the wrong classes relative to the actual fix location.",
+        "evidence": "Two small subclass edits plus a new test file; no edits to the sink path used at runtime.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Relies on a blocklist of shell metacharacters plus quoting — the fragile ad-hoc filter the CWE-078 rubric rates 1-2; defense-of-record is no-shell/arg-array.",
+        "evidence": "CMD_QUOTING_TRIGGER_CHARS blocklist; official moved local exec to array-based getCommandline() avoiding shell.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Unix/Linux attack path unaddressed: patch only overrides CmdShell/CommandShell (Windows). The official fix centered on BourneShell unconditional single-quote escaping and Commandline.execute()/getLiteralExecutable(); on the likely Linux CI runtime this patch does nothing."
+      },
+      {
+        "severity": "high",
+        "description": "Fragile blocklist mitigation: relies on enumerating cmd.exe metacharacters and quoting rather than eliminating shell evaluation. Double-quote wrapping in cmd.exe does not neutralize %VAR% expansion or embedded-quote breakout, so the injection class survives."
+      },
+      {
+        "severity": "medium",
+        "description": "No verification of the fix: pov_before_reproduced=false and regressions_ran=0, so neither vulnerability elimination nor absence of regressions was demonstrated by execution."
+      }
+    ],
+    "root_cause": "Commandline assembled the executable/arguments into a shell command line that Runtime.exec interpreted through a shell, so metacharacters in the (attacker-influenced) executable/args were evaluated as commands; a correct fix removes shell interpretation for local execution (literal executable + array exec) and/or unconditionally quotes every token robustly.",
+    "summary": "Our patch only adds a cmd.exe/command.com metacharacter blocklist to the two Windows shell subclasses, leaving the BourneShell/Unix path and Commandline.execute() — the actual runtime sink the official fix rewrote — completely unchanged. It is a fragile, incomplete, differently-located mitigation that does not close the OS-command-injection class (blocklist bypasses, %-expansion, quote breakout) and shares zero files with the official fix. Execution results provide no confirmation (POV never reproduced, no regressions run), so the fix cannot be considered validated.",
+    "overall": {
+      "mean": 2.25,
+      "score": 45,
+      "band": "bad",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 45,
+        "score_mean": 45.0,
+        "score_min": 40,
+        "score_max": 50,
+        "score_stdev": 4.08,
+        "mean_median": 2.25,
+        "band_mode": "bad",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.23
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 1,
+          "max": 2,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 1,
+          "min": 1,
+          "max": 2,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 1,
+          "max": 2,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            1,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.0,
+        "no_regressions": 0.67
+      },
+      "per_sample": [
+        {
+          "score": 50,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 40,
+          "band": "bad",
+          "gates_passed": false
+        },
+        {
+          "score": 45,
+          "band": "bad",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 2,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "CmdShell.java",
+        "CommandShell.java"
+      ],
+      "official_only": [
+        "BourneShell.java",
+        "Commandline.java",
+        "Shell.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+      ],
+      "commits": [
+        "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41"
+      ]
+    }
+  }
+}

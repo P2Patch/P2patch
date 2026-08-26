@@ -1,0 +1,1045 @@
+{
+  "run_id": "20260711_232626_finding-db2333119a3f",
+  "finding_id": "finding-db2333119a3f",
+  "timestamp": "2026-07-11T23:26:26",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-078",
+    "cwe_name": "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+    "finding_id": "20260711_232626_finding-db2333119a3f",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-db2333119a3f",
+    "cve_id": "CVE-2017-1000487",
+    "cwe_id": "CWE-078",
+    "cwe_name": "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
+    "project_slug": "codehaus-plexus__plexus-utils_CVE-2017-1000487_3.0.15",
+    "alert_file": "CODEHAUS_CVE_2017_1000487.json",
+    "github_url": "https://github.com/codehaus-plexus/plexus-utils",
+    "repo": "codehaus-plexus/plexus-utils",
+    "github_tag": "3.0.15",
+    "advisory_id": "GHSA-8vhq-qq4p-grq3",
+    "buggy_commit_id": "3b271b43f9e5021b4232fc2ffdfb4e469c7f8685",
+    "fix_commit_ids": [
+      "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Marker",
+        "class_start": "234.0",
+        "class_end": "252.0",
+        "method": "getPosition",
+        "method_start": "252.0",
+        "method_end": "263.0",
+        "signature": "int getPosition()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "getShellCommandline",
+        "method_start": "501.0",
+        "method_end": "506.0",
+        "signature": "String getShellCommandline()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "getArguments",
+        "method_start": "513.0",
+        "method_end": "531.0",
+        "signature": "String getArguments()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "execute",
+        "method_start": "618.0",
+        "method_end": "659.0",
+        "signature": "Process execute()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "Commandline",
+        "method_start": "144.0",
+        "method_end": "162.0",
+        "signature": "Commandline(String,Shell)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "Commandline",
+        "method_start": "182.0",
+        "method_end": "199.0",
+        "signature": "Commandline(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "verifyShellState",
+        "method_start": "665.0",
+        "method_end": "674.0",
+        "signature": "void verifyShellState()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "class": "Commandline",
+        "class_start": "104.0",
+        "class_end": "731.0",
+        "method": "translateCommandline",
+        "method_start": "708.0",
+        "method_end": "711.0",
+        "signature": "String translateCommandline(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "class": "BourneShell",
+        "class_start": "29.0",
+        "class_end": "157.0",
+        "method": "BourneShell",
+        "method_start": "55.0",
+        "method_end": "67.0",
+        "signature": "BourneShell(boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "class": "BourneShell",
+        "class_start": "29.0",
+        "class_end": "157.0",
+        "method": "getShellArgs",
+        "method_start": "97.0",
+        "method_end": "115.0",
+        "signature": "String getShellArgs()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java",
+        "class": "Shell",
+        "class_start": "40.0",
+        "class_end": "405.0",
+        "method": "setQuotedArgumentsEnabled",
+        "method_start": "297.0",
+        "method_end": "299.0",
+        "signature": "void setQuotedArgumentsEnabled(boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java",
+        "class": "Shell",
+        "class_start": "40.0",
+        "class_end": "405.0",
+        "method": "getExecutionPreamble",
+        "method_start": "185.0",
+        "method_end": "187.0",
+        "signature": "String getExecutionPreamble()",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java",
+        "class": "Shell",
+        "class_start": "40.0",
+        "class_end": "405.0",
+        "method": "getRawCommandLine",
+        "method_start": "132.0",
+        "method_end": "177.0",
+        "signature": "List getRawCommandLine(String,String)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java",
+        "class": "Shell",
+        "class_start": "40.0",
+        "class_end": "405.0",
+        "method": "getEscapeChars",
+        "method_start": "190.0",
+        "method_end": "206.0",
+        "signature": "char getEscapeChars(boolean,boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testGetShellCommandLineNonWindows",
+        "method_start": "322.0",
+        "method_end": "344.0",
+        "signature": "void testGetShellCommandLineNonWindows()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testQuotedPathWithSingleApostrophe",
+        "method_start": "380.0",
+        "method_end": "387.0",
+        "signature": "void testQuotedPathWithSingleApostrophe()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testGetShellCommandLineBash_WithSingleQuotedArg",
+        "method_start": "299.0",
+        "method_end": "319.0",
+        "signature": "void testGetShellCommandLineBash_WithSingleQuotedArg()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testQuotedPathWithQuotationMark",
+        "method_start": "395.0",
+        "method_end": "408.0",
+        "signature": "void testQuotedPathWithQuotationMark()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testGetShellCommandLineBash_WithWorkingDirectory",
+        "method_start": "267.0",
+        "method_end": "292.0",
+        "signature": "void testGetShellCommandLineBash_WithWorkingDirectory()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java",
+        "class": "CommandlineTest",
+        "class_start": "36.0",
+        "class_end": "621.0",
+        "method": "testGetShellCommandLineBash",
+        "method_start": "240.0",
+        "method_end": "260.0",
+        "signature": "void testGetShellCommandLineBash()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes_BackslashFileSep",
+        "method_start": "60.0",
+        "method_end": "69.0",
+        "signature": "void testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes_BackslashFileSep()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes",
+        "method_start": "48.0",
+        "method_end": "57.0",
+        "signature": "void testQuoteWorkingDirectoryAndExecutable_WDPathWithSingleQuotes()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testBourneShellQuotingCharacters",
+        "method_start": "176.0",
+        "method_end": "210.0",
+        "signature": "void testBourneShellQuotingCharacters()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testArgumentsWithsemicolon",
+        "method_start": "120.0",
+        "method_end": "173.0",
+        "signature": "void testArgumentsWithsemicolon()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testEscapeSingleQuotesOnArgument",
+        "method_start": "104.0",
+        "method_end": "117.0",
+        "signature": "void testEscapeSingleQuotesOnArgument()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testPreserveSingleQuotesOnArgument",
+        "method_start": "72.0",
+        "method_end": "85.0",
+        "signature": "void testPreserveSingleQuotesOnArgument()",
+        "is_test": true
+      },
+      {
+        "commit": "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41",
+        "file": "src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java",
+        "class": "BourneShellTest",
+        "class_start": "27.0",
+        "class_end": "176.0",
+        "method": "testQuoteWorkingDirectoryAndExecutable",
+        "method_start": "36.0",
+        "method_end": "45.0",
+        "signature": "void testQuoteWorkingDirectoryAndExecutable()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+      "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+      "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2017-1000487",
+      "advisory": "https://github.com/advisories/GHSA-8vhq-qq4p-grq3",
+      "repo": "https://github.com/codehaus-plexus/plexus-utils",
+      "buggy_commit": "https://github.com/codehaus-plexus/plexus-utils/commit/3b271b43f9e5021b4232fc2ffdfb4e469c7f8685"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-078",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 320,
+              "message": "executable : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 326,
+              "message": "executable : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 326,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 326,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 326,
+              "message": "this [post update] : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 674,
+              "message": "shell [post update] : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 674,
+              "message": "this <.field> [post update] : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 622,
+              "message": "this <.method> [post update] : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "this <.method> : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 501,
+              "message": "parameter this : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "this <.method> : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 700,
+              "message": "parameter this : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 702,
+              "message": "this <.field> : Commandline [shell, executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 702,
+              "message": "shell : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "getShell(...) : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 266,
+              "message": "parameter this : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "this <.method> : Shell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 80,
+              "message": "parameter this : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "super : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 127,
+              "message": "parameter this : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "this <.method> : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 132,
+              "message": "parameter this : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 153,
+              "message": "this <.method> : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 329,
+              "message": "parameter this : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 331,
+              "message": "this <.field> : CmdShell [executable] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 331,
+              "message": "executable : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 153,
+              "message": "getExecutable(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 153,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "commandLine [post update] : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 177,
+              "message": "commandLine : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "getRawCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 84,
+              "message": "getCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "get(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 85,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "new String[] : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "new String[] : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "asList(...) : List",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 281,
+              "message": "getCommandLine(...) : List",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "commandLine [post update] : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 283,
+              "message": "commandLine : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 506,
+              "message": "getShellCommandLine(...) : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "toArray(...) : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "(...)... : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...) : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...)",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            }
+          ],
+          [
+            {
+              "line": 266,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 127,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 132,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 171,
+              "message": "...[...] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 171,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "commandLine [post update] : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 177,
+              "message": "commandLine : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "getRawCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "getCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "commandLine [post update] : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 283,
+              "message": "commandLine : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 506,
+              "message": "getShellCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "toArray(...) : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "(...)... : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...) : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...)",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            }
+          ],
+          [
+            {
+              "line": 266,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 80,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 127,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 132,
+              "message": "arguments : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 167,
+              "message": "...[...] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 2303,
+              "message": "source : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/StringUtils.java"
+            },
+            {
+              "line": 2317,
+              "message": "source : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/StringUtils.java"
+            },
+            {
+              "line": 167,
+              "message": "quoteAndEscape(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 167,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 175,
+              "message": "commandLine [post update] : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 177,
+              "message": "commandLine : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 129,
+              "message": "getRawCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 84,
+              "message": "getCommandLine(...) : ArrayList [<element>] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "get(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 84,
+              "message": "sb [post update] : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 85,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "sb : StringBuilder",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "toString(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "new String[] : String[] [[]] : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "new String[] : String[]",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 87,
+              "message": "asList(...) : List [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java"
+            },
+            {
+              "line": 281,
+              "message": "getCommandLine(...) : List [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 281,
+              "message": "commandLine [post update] : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 283,
+              "message": "commandLine : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+            },
+            {
+              "line": 506,
+              "message": "getShellCommandLine(...) : ArrayList [<element>] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "toArray(...) : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 506,
+              "message": "(...)... : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...) : String[] [[]] : Object",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            },
+            {
+              "line": 636,
+              "message": "getShellCommandline(...)",
+              "uri": "src/main/java/org/codehaus/plexus/util/cli/Commandline.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-078",
+      "finding_id": "finding-db2333119a3f",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260711_232626_finding-db2333119a3f/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-db2333119a3f:238451dda380",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-utils_[redacted]_3.0.15/64/Dockerfile",
+        "-t",
+        "simpleautosec-finding-db2333119a3f:238451dda380",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-utils_[redacted]_3.0.15/64"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 362915,
+        "duration_api_ms": 346532,
+        "num_turns": 22,
+        "cost_usd": 1.7274159999999996,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 34,
+          "output": 23542,
+          "cache_read": 883994,
+          "cache_creation": 68192
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java",
+          "src/main/java/org/codehaus/plexus/util/cli/shell/CommandShell.java",
+          "src/test/java/org/codehaus/plexus/util/cli/shell/CmdShellTest.java"
+        ],
+        "patch_notes": "Root cause: org.codehaus.plexus.util.cli.shell.Shell#getQuotingTriggerChars returns DEFAULT_QUOTING_TRIGGER_CHARS = { ' ' }. CmdShell and CommandShell do not override it, so getRawCommandLine only quotes tokens containing a space. Metacharacter-only tokens (e.g. \"ping&calc\") reach cmd.exe/command.com via `getShellCommandLine` -> Commandline.getShellCommandline -> Runtime.exec unquoted; because cmd.exe strips the outer wrapping quotes when it finds special characters, the metacharacters get interpreted, allowing command injection through a tainted executable or argument.\n\nFix: Added `private static final char[] CMD_QUOTING_TRIGGER_CHARS = { ' ', '&', '|', '<', '>', '(', ')', '^', '%' }` and an override of `getQuotingTriggerChars()` in both CmdShell and CommandShell, mirroring the mitigation BourneShell already applies for Unix. Tokens containing these characters are now quoted, so metacharacters remain inside quotes after cmd.exe's quote handling and are treated literally instead of as command separators/redirections.\n\nBehavior preserved: Plain executables/arguments are unaffected (verified by testPlainExecutableIsNotOverQuoted, which still yields the single CmdShell wrapping `\"chmod\"`). Space-containing paths already received the same double-quote treatment, so the change is consistent with existing working behavior. Default shell on Linux is BourneShell, so no existing tests changed; CmdShellTest directly instantiates CmdShell to exercise the Windows path.",
+        "regression_commands": [
+          "mvn -B -Dtest=CmdShellTest,BourneShellTest,CommandlineTest test",
+          "mvn -B test"
+        ],
+        "risk_notes": "Quoting (rather than caret-escaping) is the mechanism used, consistent with the library's existing CmdShell double-quote wrapping and BourneShell approach; it prevents metacharacter interpretation for the common injection vectors. Embedded double-quote (\") breakout is a distinct, pre-existing concern not addressed here (the base Shell does not enable double-quote escaping for these shells); '\"' was intentionally left out of the trigger set to avoid producing malformed output given escaping is disabled. This fix cannot be dynamically verified on Windows in this Linux CI container, so validation is via string-level assertions on the generated command line. No POV was provided; reasoning is from the alert and code flow.",
+        "status": "patched",
+        "summary": "Fixed a CWE-078 OS command injection gap in the Windows shell wrappers of plexus-utils. The base Shell quotes executable/argument tokens only when they contain a space (DEFAULT_QUOTING_TRIGGER_CHARS = { ' ' }). BourneShell already overrides this with a metacharacter-aware set (BASH_QUOTING_TRIGGER_CHARS), closing the injection hole on Unix, but CmdShell and CommandShell inherited the space-only set. As a result, an executable or argument containing cmd.exe/command.com metacharacters (& | < > ( ) ^ %) but no space was passed into `cmd.exe /X /C \"...\"` unquoted, letting an attacker terminate the intended command and inject additional commands. The fix gives both Windows shells a metacharacter-aware quoting-trigger set so such tokens are quoted exactly like space-containing paths already are (the existing, working double-quote wrapping), neutralizing the metacharacters. Added CmdShellTest to lock in the behavior; the full suite (286 tests) passes."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 1.7274,
+    "num_turns": 22,
+    "agent_duration_ms": 362915
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

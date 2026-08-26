@@ -1,0 +1,127 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:46:06.019614+00:00",
+    "finished_at": "2026-07-17T15:47:23.502822+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Callback JSONP XSS closed at every callback sink via an anchored JS-identifier allowlist; the mimeType Content-Type vector the official fix also hardens is left open.",
+        "evidence": "AgentServlet.sendAllJSON line 500 `callback != null && IoUtil.isValidCallback(callback) ? ... : json`; IoUtil.streamResponseAndClose else-branch falls back to plain JSON; JolokiaHttpHandler.sendAllJSON line 363 same guard.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the sink/trust boundary — the tainted callback is validated immediately before being concatenated into the response body.",
+        "evidence": "IoUtil.isValidCallback CALLBACK_PATTERN regex; applied at all three embedding points (AgentServlet, IoUtil, JolokiaHttpHandler).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "All four callback paths (servlet non-streaming/streaming, jvm handler non-streaming/streaming via IoUtil) are guarded, but the official-only MimeTypeUtil mimeType sanitization is not replicated.",
+        "evidence": "overlap_files covers AgentServlet+JolokiaHttpHandler; official_only MimeTypeUtil.java (getResponseMimeType/sanitize) not present in our diff.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same strategy — validate callback against a JS function-name regex — but ours falls back to plain JSON instead of throwing IllegalArgumentException and omits mime sanitization.",
+        "evidence": "Official validateCallbackIfGiven throws; ours degrades to non-JSONP output in IoUtil else-branch and AgentServlet ternary.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Valid callbacks (including dotted identifiers like angular.callbacks._0) still produce JSONP; added unit/integration tests assert both malicious rejection and legitimate behavior.",
+        "evidence": "IoUtilTest.checkIsValidCallback accepts `angular.callbacks._0`; JolokiaHttpHandlerTest.testMaliciousCallbackGet asserts `<script>` absent and body starts with `{`.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Anchored linear regex (no catastrophic backtracking), null-safe, no new sink or state introduced.",
+        "evidence": "CALLBACK_PATTERN `^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[...])*$` with isValidCallback null guard.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized: one helper plus three one-line sink guards and tests; no unrelated edits.",
+        "evidence": "Only AgentServlet line 500, IoUtil helper+else-branch, JolokiaHttpHandler line 363 changed.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "For a JSONP callback (JS-identifier context) a strict character allowlist is the defense-of-record — identical in kind to the official regex, not a fragile metachar blocklist.",
+        "evidence": "CALLBACK_PATTERN rejects parentheses/quotes/angle brackets/whitespace, matching official `^[$A-Z_][0-9A-Z_$]*$` intent (ours additionally permits safe dotted names).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The mimeType request parameter is still reflected verbatim into the response Content-Type header (getMimeType unchanged); the official fix added MimeTypeUtil.sanitize restricting it to application/json or text/plain to close a secondary content-sniffing XSS vector. Our patch does not address this path."
+      },
+      {
+        "severity": "low",
+        "description": "On an invalid callback the patch silently degrades to a plain (non-JSONP) response instead of rejecting the request with an error as the official fix does; behavior-preserving and safe, but a client sending a bad callback gets an unwrapped body rather than an explicit failure."
+      },
+      {
+        "severity": "low",
+        "description": "Execution evidence is weak: pov_before_reproduced=false and regressions_ran=0 (regressions_passed=null), so vulnerability closure and regression safety rest on code reasoning and the added tests rather than pipeline confirmation."
+      }
+    ],
+    "summary": "Our patch is a substantively correct fix for the primary CVE-2018-1000129 callback XSS: it validates the JSONP callback against an anchored JavaScript-identifier allowlist at every embedding sink (AgentServlet non-streaming, IoUtil streaming, and the jvm JolokiaHttpHandler), which is the defense-of-record for this JSONP context and matches the official regex intent. It differs by gracefully falling back to plain JSON instead of throwing, and — more importantly — it does not replicate the official MimeTypeUtil mimeType sanitization, leaving a secondary Content-Type-based XSS vector unaddressed. Net: sound and minimal for the callback vector, but a weaker subset of the official fix.",
+    "root_cause": "Untrusted `callback` request parameter is concatenated unescaped into the JavaScript/JSONP response body (and the mimeType parameter into Content-Type), so a correct fix must constrain the callback to a safe JS-identifier at the sink and sanitize the response content type.",
+    "overall": {
+      "mean": 4.62,
+      "score": 92,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AgentServlet.java",
+        "JolokiaHttpHandler.java"
+      ],
+      "ours_only": [
+        "IoUtil.java"
+      ],
+      "official_only": [
+        "MimeTypeUtil.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "agent/core/src/main/java/org/jolokia/util/MimeTypeUtil.java",
+        "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+      ],
+      "commits": [
+        "5895d5c137c335e6b473e9dcb9baf748851bbc5f"
+      ]
+    }
+  }
+}

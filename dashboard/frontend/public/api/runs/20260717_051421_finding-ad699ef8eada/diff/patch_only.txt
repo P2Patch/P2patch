@@ -1,0 +1,243 @@
+diff --git a/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java b/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
+index b38dd41..9a55b0a 100644
+--- a/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
++++ b/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
+@@ -19,7 +19,9 @@ package org.apache.commons.text.lookup;
+ 
+ import java.nio.charset.StandardCharsets;
+ import java.util.Base64;
++import java.util.EnumSet;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.function.BiFunction;
+ import java.util.function.Function;
+ 
+@@ -382,6 +384,35 @@ public final class StringLookupFactory {
+      */
+     public static final String KEY_XML = "xml";
+ 
++    /**
++     * Name of the system property used to opt back in to registering the {@code script}, {@code dns}, and
++     * {@code url} lookups as part of the <em>default</em>/opt-out lookups added by
++     * {@link #addDefaultStringLookups(Map)} (and therefore reachable through {@link #interpolatorStringLookup()}
++     * and {@link org.apache.commons.text.StringSubstitutor#createInterpolator()}).
++     * <p>
++     * These lookups are excluded by default because resolving them against attacker-influenced template text can
++     * result in arbitrary code execution ({@code script}, see CVE-2022-42889) or server-side request
++     * forgery/denial of service ({@code dns}, {@code url}). Set this system property to {@code true} before these
++     * lookups are constructed to restore the previous, less safe, default behavior. Prefer instead to opt in
++     * explicitly and only for trusted input, for example by calling {@link #scriptStringLookup()},
++     * {@link #dnsStringLookup()}, or {@link #urlStringLookup()} directly, or by adding them one-by-one to a custom
++     * lookup {@link Map} passed to {@link #interpolatorStringLookup(Map)}.
++     * </p>
++     *
++     * @since 1.10.0
++     */
++    public static final String DEFAULT_STRING_LOOKUPS_PROPERTY =
++        "org.apache.commons.text.StringSubstitutor.enableInterpolationLookup";
++
++    /**
++     * Lookups that are never added by {@link #addDefaultStringLookups(Map)} unless
++     * {@link #DEFAULT_STRING_LOOKUPS_PROPERTY} is set to {@code true}, because resolving them against untrusted,
++     * attacker-influenced template text can trigger code execution or SSRF/DoS (CVE-2022-42889, a.k.a.
++     * "Text4Shell").
++     */
++    private static final Set<DefaultStringLookup> UNSAFE_DEFAULT_LOOKUPS =
++        EnumSet.of(DefaultStringLookup.SCRIPT, DefaultStringLookup.DNS, DefaultStringLookup.URL);
++
+     /**
+      * Clears any static resources.
+      *
+@@ -391,6 +422,17 @@ public final class StringLookupFactory {
+         ConstantStringLookup.clear();
+     }
+ 
++    /**
++     * Tests whether the lookups in {@link #UNSAFE_DEFAULT_LOOKUPS} should be included by
++     * {@link #addDefaultStringLookups(Map)}. Controlled by the {@link #DEFAULT_STRING_LOOKUPS_PROPERTY} system
++     * property, which defaults to {@code false} (excluded) for security.
++     *
++     * @return whether the unsafe default lookups (script, dns, url) should be registered.
++     */
++    private static boolean isDefaultUnsafeStringLookupsEnabled() {
++        return Boolean.getBoolean(DEFAULT_STRING_LOOKUPS_PROPERTY);
++    }
++
+     /**
+      * No need to build instances for now.
+      */
+@@ -400,6 +442,15 @@ public final class StringLookupFactory {
+ 
+     /**
+      * Adds the {@link StringLookupFactory default lookups}.
++     * <p>
++     * As of fixing CVE-2022-42889, the {@value #KEY_SCRIPT}, {@value #KEY_DNS}, and {@value #KEY_URL} lookups are no
++     * longer added by this method unless the {@link #DEFAULT_STRING_LOOKUPS_PROPERTY} system property is set to
++     * {@code true}. This prevents callers of the opt-out interpolator entry points (for example
++     * {@link #interpolatorStringLookup()} and {@link org.apache.commons.text.StringSubstitutor#createInterpolator()})
++     * from unintentionally exposing script execution or SSRF/DoS-capable lookups to untrusted template text. Those
++     * lookups remain directly available via {@link #scriptStringLookup()}, {@link #dnsStringLookup()}, and
++     * {@link #urlStringLookup()} for callers that explicitly want them.
++     * </p>
+      *
+      * @param stringLookupMap the map of string lookups.
+      * @since 1.5
+@@ -408,7 +459,11 @@ public final class StringLookupFactory {
+         if (stringLookupMap != null) {
+             // "base64" is deprecated in favor of KEY_BASE64_DECODER.
+             stringLookupMap.put("base64", StringLookupFactory.INSTANCE_BASE64_DECODER);
++            final boolean includeUnsafeLookups = isDefaultUnsafeStringLookupsEnabled();
+             for (final DefaultStringLookup stringLookup : DefaultStringLookup.values()) {
++                if (!includeUnsafeLookups && UNSAFE_DEFAULT_LOOKUPS.contains(stringLookup)) {
++                    continue;
++                }
+                 stringLookupMap.put(InterpolatorStringLookup.toKey(stringLookup.getKey()),
+                     stringLookup.getStringLookup());
+             }
+diff --git a/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java b/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
+index 1d6a16f..3a5e973 100644
+--- a/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
++++ b/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
+@@ -134,58 +134,48 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+     }
+ 
+     @Test
+-    public void testDnsLookup() throws UnknownHostException {
++    public void testDnsLookupDisabledByDefault() throws UnknownHostException {
++        // CVE-2022-42889: "dns" is no longer resolved by the default/opt-out interpolator because it can be used
++        // for SSRF/DoS against attacker-influenced template text. The token is left unresolved.
+         final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+         final String hostName = InetAddress.getLocalHost().getHostName();
+-        Assertions.assertEquals(InetAddress.getByName(hostName).getHostAddress(),
+-            strSubst.replace("${dns:" + hostName + "}"));
++        final String token = "${dns:" + hostName + "}";
++        Assertions.assertEquals(token, strSubst.replace(token));
+     }
+ 
+     @Test
+-    public void testDnsLookupAddress() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+-        Assertions.assertEquals(InetAddress.getByName("apache.org").getHostAddress(),
+-            strSubst.replace("${dns:address|apache.org}"));
+-    }
+-
+-    @Test
+-    public void testDnsLookupCanonicalName() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+-        final String address = InetAddress.getLocalHost().getHostAddress();
+-        final InetAddress inetAddress = InetAddress.getByName(address);
+-        Assertions.assertEquals(inetAddress.getCanonicalHostName(),
+-            strSubst.replace("${dns:canonical-name|" + address + "}"));
+-    }
+-
+-    @Test
+-    public void testDnsLookupName() throws UnknownHostException {
++    public void testDnsLookupUnknown() {
++        // "dns" is not resolved by default, regardless of whether the underlying lookup would succeed or fail.
+         final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+-        final String address = InetAddress.getLocalHost().getHostAddress();
+-        final InetAddress inetAddress = InetAddress.getByName(address);
+-        Assertions.assertEquals(inetAddress.getHostName(), strSubst.replace("${dns:name|" + address + "}"));
++        final String unknown = "${dns: u n k n o w n}";
++        Assertions.assertEquals(unknown, strSubst.replace(unknown));
+     }
+ 
+     @Test
+-    public void testDnsLookupNameUntrimmed() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+-        final String address = InetAddress.getLocalHost().getHostAddress();
+-        final InetAddress inetAddress = InetAddress.getByName(address);
+-        Assertions.assertEquals(inetAddress.getHostName(), strSubst.replace("${dns:name| " + address + " }"));
++    public void testDnsLookupExplicitOptIn() throws UnknownHostException {
++        // Explicit, direct use of the dns lookup remains available for callers that want it.
++        Assertions.assertEquals(InetAddress.getByName("apache.org").getHostAddress(),
++            StringLookupFactory.INSTANCE.dnsStringLookup().lookup("address|apache.org"));
+     }
+ 
+     @Test
+-    public void testDnsLookupUnknown() {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
+-        final String unknown = "${dns: u n k n o w n}";
+-        Assertions.assertEquals(unknown, strSubst.replace(unknown));
++    public void testJavaScriptDisabledByDefault() {
++        // CVE-2022-42889 ("Text4Shell"): "script" is no longer resolved by the default/opt-out interpolator
++        // because it can execute arbitrary code when resolved against attacker-influenced template text. The
++        // token is left unresolved rather than being evaluated.
++        final String helloToken = "${script:javascript:\"Hello World!\"}";
++        final String mathToken = "${script:javascript:3 + 4}";
++        Assertions.assertEquals(helloToken, StringSubstitutor.createInterpolator().replace(helloToken));
++        Assertions.assertEquals(mathToken, StringSubstitutor.createInterpolator().replace(mathToken));
+     }
+ 
+     @Test
+-    public void testJavaScript() {
++    public void testJavaScriptExplicitOptIn() {
++        // Explicit, direct use of the script lookup remains available for callers that want it and trust the
++        // input.
+         Assertions.assertEquals("Hello World!",
+-                StringSubstitutor.createInterpolator().replace("${script:javascript:\"Hello World!\"}"));
+-        Assertions.assertEquals("7",
+-                StringSubstitutor.createInterpolator().replace("${script:javascript:3 + 4}"));
++            StringLookupFactory.INSTANCE.scriptStringLookup().lookup("javascript:\"Hello World!\""));
++        Assertions.assertEquals("7", StringLookupFactory.INSTANCE.scriptStringLookup().lookup("javascript:3 + 4"));
+     }
+ 
+     @Test
+diff --git a/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java b/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
+index 71dcbc0..34cf09c 100644
+--- a/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
++++ b/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
+@@ -34,7 +34,6 @@ public class StringLookupFactoryTest {
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_BASE64_ENCODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_CONST)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DATE)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DNS)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_ENV)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_FILE)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_JAVA)));
+@@ -42,19 +41,43 @@ public class StringLookupFactoryTest {
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_PROPERTIES)));
+         assertTrue(
+             stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_RESOURCE_BUNDLE)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SCRIPT)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SYS)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL_DECODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL_ENCODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_XML)));
+     }
+ 
++    /**
++     * The "dangerous" lookups (script, dns, url) must NOT be present by default: they can execute code or trigger
++     * SSRF/DoS when resolved against attacker-influenced template text (CVE-2022-42889).
++     */
++    public static void assertUnsafeKeysExcludedByDefault(final Map<String, StringLookup> stringLookupMap) {
++        Assertions.assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SCRIPT)));
++        Assertions.assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DNS)));
++        Assertions.assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL)));
++    }
++
+     @Test
+     public void testAddDefaultStringLookupsMap() {
+         final Map<String, StringLookup> stringLookupMap = new HashMap<>();
+         StringLookupFactory.INSTANCE.addDefaultStringLookups(stringLookupMap);
+         assertDefaultKeys(stringLookupMap);
++        assertUnsafeKeysExcludedByDefault(stringLookupMap);
++    }
++
++    @Test
++    public void testAddDefaultStringLookupsMapWithOptIn() {
++        System.setProperty(StringLookupFactory.DEFAULT_STRING_LOOKUPS_PROPERTY, "true");
++        try {
++            final Map<String, StringLookup> stringLookupMap = new HashMap<>();
++            StringLookupFactory.INSTANCE.addDefaultStringLookups(stringLookupMap);
++            assertDefaultKeys(stringLookupMap);
++            assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SCRIPT)));
++            assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DNS)));
++            assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL)));
++        } finally {
++            System.clearProperty(StringLookupFactory.DEFAULT_STRING_LOOKUPS_PROPERTY);
++        }
+     }
+ 
+     @Test

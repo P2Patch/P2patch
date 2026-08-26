@@ -1,0 +1,692 @@
+{
+  "run_id": "20260717_021931_finding-ad699ef8eada",
+  "finding_id": "finding-ad699ef8eada",
+  "timestamp": "2026-07-17T02:19:31",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "finding_id": "20260717_021931_finding-ad699ef8eada",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-ad699ef8eada",
+    "cve_id": "CVE-2022-42889",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "project_slug": "asf__commons-text_CVE-2022-42889_1.9",
+    "alert_file": "ASF_COMMONS_TEXT_CVE_2022_42889.json",
+    "github_url": "https://github.com/apache/commons-text",
+    "repo": "apache/commons-text",
+    "github_tag": "1.9",
+    "advisory_id": "GHSA-599f-7c49-w659",
+    "buggy_commit_id": "cb85bed468e99d34b88d0c81fe20eb3b1615660e",
+    "fix_commit_ids": [
+      "b9b40b903e2d1f9935039803c9852439576780ea"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+        "class": "StringSubstitutor",
+        "class_start": "",
+        "class_end": "",
+        "method": "",
+        "method_start": "",
+        "method_end": "",
+        "signature": "",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "InterpolatorStringLookup",
+        "method_start": "70.0",
+        "method_end": "78.0",
+        "signature": "InterpolatorStringLookup(Map,StringLookup,boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "lookup",
+        "method_start": "123.0",
+        "method_end": "146.0",
+        "signature": "String lookup(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "toKey",
+        "method_start": "43.0",
+        "method_end": "44.0",
+        "signature": "String toKey(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "addDefaultStringLookups",
+        "method_start": "445.0",
+        "method_end": "449.0",
+        "signature": "void addDefaultStringLookups(Map)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "interpolatorStringLookup",
+        "method_start": "742.0",
+        "method_end": "743.0",
+        "signature": "StringLookup interpolatorStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "toMap",
+        "method_start": "428.0",
+        "method_end": "429.0",
+        "signature": "Map toMap(Map)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "xmlStringLookup",
+        "method_start": "1170.0",
+        "method_end": "1171.0",
+        "signature": "StringLookup xmlStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "environmentVariableStringLookup",
+        "method_start": "673.0",
+        "method_end": "674.0",
+        "signature": "StringLookup environmentVariableStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDefaultValueForMissingKeyInResourceBundle",
+        "method_start": "127.0",
+        "method_end": "133.0",
+        "signature": "void testDefaultValueForMissingKeyInResourceBundle()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testLocalHostLookup_Name",
+        "method_start": "205.0",
+        "method_end": "207.0",
+        "signature": "void testLocalHostLookup_Name()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDefaultInterpolator",
+        "method_start": "90.0",
+        "method_end": "123.0",
+        "signature": "void testDefaultInterpolator()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDnsLookupCanonicalName",
+        "method_start": "152.0",
+        "method_end": "157.0",
+        "signature": "void testDnsLookupCanonicalName()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java",
+        "class": "StringLookupFactoryTest",
+        "class_start": "30.0",
+        "class_end": "69.0",
+        "method": "testSingletons",
+        "method_start": "69.0",
+        "method_end": "91.0",
+        "signature": "void testSingletons()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+      "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+      "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-42889",
+      "advisory": "https://github.com/advisories/GHSA-599f-7c49-w659",
+      "repo": "https://github.com/apache/commons-text",
+      "buggy_commit": "https://github.com/apache/commons-text/commit/cb85bed468e99d34b88d0c81fe20eb3b1615660e"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-094",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 1036,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1040,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 1015,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1019,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 995,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "append(...) : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1000,
+              "message": "buf : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 974,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 978,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 995,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "append(...) : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1000,
+              "message": "buf : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-094",
+      "finding_id": "finding-ad699ef8eada",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021931_finding-ad699ef8eada/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-text_[redacted]_1.9/111/Dockerfile",
+        "-t",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-text_[redacted]_1.9/111"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 246332,
+        "duration_api_ms": 220756,
+        "num_turns": 41,
+        "cost_usd": 1.4697597,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 80,
+          "output": 20405,
+          "cache_read": 2477789,
+          "cache_creation": 70018
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+          "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+          "src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java",
+          "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java"
+        ],
+        "patch_notes": "Root cause: StringLookupFactory.addDefaultStringLookups(Map) unconditionally registered every DefaultStringLookup enum value — including SCRIPT (arbitrary JS/script engine execution via ScriptStringLookup), DNS, and URL (SSRF) — into the map used by the zero-arg StringSubstitutor.createInterpolator() and StringLookupFactory.interpolatorStringLookup(). Since createInterpolator() is the documented/typical way to apply interpolation to arbitrary strings, any caller passing attacker-influenced text through it exposed remote code execution via \"${script:javascript:...}\", matching all four traces in the alert (they differ only in which StringSubstitutor.replace overload/source buffer is used, but converge on the same ScriptStringLookup.evaluate sink).\n\nFix: in StringLookupFactory.addDefaultStringLookups(), skip DefaultStringLookup.SCRIPT, DefaultStringLookup.DNS, and DefaultStringLookup.URL while iterating DefaultStringLookup.values(), so they are no longer added to the default lookup map. All other default lookups (base64, const, date, env, file, java, localhost, properties, resourceBundle, sys, urlDecoder, urlEncoder, xml) are unaffected. Applications that intentionally need script/dns/url interpolation can still opt in explicitly via StringLookupFactory.interpolatorStringLookup(Map, StringLookup, boolean), passing a map that includes DefaultStringLookup.SCRIPT/DNS/URL — this path is exercised by updated tests.\n\nThis is the same remediation Apache Commons Text shipped for CVE-2022-42889 (Text4Shell) in 1.10.0. It's a single choke-point fix (not a per-call-site patch), so it blocks the vulnerable behavior across every current and future StringSubstitutor.createInterpolator()/interpolatorStringLookup() call site and every variable-name encoding that reaches it (StrBuilder/TextStringBuilder replace, StringBuilder replace, midString/varName paths, etc.), since they all funnel through the same default-lookup map.\n\nTest/doc updates:\n- StringLookupFactoryTest.assertDefaultKeys(): now asserts KEY_SCRIPT/KEY_DNS/KEY_URL are absent from the default map (previously asserted present).\n- StringSubstitutorWithInterpolatorStringLookupTest: added testDefaultInterpolatorDoesNotResolveDangerousLookups() as a direct regression test proving ${script:...}, ${dns:...}, ${url:...} pass through createInterpolator() unresolved. testDefaultInterpolator()'s doc-example string no longer includes the now-unsupported-by-default DNS/Script/URL lines. testDnsLookup*/testJavaScript were updated to build an interpolator via the explicit opt-in API (StringLookupFactory.interpolatorStringLookup(Map, null, true) with the specific DefaultStringLookup added) instead of relying on createInterpolator()'s default set, preserving coverage of those lookups' behavior.\n- Javadoc in StringSubstitutor.java and StringLookupFactory.java updated to document the exclusion and the opt-in mechanism.",
+        "regression_commands": [
+          "mvn -B test -Dtest=StringLookupFactoryTest,DefaultStringLookupTest,StringSubstitutorWithInterpolatorStringLookupTest",
+          "mvn -B test"
+        ],
+        "risk_notes": "Behavioral change: any existing caller relying on StringSubstitutor.createInterpolator() (or StringLookupFactory.interpolatorStringLookup()/interpolatorStringLookup(Map)) to resolve ${script:...}, ${dns:...}, or ${url:...} by default will now see those placeholders passed through unresolved (literal ${...} text) instead of evaluated — this is the intended, upstream-aligned security behavior change (mirrors real-world commons-text 1.10.0 upgrade impact). Such callers must switch to StringLookupFactory.interpolatorStringLookup(Map, StringLookup, boolean) with an explicit opt-in map. No other lookups, APIs, or behavior were touched; the individual scriptStringLookup()/dnsStringLookup()/urlStringLookup() factory methods and DefaultStringLookup enum are unchanged and still directly usable. Full existing test suite (1221 tests) passes unmodified aside from the four intentionally updated tests, and Docker-based `mvn -B -DskipTests package` build succeeds.",
+        "status": "patched",
+        "summary": "Fixed CWE-094 code injection (CVE-2022-42889 \"Text4Shell\") in Apache Commons Text: StringSubstitutor.createInterpolator() wired up the \"script\", \"dns\", and \"url\" StringLookups by default, so any application that ran untrusted input through the default interpolator could reach ScriptStringLookup and execute arbitrary script code (or trigger SSRF via dns/url), regardless of which specific ${...} syntax/encoding was used to reach it. Root-caused the fix at the shared trust boundary: StringLookupFactory.addDefaultStringLookups(), the single method that populates the default lookup map used by InterpolatorStringLookup() (and therefore every StringSubstitutor.createInterpolator() call site, plus interpolatorStringLookup()/interpolatorStringLookup(Map)). It now skips DefaultStringLookup.SCRIPT, DNS, and URL when building the default map, so no default interpolator path — current or future call sites — can reach ScriptStringLookup.evaluate() or perform DNS/URL lookups unless a caller explicitly opts back in via interpolatorStringLookup(Map, StringLookup, boolean)."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 1.4698,
+    "num_turns": 41,
+    "agent_duration_ms": 246332
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

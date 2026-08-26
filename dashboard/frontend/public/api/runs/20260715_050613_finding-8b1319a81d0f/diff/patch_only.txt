@@ -1,0 +1,104 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index 52454f1..ec0aa56 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -352,6 +352,25 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+             throw new ArchiverException( "Entry is outside of the target directory (" + entryName + ")" );
+         }
+ 
++        // Make sure that a symbolic-link entry does not point outside of the destination directory.
++        // Otherwise a crafted archive could create a symlink escaping the extraction directory, which
++        // could later be followed to read or write arbitrary files outside of it (CWE-022).
++        if ( !StringUtils.isEmpty( symlinkDestination ) )
++        {
++            final File symlinkTarget = new File( symlinkDestination );
++            final Path canonicalSymlinkTarget =
++                ( symlinkTarget.isAbsolute()
++                    ? symlinkTarget
++                    : new File( targetFileName.getParentFile(), symlinkDestination ) )
++                .getCanonicalFile().toPath();
++
++            if ( !canonicalSymlinkTarget.startsWith( canonicalDirPath ) )
++            {
++                throw new ArchiverException(
++                    "Entry symlink destination is outside of the target directory (" + entryName + ")" );
++            }
++        }
++
+         try
+         {
+             if ( !shouldExtractEntry( dir, targetFileName, entryName, entryDate ) )
+diff --git a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+index d2ebd4c..d82a4ae 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+@@ -9,11 +9,13 @@
+ import org.codehaus.plexus.archiver.tar.TarUnArchiver;
+ import org.codehaus.plexus.archiver.zip.ZipArchiver;
+ import org.codehaus.plexus.archiver.zip.ZipUnArchiver;
++import org.codehaus.plexus.util.FileUtils;
+ import org.junit.jupiter.api.Test;
+ import org.junit.jupiter.api.condition.DisabledOnOs;
+ import org.junit.jupiter.api.condition.OS;
+ 
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertThrows;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ /**
+@@ -69,7 +71,10 @@ public void testSymlinkTar()
+         TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.class, "tar" );
+         unarchiver.setSourceFile( archiveFile );
+         unarchiver.setDestFile( output );
+-        unarchiver.extract();
++        // The fixture contains symlinks (e.g. ../onTheOutside.txt) whose destination escapes the
++        // extraction directory. Extraction must reject them instead of creating an escaping symlink.
++        ArchiverException exception = assertThrows( ArchiverException.class, unarchiver::extract );
++        assertTrue( exception.getMessage().contains( "symlink destination is outside" ) );
+     }
+ 
+     @Test
+@@ -90,7 +95,43 @@ public void testSymlinkZip()
+         ZipUnArchiver unarchiver = (ZipUnArchiver) lookup( UnArchiver.class, "zip" );
+         unarchiver.setSourceFile( archiveFile );
+         unarchiver.setDestFile( output );
++        // See testSymlinkTar: escaping symlink destinations must be rejected for zip archives too.
++        ArchiverException exception = assertThrows( ArchiverException.class, unarchiver::extract );
++        assertTrue( exception.getMessage().contains( "symlink destination is outside" ) );
++    }
++
++    /**
++     * A symbolic link whose destination stays within the extraction directory must still be
++     * extracted normally - the containment check must not reject legitimate symlinks.
++     */
++    @Test
++    @DisabledOnOs( OS.WINDOWS )
++    public void testSymlinkWithinDestinationIsExtracted()
++        throws Exception
++    {
++        File source = getTestFile( "target/output/symlink-safe-src" );
++        FileUtils.deleteDirectory( source );
++        source.mkdirs();
++        Files.write( new File( source, "fileR.txt" ).toPath(), "hello".getBytes() );
++        Files.createSymbolicLink( new File( source, "symR" ).toPath(), new File( "fileR.txt" ).toPath() );
++
++        TarArchiver archiver = (TarArchiver) lookup( Archiver.class, "tar" );
++        archiver.setLongfile( TarLongFileMode.posix );
++        archiver.addDirectory( source );
++        final File archiveFile = new File( "target/output/symlinks-safe.tar" );
++        archiver.setDestFile( archiveFile );
++        archiver.createArchive();
++
++        File output = getTestFile( "target/output/untaredSafeSymlinks" );
++        FileUtils.deleteDirectory( output );
++        output.mkdirs();
++        TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.class, "tar" );
++        unarchiver.setSourceFile( archiveFile );
++        unarchiver.setDestFile( output );
+         unarchiver.extract();
++
++        File extractedLink = new File( output, "symR" );
++        assertTrue( Files.isSymbolicLink( extractedLink.toPath() ) );
+     }
+ 
+     @Test

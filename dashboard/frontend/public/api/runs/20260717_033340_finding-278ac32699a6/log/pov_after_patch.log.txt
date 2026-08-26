@@ -1,0 +1,38 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_033340_finding-278ac32699a6/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-278ac32699a6:ca4e47d0d22b bash -lc mkdir -p src/test/java/spark/resource && cp .security-pipeline/pov/PathTraversalPovTest.java src/test/java/spark/resource/PathTraversalPovTest.java && mvn -B -q -Dtest=spark.resource.PathTraversalPovTest -DfailIfNoTests=false test; RC=$?; rm -f src/test/java/spark/resource/PathTraversalPovTest.java; exit $RC
+exit_code=1
+timed_out=false
+
+--- stdout ---
+
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running spark.resource.PathTraversalPovTest
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.009 sec <<< FAILURE! - in spark.resource.PathTraversalPovTest
+backslashObfuscatedTraversalEscapesConfiguredStaticFolder(spark.resource.PathTraversalPovTest)  Time elapsed: 0.008 sec  <<< ERROR!
+spark.staticfiles.DirectoryTraversal$DirectoryTraversalDetection: classpath
+	at spark.staticfiles.DirectoryTraversal.protectAgainstInClassPath(DirectoryTraversal.java:14)
+	at spark.resource.ClassPathResourceHandler.getResource(ClassPathResourceHandler.java:83)
+	at spark.resource.PathTraversalPovTest.backslashObfuscatedTraversalEscapesConfiguredStaticFolder(PathTraversalPovTest.java:75)
+
+
+Results :
+
+Tests in error: 
+  PathTraversalPovTest.backslashObfuscatedTraversalEscapesConfiguredStaticFolder:75 » DirectoryTraversalDetection
+
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0
+
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:2.18.1:test (default-test) on project spark-core: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /workspace/repo/target/surefire-reports for the individual test results.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+
+--- stderr ---
+

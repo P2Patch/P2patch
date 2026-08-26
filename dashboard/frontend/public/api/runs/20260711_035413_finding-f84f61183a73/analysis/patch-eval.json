@@ -1,0 +1,274 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:12:46.039446+00:00",
+    "finished_at": "2026-07-11T23:14:14.120131+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "The traced sink is guarded with a canonical-path containment check before getInputStream; POV no longer reproduces.",
+        "evidence": "Main.java: canonicalSplash.startsWith(canonicalCacheDir) guard added between `splash = new File(splash, jarEntry)` (line ~2295) and the exists()/getInputStream path (line 2319).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw exactly at the resolution/trust boundary where the tainted jarEntry becomes a File, not at a caller or via message.",
+        "evidence": "Guard sits at the extraction sink in getEntry() right after `splash = new File(splash, jarEntry)`, before file access.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Fixes the traced Main.java splash-extraction path but leaves the official ZipMisc.unzip extraction sink unguarded.",
+        "evidence": "overlap_files=[], ours_only=Main.java, official_only=ZipMisc.java; ZipMisc.unzip has no containment check in our diff.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same defensive strategy (resolve path, verify containment in base dir) but different location and primitive than the official fix.",
+        "evidence": "Ours uses getCanonicalPath()+startsWith in Main.java; official uses dest.toPath().normalize().startsWith(...) in ZipMisc.unzip.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Guard only triggers on out-of-bounds entries (non-legitimate); regressions passed and legitimate extraction preserved.",
+        "evidence": "regressions_ran=1, regressions_passed=true; refusal branch returns null only when path escapes cacheDir.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe getCanonicalPath; minor residual TOCTOU window between check and extraction and a possible NPE if callers don't handle the new null return.",
+        "evidence": "Returns null on refusal in getEntry(); original path did not return null here, and getInputStream occurs later at line 2319.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change at the exact sink with clear logging; no unrelated edits.",
+        "evidence": "Single ~15-line block added around Main.java:2295.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize to real absolute path (resolves symlinks/..), then verify containment with a trailing separator to block sibling-prefix bypass — the CWE-022 defense of record.",
+        "evidence": "canonicalCacheDir = cacheDir.getCanonicalPath()+File.separator; check canonicalSplash.startsWith(canonicalCacheDir).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The official fix location (ZipMisc.unzip) is not patched. If the CVE's zip-slip class is reachable through that separate extraction sink, it remains exploitable; our patch only closes the Main.java splash-cache path from the taint trace."
+      },
+      {
+        "severity": "low",
+        "description": "getEntry() now returns null on refusal, a value not previously produced on this path; if any caller dereferences it without a null check, a malicious entry could trigger an NPE rather than clean handling."
+      },
+      {
+        "severity": "low",
+        "description": "Small TOCTOU window: canonical containment is checked, but actual getInputStream/extraction happens a few lines later; a symlink swapped in between is a theoretical (low-risk) bypass."
+      }
+    ],
+    "summary": "Our patch applies the correct CWE-022 defense of record — canonicalize the resolved entry path (resolving symlinks and ../) then verify it stays inside the cache directory, with a trailing File.separator to block sibling-prefix bypass — placed precisely at the traced sink in Main.java.getEntry(). It eliminates the observed POV and passes regressions, and is technically sound. However, it fixes a different location than the official fix (ZipMisc.unzip), so if the vulnerability class is also reachable via that separate extraction sink, that path remains unguarded.",
+    "root_cause": "Untrusted jar entry names (jarEntry) are joined to a base directory and used to open/extract a file without verifying the resolved path stays within the intended directory, allowing path traversal / zip-slip at the extraction sink.",
+    "overall": {
+      "mean": 4.25,
+      "score": 85,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 85,
+        "score_mean": 84.3,
+        "score_min": 80,
+        "score_max": 88,
+        "score_stdev": 3.3,
+        "mean_median": 4.25,
+        "band_mode": "acceptable",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.18
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            5,
+            4
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            5,
+            4
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 85,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 88,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 80,
+          "band": "acceptable",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "Main.java"
+      ],
+      "official_only": [
+        "ZipMisc.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/com/diffplug/gradle/ZipMisc.java"
+      ],
+      "commits": [
+        "25f04f67ba62d9a14104bee13a0a0f2517afb8c8"
+      ]
+    }
+  }
+}

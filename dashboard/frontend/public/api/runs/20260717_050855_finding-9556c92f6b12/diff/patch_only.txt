@@ -1,0 +1,190 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/Expand.java b/src/main/java/org/codehaus/plexus/util/Expand.java
+index 7f2534d..c29a89e 100644
+--- a/src/main/java/org/codehaus/plexus/util/Expand.java
++++ b/src/main/java/org/codehaus/plexus/util/Expand.java
+@@ -153,6 +153,15 @@ protected void extractFile( File srcF,
+         File f = FileUtils.resolveFile( dir, entryName );
+         try
+         {
++            String canonicalDestDirPath = dir.getCanonicalPath() + File.separator;
++            String canonicalEntryPath = f.getCanonicalPath();
++            if ( !canonicalEntryPath.equals( dir.getCanonicalPath() )
++                && !canonicalEntryPath.startsWith( canonicalDestDirPath ) )
++            {
++                throw new IOException( "Entry '" + entryName
++                    + "' is outside of the target directory '" + dir + "' (Zip Slip)" );
++            }
++
+             if ( !overwrite && f.exists()
+                 &&
+                 f.lastModified() >= entryDate.getTime() )
+diff --git a/src/test/java/org/codehaus/plexus/util/ExpandTest.java b/src/test/java/org/codehaus/plexus/util/ExpandTest.java
+new file mode 100644
+index 0000000..eeaac28
+--- /dev/null
++++ b/src/test/java/org/codehaus/plexus/util/ExpandTest.java
+@@ -0,0 +1,164 @@
++package org.codehaus.plexus.util;
++
++/*
++ * Copyright The Codehaus Foundation.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.nio.charset.Charset;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++/**
++ * Regression tests for the CWE-22 "Zip Slip" path traversal fix in
++ * {@link Expand}. A malicious zip entry name (e.g. "../pwned.txt" or a
++ * traversal disguised as a directory entry) must never let extraction land
++ * outside of the configured destination directory, whether the sink is the
++ * file write, the parent-directory creation, or the directory-entry mkdirs.
++ * Benign entries must still extract normally.
++ */
++public class ExpandTest
++    extends FileBasedTestCase
++{
++    private File destDir;
++
++    protected void setUp()
++        throws Exception
++    {
++        super.setUp();
++        destDir = new File( getTestDirectory(), "expand-dest" );
++        FileUtils.deleteDirectory( destDir );
++        destDir.mkdirs();
++    }
++
++    protected void tearDown()
++        throws Exception
++    {
++        FileUtils.deleteDirectory( getTestDirectory() );
++        super.tearDown();
++    }
++
++    public void testExpandRejectsZipSlipFileEntry()
++        throws Exception
++    {
++        File escapeTarget = new File( destDir.getParentFile(), "pwned.txt" );
++        FileUtils.forceDelete( escapeTarget );
++
++        File zip = createZip( "traversal-file.zip", new String[][] {
++            { "../pwned.txt", "PWNED" }
++        } );
++
++        Expand expand = new Expand();
++        expand.setSrc( zip );
++        expand.setDest( destDir );
++
++        try
++        {
++            expand.execute();
++            fail( "Expected extraction of a zip-slip entry ('../pwned.txt') to be rejected" );
++        }
++        catch ( Exception expected )
++        {
++            // expected: traversal must be blocked
++        }
++
++        assertFalse( "Zip entry must not be able to write outside the destination directory",
++                     escapeTarget.exists() );
++    }
++
++    public void testExpandRejectsZipSlipDirectoryEntry()
++        throws Exception
++    {
++        File escapeDir = new File( destDir.getParentFile(), "evilDir" );
++        FileUtils.deleteDirectory( escapeDir );
++
++        File zip = createZipWithDirectoryEntry( "traversal-dir.zip", "../evilDir/" );
++
++        Expand expand = new Expand();
++        expand.setSrc( zip );
++        expand.setDest( destDir );
++
++        try
++        {
++            expand.execute();
++            fail( "Expected extraction of a zip-slip directory entry ('../evilDir/') to be rejected" );
++        }
++        catch ( Exception expected )
++        {
++            // expected: traversal must be blocked
++        }
++
++        assertFalse( "Zip directory entry must not be able to create directories outside the destination directory",
++                     escapeDir.exists() );
++    }
++
++    public void testExpandAllowsBenignNestedEntry()
++        throws Exception
++    {
++        File zip = createZip( "benign.zip", new String[][] {
++            { "sub/dir/file.txt", "hello world" }
++        } );
++
++        Expand expand = new Expand();
++        expand.setSrc( zip );
++        expand.setDest( destDir );
++        expand.execute();
++
++        File extracted = new File( destDir, "sub/dir/file.txt" );
++        assertIsFile( extracted );
++        assertEqualContent( "hello world".getBytes( Charset.forName( "UTF-8" ) ), extracted );
++    }
++
++    private File createZip( String zipName, String[][] entries )
++        throws Exception
++    {
++        File zip = new File( getTestDirectory(), zipName );
++        ZipOutputStream zos = new ZipOutputStream( new FileOutputStream( zip ) );
++        try
++        {
++            for ( int i = 0; i < entries.length; i++ )
++            {
++                ZipEntry entry = new ZipEntry( entries[i][0] );
++                zos.putNextEntry( entry );
++                zos.write( entries[i][1].getBytes( Charset.forName( "UTF-8" ) ) );
++                zos.closeEntry();
++            }
++        }
++        finally
++        {
++            zos.close();
++        }
++        return zip;
++    }
++
++    private File createZipWithDirectoryEntry( String zipName, String directoryEntryName )
++        throws Exception
++    {
++        File zip = new File( getTestDirectory(), zipName );
++        ZipOutputStream zos = new ZipOutputStream( new FileOutputStream( zip ) );
++        try
++        {
++            ZipEntry entry = new ZipEntry( directoryEntryName );
++            zos.putNextEntry( entry );
++            zos.closeEntry();
++        }
++        finally
++        {
++            zos.close();
++        }
++        return zip;
++    }
++}

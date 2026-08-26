@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Third-party baseline implementations we run against our dataset.",
+    "Nothing here is vendored into this repo: `setup.sh` clones each entry into",
+    "baselines/vendor/<key>/ at the pinned commit, and baselines/vendor/ is gitignored.",
+    "Pin every repo. A baseline whose commit moves under us is not a baseline.",
+    "`paper_commit` is what the paper's numbers belong to when it differs from HEAD;",
+    "null means the authors did not tag one and we pinned the HEAD we first cloned."
+  ],
+  "baselines": {
+    "patchagent": {
+      "paper": "PatchAgent: A Practical Program Repair Agent Mimicking Human Expertise (USENIX Security '25)",
+      "url": "https://github.com/cla7aye15I4nd/PatchAgent",
+      "commit": "14cbd456fd7e2f6635ed46f56fb489218ce46ace",
+      "commit_date": "2026-02-25",
+      "default_branch": "main",
+      "license": "Apache-2.0",
+      "paper_commit": null,
+      "notes": "Production fork; the paper's artifact is at https://osf.io/8k2ac and has diverged. Record which one produced any number we publish."
+    },
+    "san2patch": {
+      "paper": "Logs In, Patches Out: Automated Vulnerability Repair via Tree-of-Thought LLM Analysis (USENIX Security '25)",
+      "url": "https://github.com/acorn421/san2patch",
+      "commit": "a8c5ace939cdf3de835fa50c617f4fe979f35e6d",
+      "commit_date": "2025-06-11",
+      "default_branch": "main",
+      "license": "MIT",
+      "paper_commit": null,
+      "notes": "USENIX artifact-evaluated (Available). Needs san2patch-benchmark alongside it."
+    },
+    "san2patch-benchmark": {
+      "paper": "(benchmark harness for san2patch)",
+      "url": "https://github.com/acorn421/san2patch-benchmark",
+      "commit": "cd54141e4e15d75c46b0169bb58b10bc3099093a",
+      "commit_date": "2025-06-19",
+      "default_branch": "main",
+      "license": "MIT",
+      "paper_commit": null,
+      "notes": "THE high-value asset. 43 VulnLoc cases with config/build/test scripts AND separate config_func/build_func/test_func functional-test scripts + PoC inputs. 37 of its 43 cases are in our dataset. This is where our missing C/C++ functional tests come from."
+    },
+    "looprepair": {
+      "paper": "Well Begun is Half Done: Location-Aware and Trace-Guided Iterative Automated Vulnerability Repair (ICSE '26, arXiv:2512.20203)",
+      "url": "https://github.com/Fino2020/LoopRepair",
+      "commit": "5d127e32014c5ad7e4a0edadbc5aaa78206f728f",
+      "commit_date": "2026-03-05",
+      "default_branch": "master",
+      "license": null,
+      "paper_commit": null,
+      "notes": "No LICENSE file in the repo — do NOT vendor or redistribute any of it. Run in place from vendor/ only. Ships VulnLoc+ (VulnLoc + 12 CrashRepair cases); all 38 of its cases are in our dataset."
+    }
+  }
+}

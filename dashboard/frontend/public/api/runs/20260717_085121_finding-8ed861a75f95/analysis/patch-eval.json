@@ -1,0 +1,132 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:52.721227+00:00",
+    "finished_at": "2026-07-17T15:47:12.476589+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds the textbook CWE-022 defense-of-record — canonicalize the base and the resolved file, then verify the file stays inside the base directory (with a correct `startsWith(base + separator)` boundary check) — placed at FileResourceManager.getResource, which is the single convergence point of every taint trace (all four end at `new File(base, path)` line 89-90). This neutralizes the whole traversal class (`../`, Windows `\\`, and symlink escapes) at the sink rather than blocking one payload. It reaches the vulnerability by a different, valid mechanism/location than the official fix (which normalizes/blocks the OS separator up in the request handlers), and is arguably stronger. Main caveats: execution evidence is weak (POV did not reproduce pre-patch, 0 regressions run), the check only covers FileResourceManager (not other ResourceManager implementations), and canonicalization may over-restrict legitimate in-base symlinks pointing outside.",
+    "root_cause": "Tainted request path flows into `new File(base, path)` in FileResourceManager.getResource without verifying the resolved file remains within the base directory, letting crafted separators/`..` escape the web root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical-path containment at the sink makes FileResourceManager provably reject any resolved path outside base, closing the class not just the payload.",
+        "evidence": "FileResourceManager.java: canonicalFile.startsWith(canonicalBase + File.separatorChar) else return null",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guards the actual sink where new File(base,path) is dereferenced — the trust boundary all traces converge on.",
+        "evidence": "FileResourceManager.getResource lines 89-90 wrapped by containment check",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Covers every trace (all end at this sink) and multiple bypass variants (../, backslash, symlink), but only FileResourceManager; other ResourceManager types are unguarded.",
+        "evidence": "single check in FileResourceManager; ClassPath/other managers not touched",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same defensive goal (block traversal) but different mechanism and location than official separator-normalization in ResourceHandler/DefaultServlet/ServletPathMatches.",
+        "evidence": "overlap_files=[] jaccard 0.0; official edits handlers, ours edits the sink",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Added tests pass and normal in-base resources still served; getCanonicalPath resolves symlinks so legitimate in-base symlinks pointing outside would be blocked, and adds per-request canonicalization I/O.",
+        "evidence": "testResourceWithinBaseIsServed asserts non-null; getCanonicalPath() symlink resolution",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe primitives; getCanonicalPath IOException is caught by the enclosing try; minor TOCTOU between exists() and canonicalization is negligible.",
+        "evidence": "check inside existing try{...}catch(IOException) around new File(base,path)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized production change (one containment block at the sink) plus a focused test file.",
+        "evidence": "~10 added lines in FileResourceManager.getResource",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify-inside-base is the CWE-022 anchor pattern, resolving symlinks before the containment check.",
+        "evidence": "new File(base).getCanonicalPath() vs file.getCanonicalPath() containment",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Execution evidence is weak: POV did not reproduce before the patch and 0 regression tests ran, so real-world elimination is inferred from code reasoning, not demonstrated."
+      },
+      {
+        "severity": "low",
+        "description": "Check only protects FileResourceManager; requests served through other ResourceManager implementations retain no sink-level containment guard."
+      },
+      {
+        "severity": "low",
+        "description": "getCanonicalPath resolves symlinks, so a legitimate symlink inside base that targets an out-of-base location would be rejected (possible over-restriction), and canonicalization adds filesystem I/O per request."
+      }
+    ],
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "FileResourceManager.java"
+      ],
+      "official_only": [
+        "DefaultServlet.java",
+        "PathSeparatorHandler.java",
+        "ResourceHandler.java",
+        "ServletPathMatches.java",
+        "URLDecodingHandler.java",
+        "io.undertow.server.handlers.builder.HandlerBuilder"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "core/src/main/java/io/undertow/server/handlers/PathSeparatorHandler.java",
+        "core/src/main/java/io/undertow/server/handlers/URLDecodingHandler.java",
+        "core/src/main/java/io/undertow/server/handlers/resource/ResourceHandler.java",
+        "core/src/main/resources/META-INF/services/io.undertow.server.handlers.builder.HandlerBuilder",
+        "servlet/src/main/java/io/undertow/servlet/handlers/DefaultServlet.java",
+        "servlet/src/main/java/io/undertow/servlet/handlers/ServletPathMatches.java"
+      ],
+      "commits": [
+        "28f244e63f558ba99a197813cfd5eee461b52b4c"
+      ]
+    }
+  }
+}

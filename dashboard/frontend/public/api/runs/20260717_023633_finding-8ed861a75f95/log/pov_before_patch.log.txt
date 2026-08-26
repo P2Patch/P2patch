@@ -1,0 +1,18 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-8ed861a75f95/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-8ed861a75f95:bc82b1e162b1 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[run_pov] building core module...
+[run_pov] resolving core runtime classpath...
+[run_pov] compiling PoV harness...
+[run_pov] running PoV harness...
+[pov] webroot        = /tmp/undertow-pov-3235514192516/webroot
+[pov] secret file     = /tmp/undertow-pov-3235514192516/secret.txt
+[pov] resolved file   = /tmp/undertow-pov-3235514192516/secret.txt
+VULNERABLE: FileResourceManager.getResource("/../secret.txt") escaped the configured base directory and returned the file outside webroot: /tmp/undertow-pov-3235514192516/secret.txt
+
+--- stderr ---
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.undertow.annotationprocessor.HttpParserAnnotationProcessor' less than -source '1.8'
+1 warning
+

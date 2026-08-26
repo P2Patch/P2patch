@@ -1,0 +1,347 @@
+diff --git a/util/src/main/java/io/kubernetes/client/Copy.java b/util/src/main/java/io/kubernetes/client/Copy.java
+index 72e02bc..33b0410 100644
+--- a/util/src/main/java/io/kubernetes/client/Copy.java
++++ b/util/src/main/java/io/kubernetes/client/Copy.java
+@@ -138,6 +138,16 @@ public class Copy extends Exec {
+           continue;
+         }
+         File f = new File(destination.toFile(), entry.getName());
++        // Guard against path traversal (CWE-022): reject archive entries whose
++        // resolved path escapes the destination directory (e.g. "../pwned.txt").
++        File destDir = destination.toFile();
++        String destCanonical = destDir.getCanonicalPath();
++        String fCanonical = f.getCanonicalPath();
++        if (!fCanonical.equals(destCanonical)
++            && !fCanonical.startsWith(destCanonical + File.separator)) {
++          throw new IOException(
++              "Archive entry outside of destination directory: " + entry.getName());
++        }
+         if (entry.isDirectory()) {
+           if (!f.isDirectory() && !f.mkdirs()) {
+             throw new IOException("create directory failed: " + f);
+diff --git a/util/src/test/java/io/kubernetes/client/CopyTest.java b/util/src/test/java/io/kubernetes/client/CopyTest.java
+index f7084d0..9c91864 100644
+--- a/util/src/test/java/io/kubernetes/client/CopyTest.java
++++ b/util/src/test/java/io/kubernetes/client/CopyTest.java
+@@ -19,6 +19,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+ 
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.fail;
++
+ import com.github.tomakehurst.wiremock.junit.WireMockRule;
+ import com.github.tomakehurst.wiremock.matching.AnythingPattern;
+ import io.kubernetes.client.openapi.ApiClient;
+@@ -26,10 +29,19 @@ import io.kubernetes.client.openapi.ApiException;
+ import io.kubernetes.client.openapi.models.V1ObjectMeta;
+ import io.kubernetes.client.openapi.models.V1Pod;
+ import io.kubernetes.client.util.ClientBuilder;
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.IOException;
+ import java.io.InputStream;
++import java.io.OutputStream;
++import java.nio.file.Files;
++import java.nio.file.Path;
+ import java.nio.file.Paths;
++import org.apache.commons.codec.binary.Base64OutputStream;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+ import org.junit.Before;
+ import org.junit.Rule;
+ import org.junit.Test;
+@@ -139,4 +151,110 @@ public class CopyTest {
+             .withQueryParam("command", equalTo("-c"))
+             .withQueryParam("command", equalTo("base64 -d | tar -xmf - -C /")));
+   }
++
++  // Regression test for CWE-022 path traversal in copyDirectoryFromPod: a malicious
++  // pod supplies a tar entry named "../pwned.txt" that would escape the destination
++  // directory. The extraction must reject it and write nothing outside destination.
++  @Test
++  public void testCopyDirectoryFromPodRejectsPathTraversal() throws Exception {
++    Path base = Files.createTempDirectory("copy-traversal-test");
++    Path dest = base.resolve("dest");
++    Files.createDirectories(dest);
++    File escaped = base.resolve("pwned.txt").toFile();
++    if (escaped.exists()) {
++      escaped.delete();
++    }
++
++    final byte[] maliciousArchive =
++        buildBase64GzipTar("../pwned.txt", "path-traversal-payload".getBytes());
++
++    Copy copy =
++        new Copy(client) {
++          @Override
++          public Process exec(
++              String namespace,
++              String name,
++              String[] command,
++              String container,
++              boolean stdin,
++              boolean tty) {
++            String shellCmd = command[command.length - 1];
++            if (shellCmd.contains("tar --version")) {
++              return new FakeProcess(new byte[0], 0);
++            }
++            return new FakeProcess(maliciousArchive, 0);
++          }
++        };
++
++    try {
++      copy.copyDirectoryFromPod("default", "apod", "container", "/data", dest);
++    } catch (IOException expected) {
++      // Hardened behavior: the malicious entry is rejected.
++    }
++
++    if (escaped.exists()) {
++      String destCanon = dest.toFile().getCanonicalPath() + File.separator;
++      String escapedCanon = escaped.getCanonicalPath();
++      if (!escapedCanon.startsWith(destCanon)) {
++        fail("Path traversal: file was written outside destination: " + escapedCanon);
++      }
++    }
++    assertFalse("No file must escape the destination directory", escaped.exists());
++  }
++
++  private static byte[] buildBase64GzipTar(String entryName, byte[] content) throws Exception {
++    ByteArrayOutputStream out = new ByteArrayOutputStream();
++    Base64OutputStream b64 = new Base64OutputStream(out, true);
++    GzipCompressorOutputStream gz = new GzipCompressorOutputStream(b64);
++    TarArchiveOutputStream tar = new TarArchiveOutputStream(gz);
++    tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
++
++    TarArchiveEntry entry = new TarArchiveEntry(entryName);
++    entry.setSize(content.length);
++    tar.putArchiveEntry(entry);
++    tar.write(content);
++    tar.closeArchiveEntry();
++
++    tar.finish();
++    tar.close();
++    return out.toByteArray();
++  }
++
++  private static final class FakeProcess extends Process {
++    private final InputStream in;
++    private final int exit;
++
++    FakeProcess(byte[] stdout, int exit) {
++      this.in = new ByteArrayInputStream(stdout);
++      this.exit = exit;
++    }
++
++    @Override
++    public OutputStream getOutputStream() {
++      return new ByteArrayOutputStream();
++    }
++
++    @Override
++    public InputStream getInputStream() {
++      return in;
++    }
++
++    @Override
++    public InputStream getErrorStream() {
++      return new ByteArrayInputStream(new byte[0]);
++    }
++
++    @Override
++    public int waitFor() {
++      return exit;
++    }
++
++    @Override
++    public int exitValue() {
++      return exit;
++    }
++
++    @Override
++    public void destroy() {}
++  }
+ }
+diff --git a/.security-pipeline/pov/CopyPathTraversalPov.java b/.security-pipeline/pov/CopyPathTraversalPov.java
+new file mode 100644
+index 0000000..2f6aa16
+--- /dev/null
++++ b/.security-pipeline/pov/CopyPathTraversalPov.java
+@@ -0,0 +1,175 @@
++/*
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in
++ * io.kubernetes.client.Copy#copyDirectoryFromPod.
++ *
++ * The method extracts a tar archive received from a (potentially malicious) pod
++ * and, for each entry, does:
++ *
++ *     File f = new File(destination.toFile(), entry.getName());
++ *
++ * The archive entry name is fully attacker-controlled. When it contains a
++ * traversal sequence such as "../pwned.txt", the resulting File escapes the
++ * intended destination directory and is written outside of it.
++ *
++ * This POV drives the REAL Copy.copyDirectoryFromPod code. Only the transport
++ * layer (Exec#exec, which normally talks to the Kubernetes API server) is
++ * overridden so that we can feed a controlled malicious archive - exactly the
++ * bytes a hostile pod would return over `tar cz - <path> | base64`.
++ *
++ * Exit code:
++ *   0  -> traversal succeeded, a file was written OUTSIDE the destination dir
++ *         (vulnerable / unpatched behaviour)
++ *   1  -> traversal was prevented (no file escaped the destination dir)
++ *         (patched behaviour)
++ */
++import io.kubernetes.client.Copy;
++import io.kubernetes.client.openapi.ApiClient;
++
++import org.apache.commons.codec.binary.Base64OutputStream;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.InputStream;
++import java.io.OutputStream;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++public class CopyPathTraversalPov {
++
++  /** The entry name a malicious pod would place inside the tar stream. */
++  private static final String MALICIOUS_ENTRY = "../pwned.txt";
++  private static final byte[] MALICIOUS_CONTENT =
++      "path-traversal-payload".getBytes();
++
++  public static void main(String[] args) throws Exception {
++    // Layout:
++    //   base/          <- temp root
++    //   base/dest/     <- the "destination" passed to copyDirectoryFromPod
++    // A correct implementation must keep every written file under base/dest.
++    Path base = Files.createTempDirectory("pov-copy-base");
++    Path dest = base.resolve("dest");
++    Files.createDirectories(dest);
++
++    // Where a successful traversal would land: base/pwned.txt (a sibling of dest).
++    File escaped = base.resolve("pwned.txt").toFile();
++    if (escaped.exists()) {
++      escaped.delete();
++    }
++
++    final byte[] maliciousArchive =
++        buildBase64GzipTar(MALICIOUS_ENTRY, MALICIOUS_CONTENT);
++
++    // Override ONLY the transport. Everything else is the real Copy code path.
++    Copy copy =
++        new Copy(new ApiClient()) {
++          @Override
++          public Process exec(
++              String namespace,
++              String name,
++              String[] command,
++              String container,
++              boolean stdin,
++              boolean tty) {
++            String shellCmd = command[command.length - 1];
++            if (shellCmd.contains("tar --version")) {
++              // isTarPresentInContainer(): any exit status != 127 means "tar present".
++              return new FakeProcess(new byte[0], 0);
++            }
++            // The real "tar cz - <srcPath> | base64" call: return the attacker archive.
++            return new FakeProcess(maliciousArchive, 0);
++          }
++        };
++
++    try {
++      copy.copyDirectoryFromPod("default", "apod", "container", "/data", dest);
++    } catch (Exception e) {
++      // A hardened implementation may reject the malicious entry by throwing.
++      System.out.println("copyDirectoryFromPod threw: " + e);
++    }
++
++    boolean escapedCanonicalCheck = false;
++    if (escaped.exists()) {
++      String destCanon = dest.toFile().getCanonicalPath() + File.separator;
++      String escapedCanon = escaped.getCanonicalPath();
++      escapedCanonicalCheck = !escapedCanon.startsWith(destCanon);
++      System.out.println("Wrote file: " + escapedCanon);
++      System.out.println("Destination dir: " + dest.toFile().getCanonicalPath());
++    }
++
++    if (escaped.exists() && escapedCanonicalCheck) {
++      System.out.println(
++          "VULNERABLE: archive entry '"
++              + MALICIOUS_ENTRY
++              + "' escaped the destination directory (path traversal).");
++      System.exit(0);
++    }
++
++    System.out.println(
++        "NOT VULNERABLE: no file was written outside the destination directory.");
++    System.exit(1);
++  }
++
++  /** Produces base64( gzip( tar[entryName] ) ), matching what Copy expects to read. */
++  private static byte[] buildBase64GzipTar(String entryName, byte[] content)
++      throws Exception {
++    ByteArrayOutputStream out = new ByteArrayOutputStream();
++    // Base64OutputStream(out, true) => encode on write.
++    Base64OutputStream b64 = new Base64OutputStream(out, true);
++    GzipCompressorOutputStream gz = new GzipCompressorOutputStream(b64);
++    TarArchiveOutputStream tar = new TarArchiveOutputStream(gz);
++    tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
++
++    TarArchiveEntry entry = new TarArchiveEntry(entryName);
++    entry.setSize(content.length);
++    tar.putArchiveEntry(entry);
++    tar.write(content);
++    tar.closeArchiveEntry();
++
++    tar.finish();
++    tar.close(); // cascades close() through gz and b64 to out
++    return out.toByteArray();
++  }
++
++  /** Minimal in-memory Process standing in for a kubectl-exec'd command. */
++  private static final class FakeProcess extends Process {
++    private final InputStream in;
++    private final int exit;
++
++    FakeProcess(byte[] stdout, int exit) {
++      this.in = new ByteArrayInputStream(stdout);
++      this.exit = exit;
++    }
++
++    @Override
++    public OutputStream getOutputStream() {
++      return new ByteArrayOutputStream();
++    }
++
++    @Override
++    public InputStream getInputStream() {
++      return in;
++    }
++
++    @Override
++    public InputStream getErrorStream() {
++      return new ByteArrayInputStream(new byte[0]);
++    }
++
++    @Override
++    public int waitFor() {
++      return exit;
++    }
++
++    @Override
++    public int exitValue() {
++      return exit;
++    }
++
++    @Override
++    public void destroy() {}
++  }
++}

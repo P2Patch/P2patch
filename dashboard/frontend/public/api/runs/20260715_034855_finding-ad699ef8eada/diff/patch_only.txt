@@ -1,0 +1,202 @@
+diff --git a/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java b/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
+index b38dd41..f81932d 100644
+--- a/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
++++ b/src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java
+@@ -409,12 +409,37 @@ public final class StringLookupFactory {
+             // "base64" is deprecated in favor of KEY_BASE64_DECODER.
+             stringLookupMap.put("base64", StringLookupFactory.INSTANCE_BASE64_DECODER);
+             for (final DefaultStringLookup stringLookup : DefaultStringLookup.values()) {
++                // Security (CVE-2022-42889, "Text4Shell"): do not enable interpolators that can
++                // execute code or perform network access (script, dns, url) by default. These can
++                // still be enabled explicitly by constructing an interpolator with the desired
++                // lookups.
++                if (isDefaultDisabledLookup(stringLookup)) {
++                    continue;
++                }
+                 stringLookupMap.put(InterpolatorStringLookup.toKey(stringLookup.getKey()),
+                     stringLookup.getStringLookup());
+             }
+         }
+     }
+ 
++    /**
++     * Returns whether the given default lookup is disabled in the default interpolator for security
++     * reasons (CVE-2022-42889).
++     *
++     * @param stringLookup the lookup to test.
++     * @return {@code true} if the lookup must not be registered by default.
++     */
++    private static boolean isDefaultDisabledLookup(final DefaultStringLookup stringLookup) {
++        switch (stringLookup) {
++        case DNS:
++        case SCRIPT:
++        case URL:
++            return true;
++        default:
++            return false;
++        }
++    }
++
+     /**
+      * Returns the Base64DecoderStringLookup singleton instance to decode Base64 strings.
+      * <p>
+diff --git a/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java b/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
+index 1d6a16f..1a958eb 100644
+--- a/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
++++ b/src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java
+@@ -31,6 +31,18 @@ import org.junit.jupiter.api.Test;
+ 
+ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
++    /**
++     * Builds a {@link StringSubstitutor} whose interpolator has the safe default lookups plus the
++     * given lookup explicitly enabled. Since CVE-2022-42889, the {@code script}, {@code dns} and
++     * {@code url} lookups are no longer part of the defaults and must be opted into explicitly.
++     */
++    private static StringSubstitutor createInterpolatorWith(final String key, final StringLookup lookup) {
++        final Map<String, StringLookup> lookupMap = new HashMap<>();
++        lookupMap.put(key, lookup);
++        return new StringSubstitutor(
++            StringLookupFactory.INSTANCE.interpolatorStringLookup(lookupMap, null, true));
++    }
++
+     @Test
+     public void testCustomFunctionWithDefaults() {
+         testCustomFunctionWithDefaults(true);
+@@ -135,7 +147,8 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
+     @Test
+     public void testDnsLookup() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
++        final StringSubstitutor strSubst = createInterpolatorWith("dns",
++            StringLookupFactory.INSTANCE.dnsStringLookup());
+         final String hostName = InetAddress.getLocalHost().getHostName();
+         Assertions.assertEquals(InetAddress.getByName(hostName).getHostAddress(),
+             strSubst.replace("${dns:" + hostName + "}"));
+@@ -143,14 +156,16 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
+     @Test
+     public void testDnsLookupAddress() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
++        final StringSubstitutor strSubst = createInterpolatorWith("dns",
++            StringLookupFactory.INSTANCE.dnsStringLookup());
+         Assertions.assertEquals(InetAddress.getByName("apache.org").getHostAddress(),
+             strSubst.replace("${dns:address|apache.org}"));
+     }
+ 
+     @Test
+     public void testDnsLookupCanonicalName() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
++        final StringSubstitutor strSubst = createInterpolatorWith("dns",
++            StringLookupFactory.INSTANCE.dnsStringLookup());
+         final String address = InetAddress.getLocalHost().getHostAddress();
+         final InetAddress inetAddress = InetAddress.getByName(address);
+         Assertions.assertEquals(inetAddress.getCanonicalHostName(),
+@@ -159,7 +174,8 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
+     @Test
+     public void testDnsLookupName() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
++        final StringSubstitutor strSubst = createInterpolatorWith("dns",
++            StringLookupFactory.INSTANCE.dnsStringLookup());
+         final String address = InetAddress.getLocalHost().getHostAddress();
+         final InetAddress inetAddress = InetAddress.getByName(address);
+         Assertions.assertEquals(inetAddress.getHostName(), strSubst.replace("${dns:name|" + address + "}"));
+@@ -167,7 +183,8 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
+     @Test
+     public void testDnsLookupNameUntrimmed() throws UnknownHostException {
+-        final StringSubstitutor strSubst = StringSubstitutor.createInterpolator();
++        final StringSubstitutor strSubst = createInterpolatorWith("dns",
++            StringLookupFactory.INSTANCE.dnsStringLookup());
+         final String address = InetAddress.getLocalHost().getHostAddress();
+         final InetAddress inetAddress = InetAddress.getByName(address);
+         Assertions.assertEquals(inetAddress.getHostName(), strSubst.replace("${dns:name| " + address + " }"));
+@@ -182,10 +199,22 @@ public class StringSubstitutorWithInterpolatorStringLookupTest {
+ 
+     @Test
+     public void testJavaScript() {
++        // Since CVE-2022-42889 the "script" lookup is disabled by default and must be enabled
++        // explicitly to be exercised.
++        final StringSubstitutor strSubst = createInterpolatorWith("script",
++            StringLookupFactory.INSTANCE.scriptStringLookup());
+         Assertions.assertEquals("Hello World!",
+-                StringSubstitutor.createInterpolator().replace("${script:javascript:\"Hello World!\"}"));
++                strSubst.replace("${script:javascript:\"Hello World!\"}"));
+         Assertions.assertEquals("7",
+-                StringSubstitutor.createInterpolator().replace("${script:javascript:3 + 4}"));
++                strSubst.replace("${script:javascript:3 + 4}"));
++    }
++
++    @Test
++    public void testDefaultInterpolatorDoesNotEnableScript() {
++        // Regression for CVE-2022-42889 / CWE-094: the default interpolator must not evaluate
++        // attacker-supplied scripts; the expression is left unresolved instead.
++        final String payload = "${script:javascript:new java.lang.String('POV_RCE_' + (7 * 191))}";
++        Assertions.assertEquals(payload, StringSubstitutor.createInterpolator().replace(payload));
+     }
+ 
+     @Test
+diff --git a/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java b/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
+index 71dcbc0..48131d0 100644
+--- a/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
++++ b/src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java
+@@ -16,11 +16,14 @@
+  */
+ package org.apache.commons.text.lookup;
+ 
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertFalse;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ import java.util.HashMap;
+ import java.util.Map;
+ 
++import org.apache.commons.text.StringSubstitutor;
+ import org.junit.jupiter.api.Assertions;
+ import org.junit.jupiter.api.Test;
+ 
+@@ -34,7 +37,8 @@ public class StringLookupFactoryTest {
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_BASE64_ENCODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_CONST)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DATE)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DNS)));
++        // Security (CVE-2022-42889): "dns" is not enabled by default.
++        assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_DNS)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_ENV)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_FILE)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_JAVA)));
+@@ -42,9 +46,11 @@ public class StringLookupFactoryTest {
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_PROPERTIES)));
+         assertTrue(
+             stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_RESOURCE_BUNDLE)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SCRIPT)));
++        // Security (CVE-2022-42889): "script" is not enabled by default.
++        assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SCRIPT)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_SYS)));
+-        assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL)));
++        // Security (CVE-2022-42889): "url" is not enabled by default.
++        assertFalse(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL_DECODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_URL_ENCODER)));
+         assertTrue(stringLookupMap.containsKey(InterpolatorStringLookup.toKey(StringLookupFactory.KEY_XML)));
+@@ -62,6 +68,19 @@ public class StringLookupFactoryTest {
+         StringLookupFactory.INSTANCE.addDefaultStringLookups(null);
+     }
+ 
++    /**
++     * Tests that the default interpolator does not evaluate attacker-supplied scripts
++     * (CVE-2022-42889 / "Text4Shell", CWE-094). The {@code script} lookup must be disabled by
++     * default so the expression is left unresolved instead of being executed.
++     */
++    @Test
++    public void testDefaultInterpolatorDoesNotExecuteScript() {
++        final String payload = "${script:javascript:new java.lang.String('POV_RCE_' + (7 * 191))}";
++        final String result = StringSubstitutor.createInterpolator().replace(payload);
++        assertEquals(payload, result);
++        assertFalse(result.contains("POV_RCE_1337"));
++    }
++
+     /**
+      * Tests that we return the singleton.
+      */

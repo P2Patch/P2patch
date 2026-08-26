@@ -1,0 +1,61 @@
+diff --git a/src/main/java/org/apache/commons/io/FilenameUtils.java b/src/main/java/org/apache/commons/io/FilenameUtils.java
+index 9cddebb..d234faf 100644
+--- a/src/main/java/org/apache/commons/io/FilenameUtils.java
++++ b/src/main/java/org/apache/commons/io/FilenameUtils.java
+@@ -679,7 +679,17 @@ public static int getPrefixLength(final String filename) {
+                 }
+                 posUnix = posUnix == NOT_FOUND ? posWin : posUnix;
+                 posWin = posWin == NOT_FOUND ? posUnix : posWin;
+-                return Math.min(posUnix, posWin) + 1;
++                final int pos = Math.min(posUnix, posWin);
++                // Reject a "host name" component of "." or ".." (e.g. "//../x" or "//./x").
++                // Otherwise the leading ".." would be silently absorbed into the UNC-style
++                // prefix and never evaluated by the parent-traversal checks in doNormalize(),
++                // letting a path such as "//../secret.txt" bypass the same rejection that
++                // correctly applies to the equivalent "/../secret.txt" (CVE-2021-29425).
++                final String hostPart = filename.substring(2, pos);
++                if (".".equals(hostPart) || "..".equals(hostPart)) {
++                    return NOT_FOUND;
++                }
++                return pos + 1;
+             } else {
+                 return isSeparator(ch0) ? 1 : 0;
+             }
+diff --git a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+index 234c25e..c0bd710 100644
+--- a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
++++ b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+@@ -246,6 +246,33 @@ public void testNormalize() throws Exception {
+         assertEquals(SEP + SEP + "server" + SEP + "", FilenameUtils.normalize("//server/"));
+     }
+ 
++    /**
++     * Regression test for CVE-2021-29425: a leading double separator followed
++     * immediately by "." or ".." must not be treated as a valid UNC-style
++     * prefix that swallows the traversal token. Without the fix,
++     * {@code normalize("//../secret.txt")} returned the string unchanged
++     * instead of {@code null}, even though the equivalent single-separator
++     * form {@code normalize("/../secret.txt")} correctly returned null.
++     */
++    @Test
++    public void testNormalize_rejectsDoubleSeparatorDotDotPrefix() throws Exception {
++        assertEquals(null, FilenameUtils.normalize("/../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//./secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("\\\\..\\secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//..\\secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("\\\\../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../a/../../secret.txt"));
++
++        assertEquals(null, FilenameUtils.normalizeNoEndSeparator("//../secret.txt"));
++        assertEquals(null, FilenameUtils.normalizeNoEndSeparator("//../secret.txt", true));
++
++        // legitimate two-separator (UNC-style) prefixes with a real host component
++        // must keep working as before.
++        assertEquals(SEP + SEP + "server" + SEP + "a", FilenameUtils.normalize("//server/a"));
++    }
++
+     @Test
+     public void testNormalize_with_nullbytes() throws Exception {
+         try {

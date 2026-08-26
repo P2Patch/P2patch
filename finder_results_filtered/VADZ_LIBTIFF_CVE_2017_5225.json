@@ -1,0 +1,45 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2017-5225",
+  "note": "tiffcp() (tools/tiffcp.c) reads the input TIFF's BitsPerSample directory tag into a local `bitspersample` via CopyField(TIFFTAG_BITSPERSAMPLE, bitspersample) -- fully attacker-controlled, since BitsPerSample is a plain directory field of the crafted input file. That value is passed to pickCopyFunc(), which uses it only to reject one unrelated combination (differing planar config w/ bitspersample!=8 && samplesperpixel>1) and otherwise selects cpContig2SeparateByRow/cpSeparate2ContigByRow purely from the in/out planar-config and tiled-ness -- never gating on bitspersample itself. Neither of those two selected copy functions re-reads or checks BitsPerSample (unlike their tiled siblings, e.g. cpSeparateTiles2ContigTiles, which do call TIFFGetField(..., TIFFTAG_BITSPERSAMPLE, ...) before copying). Both allocate inbuf/outbuf sized by TIFFScanlineSize() (which correctly accounts for the real, possibly-<8 BitsPerSample), but their row-copy loop unconditionally treats each sample as exactly 1 byte (`*outp++ = *inp; inp += spp;` for `n = imagewidth` iterations) -- so an image with BitsPerSample != 8 (e.g. `-p separate` on a 1-bit image) walks inp/outp far past the smaller buffers TIFFScanlineSize() actually sized: an OOB heap read (inp) and write (outp). Verified with a real CodeQL C/C++ database built from the buggy source: the query fires at exactly tools/tiffcp.c:1090 (cpContig2SeparateByRow) and tools/tiffcp.c:1143 (cpSeparate2ContigByRow, the same defect shape's second call site).",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "bitspersample read from the untrusted input TIFF's BitsPerSample directory tag via CopyField(TIFFTAG_BITSPERSAMPLE, bitspersample), i.e. TIFFGetField(in, TIFFTAG_BITSPERSAMPLE, &bitspersample)",
+            "uri": "tools/tiffcp.c",
+            "line": 602
+          },
+          {
+            "message": "bitspersample passed to pickCopyFunc(), which selects cpContig2SeparateByRow/cpSeparate2ContigByRow from planar config/tiled-ness only -- it does not gate on bitspersample != 8 the way it does for the unrelated differing-planar-config case",
+            "uri": "tools/tiffcp.c",
+            "line": 813
+          },
+          {
+            "message": "cpContig2SeparateByRow: `*outp++ = *inp; inp += spp;` copies `imagewidth` samples of 1 byte each into inbuf/outbuf sized for the real (possibly <8-bit) BitsPerSample by TIFFScanlineSize() -- no local BitsPerSample check anywhere in this function -- an OOB heap read (inp) and write (outp) when BitsPerSample != 8",
+            "uri": "tools/tiffcp.c",
+            "line": 1090
+          }
+        ],
+        [
+          {
+            "message": "bitspersample read from the untrusted input TIFF's BitsPerSample directory tag via CopyField(TIFFTAG_BITSPERSAMPLE, bitspersample), i.e. TIFFGetField(in, TIFFTAG_BITSPERSAMPLE, &bitspersample)",
+            "uri": "tools/tiffcp.c",
+            "line": 602
+          },
+          {
+            "message": "bitspersample passed to pickCopyFunc(), which selects cpContig2SeparateByRow/cpSeparate2ContigByRow from planar config/tiled-ness only -- it does not gate on bitspersample != 8 the way it does for the unrelated differing-planar-config case",
+            "uri": "tools/tiffcp.c",
+            "line": 813
+          },
+          {
+            "message": "cpSeparate2ContigByRow: `*outp = *inp++; outp += spp;` copies `imagewidth` samples of 1 byte each into inbuf/outbuf sized for the real (possibly <8-bit) BitsPerSample by TIFFScanlineSize() -- no local BitsPerSample check anywhere in this function -- an OOB heap read (inp) and write (outp) when BitsPerSample != 8",
+            "uri": "tools/tiffcp.c",
+            "line": 1143
+          }
+        ]
+      ]
+    }
+  ]
+}

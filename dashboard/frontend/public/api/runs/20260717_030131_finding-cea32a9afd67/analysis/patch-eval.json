@@ -1,0 +1,123 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:46:02.599127+00:00",
+    "finished_at": "2026-07-17T15:47:22.386155+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Callback JSONP XSS class is closed with an anchored allowlist at every callback sink; POV no longer reproduces. Docked because the sibling mimeType→Content-Type XSS vector the official fix also closed remains open.",
+        "evidence": "IoUtil.checkCallbackSafe CALLBACK_PATTERN ^[a-zA-Z_$]...$ enforced in AgentServlet.sendResponse (+line 499), IoUtil.streamResponseAndClose (+line 62), JolokiaHttpHandler.sendAllJSON (+line 363); no change to getMimeType/mimeType param.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Validates the tainted callback at the sink/trust boundary via an allowlist, matching the underlying flaw (untrusted value reflected verbatim into executable JS body).",
+        "evidence": "checkCallbackSafe throws IllegalArgumentException on non-identifier callback before content = callback+\"(\"+json+\");\" is built in all three sinks.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "All callback paths (servlet non-streaming, servlet streaming via IoUtil, jvm sendAllJSON, jvm streaming via IoUtil) covered, but the mimeType-parameter reflection into Content-Type (separate XSS path fixed by MimeTypeUtil.getResponseMimeType) is unaddressed.",
+        "evidence": "overlap_files miss MimeTypeUtil.java (official_only); getMimeType still returns request mimeType unsanitized in JolokiaHttpHandler; no sanitize() equivalent added.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy as official (regex allowlist that a callback be a valid JS reference) at equivalent sinks, but omits the mimeType sanitization branch of the official fix and validates at sink rather than early in handle/doHandle.",
+        "evidence": "Our CALLBACK_PATTERN vs official isValidCallback ^[$A-Z_][0-9A-Z_$]*$; official also adds validateCallbackIfGiven early plus MimeTypeUtil, which we lack.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate callbacks preserved (regex is a superset of official, allowing dotted/indexed forms); regressions pass. Minor: rejects by throwing from within response-sending instead of gracefully stripping the callback as the official does.",
+        "evidence": "regressions_passed true; checkWriteWithDottedAndIndexedCallback test; official falls back to json (strips callback) whereas our patch throws IllegalArgumentException in sendAllJSON.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Allowlist regex has no ambiguous overlap between alternatives (each starts with distinct '.' or '['), so no ReDoS; safe primitives, no new injection.",
+        "evidence": "Pattern ^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*|\\[[0-9]+\\])*$ using Matcher.matches().",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized: one shared util method plus three guarded call sites and tests; no unrelated edits.",
+        "evidence": "Changes confined to IoUtil.checkCallbackSafe, AgentServlet.sendResponse guard, JolokiaHttpHandler.sendAllJSON guard, IoUtil.streamResponseAndClose guard.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "For a JSONP callback name, allowlist validation to a JS identifier is the defense-of-record (encoding can't apply to a function name); rejects all metacharacters (<, >, (, ), ;, quotes, whitespace).",
+        "evidence": "CALLBACK_PATTERN permits only [A-Za-z0-9_$], '.', and '[digits]', matching the official isValidCallback approach.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The mimeType request parameter is still reflected unsanitized into the response Content-Type (getMimeType in JolokiaHttpHandler and AgentServlet), a distinct XSS path the official fix closed via MimeTypeUtil sanitization (restrict to application/json or text/plain). Our patch leaves it open."
+      },
+      {
+        "severity": "low",
+        "description": "Invalid callbacks are rejected by throwing IllegalArgumentException from within response-sending rather than being validated early or gracefully stripped (as the official fix does by falling back to plain JSON), which may surface as a 500-style error instead of a clean response."
+      }
+    ],
+    "root_cause": "Untrusted JSONP `callback` request parameter is concatenated verbatim into a text/javascript response body, so a correct fix must constrain the callback to a safe JavaScript identifier (allowlist) at the sink.",
+    "summary": "Our patch correctly neutralizes the traced callback XSS by validating the callback against an anchored JS-identifier allowlist at every callback sink (servlet and jvm, streaming and non-streaming via IoUtil), so the POV no longer reproduces and the callback attack class is genuinely closed with a sound, non-ReDoS regex. It uses the same defensive strategy as the official fix but is a weaker subset: it omits the mimeType-parameter sanitization (MimeTypeUtil) that the official commit added to close a second XSS vector via the Content-Type header. It also rejects by throwing during response-sending rather than gracefully stripping the callback.",
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AgentServlet.java",
+        "JolokiaHttpHandler.java"
+      ],
+      "ours_only": [
+        "IoUtil.java"
+      ],
+      "official_only": [
+        "MimeTypeUtil.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "agent/core/src/main/java/org/jolokia/util/MimeTypeUtil.java",
+        "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+      ],
+      "commits": [
+        "5895d5c137c335e6b473e9dcb9baf748851bbc5f"
+      ]
+    }
+  }
+}

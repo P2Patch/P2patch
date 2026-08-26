@@ -1,0 +1,14 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080136_finding-359ec246c045/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-359ec246c045:9e95644bb5c7 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+extractAll threw: net.lingala.zip4j.exception.ZipException: net.lingala.zip4j.exception.ZipException: illegal file entry: '../../evil_marker.txt' resolves outside of the extraction destination
+destDir            = /tmp/zip4j_zipslip_pov/extracted/sub
+escapedFile exists = false (/tmp/zip4j_zipslip_pov/evil_marker.txt)
+containedFile exists = false
+extractionThrew    = true
+NOT VULNERABLE: traversal entry did not escape the extraction root (path was rejected/sanitized).
+
+--- stderr ---
+

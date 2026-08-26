@@ -1,0 +1,118 @@
+diff --git a/.security-pipeline/pov/PovCve202423673Test.java b/.security-pipeline/pov/PovCve202423673Test.java
+new file mode 100644
+index 0000000..cbfdb69
+--- /dev/null
++++ b/.security-pipeline/pov/PovCve202423673Test.java
+@@ -0,0 +1,112 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *   http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing,
++ * software distributed under the License is distributed on an
++ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++ * KIND, either express or implied.  See the License for the
++ * specific language governing permissions and limitations
++ * under the License.
++ */
++package org.apache.sling.servlets.resolver.internal;
++
++import static org.junit.Assert.assertNotNull;
++
++import java.io.IOException;
++import java.util.HashMap;
++import java.util.Map;
++
++import javax.servlet.Servlet;
++import javax.servlet.ServletException;
++import javax.servlet.http.HttpServlet;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++
++import org.apache.sling.api.resource.PersistenceException;
++import org.apache.sling.api.resource.ResourceResolver;
++import org.apache.sling.servlets.resolver.internal.helper.HelperTestBase;
++import org.apache.sling.servlets.resolver.internal.resource.MockServletResource;
++import org.apache.sling.servlets.resolver.internal.resource.ServletResource;
++import org.junit.Test;
++import org.osgi.framework.Bundle;
++
++/**
++ * Proof-of-vulnerability for CVE-2024-23673 (SLING-12233), CWE-022 path traversal
++ * in the Apache Sling Servlets Resolver.
++ *
++ * The finder alert flags that a script-resource path flows through
++ * SlingServletResolver.resolveServletInternal() / ScriptResourceResolver without
++ * validation. A path segment consisting only of dots ("...", "....", ...) is NOT
++ * collapsed by {@code ResourceUtil.normalize} and is NOT rejected by
++ * {@code isPathAllowed}, so an attacker who can write such a resource (e.g. an
++ * uploaded script) can have it loaded and executed as a servlet by supplying an
++ * absolute resource type / script name that contains a "..."-style traversal
++ * segment.
++ *
++ * This POV drives the real, public resolver entry point
++ * {@link SlingServletResolver#resolveServlet(ResourceResolver, String)} with such
++ * a traversal path that points at a servlet resource. On the vulnerable
++ * (unpatched) code the servlet is resolved (non-null) -> the test PASSES and the
++ * command exits 0. After the correct fix (SlingServletResolver.isInvalidPath
++ * rejects segments with more than two consecutive dots) resolveServlet returns
++ * null -> the assertion fails and the command exits non-zero.
++ */
++public class PovCve202423673Test extends SlingServletResolverTestBase {
++
++    /**
++     * Absolute path whose "..." segment is a path-traversal token that
++     * {@code ResourceUtil.normalize} leaves untouched and {@code isPathAllowed}
++     * accepts (execution paths are unrestricted in this configuration).
++     */
++    static final String TRAVERSAL_SCRIPT_PATH = "/libs/proxy/.../uploaded.servlet";
++
++    private Servlet uploadedServlet;
++
++    @Override
++    protected void defineTestServlets(final Bundle bundle) {
++        uploadedServlet = new HttpServlet() {
++            private static final long serialVersionUID = 1L;
++
++            @Override
++            protected void service(HttpServletRequest req, HttpServletResponse resp)
++                    throws ServletException, IOException {
++                resp.getWriter().write("attacker controlled script executed");
++            }
++        };
++
++        final Map<String, Object> props = new HashMap<>();
++        props.put(ResourceResolver.PROPERTY_RESOURCE_TYPE, TRAVERSAL_SCRIPT_PATH);
++        props.put("sling:resourceSuperType", ServletResource.DEFAULT_RESOURCE_SUPER_TYPE);
++        props.put(MockServletResource.PROP_SERVLET, uploadedServlet);
++
++        HelperTestBase.addOrReplaceResource(mockResourceResolver, TRAVERSAL_SCRIPT_PATH, props);
++        try {
++            // commit so the resource is visible to the shared script resource resolver
++            mockResourceResolver.commit();
++        } catch (final PersistenceException e) {
++            throw new RuntimeException("Unexpected persistence exception: " + e.getMessage(), e);
++        }
++    }
++
++    @Test
++    public void povPathTraversalResolvesUploadedScript() {
++        // Attacker supplies an absolute "script name" that contains a "..." traversal
++        // segment. A hardened resolver must refuse to look up such a path.
++        final Servlet resolved =
++                servletResolver.resolveServlet(mockResourceResolver, TRAVERSAL_SCRIPT_PATH);
++
++        assertNotNull(
++            "VULNERABLE (CVE-2024-23673): the servlet resolver loaded a script via the "
++                + "path-traversal segment '...' in '" + TRAVERSAL_SCRIPT_PATH + "'. A patched "
++                + "resolver rejects paths with more than two consecutive dots and returns null.",
++            resolved);
++    }
++}

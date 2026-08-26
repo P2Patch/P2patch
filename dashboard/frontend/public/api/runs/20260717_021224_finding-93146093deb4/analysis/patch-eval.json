@@ -1,0 +1,123 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:48.223785+00:00",
+    "finished_at": "2026-07-17T08:50:42.600153+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a sound, defense-of-record fix for the designated sink. I independently verified the vulnerability is real despite the pipeline reporting pov_before_reproduced=false: compiling the pre-patch FileUtil in the CVE's own Docker image, entry \"../baseEVIL/foo.bar\" passed the original check and actually wrote /tmp/vuln/target/testEVIL/foo.bar outside the extraction root. Our patch blocks that and every other traversal variant with verdicts identical to the official fix, while preserving all legitimate paths (4/4 tests pass; the 2 new tests genuinely fail against unpatched code, proving they are real regression tests). It is stronger than official at FileUtil (it also guards the actual write sink copy(), before mkdirs()), but it leaves RunMojo.java:439 carrying the identical vulnerable prefix predicate that the official fix closed in the same commit.",
+    "root_cause": "The containment check used an unanchored string prefix comparison (target.getCanonicalPath().startsWith(dir.getCanonicalPath())), so a canonical path in a sibling directory sharing the base's character prefix (e.g. /base/../baseEVIL/foo) satisfied the check and escaped the extraction root; a correct fix must anchor the canonical-containment test on a separator boundary at the write sink.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Empirically proven: escape reproduced on original code, blocked by patch across all attack variants, matching official verdict-for-verdict.",
+        "evidence": "FileUtil.java:115-116 (unjar) and 165-169 (copy) replace the unanchored prefix test with separator-anchored canonical containment. Differential run: '../baseEVIL/foo.bar' orig=ALLOW ours=BLOCK official=BLOCK; 'a/b/../../../baseEVIL/x' orig=ALLOW ours=BLOCK; '../base2' orig=ALLOW ours=BLOCK. Escape artifact /tmp/vuln/target/testEVIL/foo.bar written pre-patch, absent post-patch.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the trust boundary and additionally at the real write sink, rather than guarding only the reported entry point.",
+        "evidence": "FileUtil.java:163-169 places the canonical-containment check inside copy() itself (the FileOutputStream sink at line 186), validating against the extraction root 'dir' (not targetDir) and executing BEFORE targetDir.mkdirs() at line 171-178, so no directory is created outside the root. Official only guards unjar.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Covers the traced path plus the sink and all tested bypass variants, but the sibling RunMojo sink the official swept is untouched.",
+        "evidence": "Both trace paths covered (unjar FileUtil.java:115-116; copy FileUtil.java:165-169). Grep confirms copy()/unjar() have no other production callers (only FileUtil.java:85,143 and tests). Gap: tooling/karaf-maven-plugin/.../RunMojo.java:439 still reads '!file.getCanonicalPath().startsWith(targetDir.getCanonicalPath())'.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy and same primary location as official (canonicalize + separator-anchored prefix); superset at FileUtil but does not extend to RunMojo, and diverges on two benign edges.",
+        "evidence": "FileUtil.java:113-118 mirrors the official 'canonicalizedDir + File.separator' anchoring via an equals-OR-startsWith(dir+separator) formulation; official fix localization names exactly FileUtil.unjar (method_start 96, method_end 140), which our patch matches. Divergence: dir='/' ours=BLOCK vs official=ALLOW; entry '.' ours=ALLOW vs official=BLOCK.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "All tests pass and legitimate extraction is intact; only an absurd-edge over-restriction when extracting to the filesystem root.",
+        "evidence": "JUnitCore on patched FileUtil: 'OK (4 tests)' (2 pre-existing + 2 new). Legit cases ALLOW: 'foo.bar', 'a/b/c.txt', 'a/../foo.bar'; nested write base/sub/ok.txt confirmed created. Over-restriction: with dir='/', dirCanonical='/' so the concat yields '//' and FileUtil.java:166 rejects all entries; official's endsWith(File.separator) guard avoids this.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No new weakness class introduced; the equals-case divergence is proven unexploitable, but the dir='/' concat is a genuine edge regression vs both original and official.",
+        "evidence": "Probe of the equals-case: destName='.'/''/'.'+destDir='.' all refused with 'Is a directory' at the FileOutputStream (FileUtil.java:186) — target==dir cannot be turned into a write. No symlink creation exists in the extractor, so canonicalization is not TOCTOU-exploitable here. Edge regression at FileUtil.java:166 for dir='/'.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized diff confined to the one vulnerable file; the targetFile hoist is a clean refactor that removes a duplicated File construction.",
+        "evidence": "git diff --stat: FileUtil.java +19/-2 only (plus tests). targetFile hoisted at FileUtil.java:159 and reused at line 186, replacing the inline 'new File(targetDir, destName)'. No unrelated edits.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path, then verify separator-anchored containment in the base dir — no blocklisting.",
+        "evidence": "FileUtil.java:163-169 calls dir.getCanonicalPath()/targetFile.getCanonicalPath() (which resolve symlinks and normalize '..') and only then tests containment anchored on File.separator. The pre-existing '..'-string error text is retained but no logic depends on string blocklisting.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java:439 still uses the identical unanchored predicate '!file.getCanonicalPath().startsWith(targetDir.getCanonicalPath())' that the official fix corrected in the same commit (36a2bc430c). This is the same CWE-022 sibling-prefix bypass class, left open in the karaf-maven-plugin extract() path. It is outside the supplied taint trace and the official fix localization (which names only FileUtil.unjar), and is a build-time plugin rather than the OBR runtime path, so severity is medium rather than high — but our patch is not a full replacement for the official sweep."
+      },
+      {
+        "severity": "low",
+        "description": "String-concat anchoring breaks when the extraction root canonicalizes to '/': dirCanonical='/' makes 'dirCanonical + File.separator' == '//', so FileUtil.java:165-166 rejects every legitimate entry (verified: dir='/' entry 'tmp/x' → ours=BLOCK, official=ALLOW, original=ALLOW). The official fix's 'if (!canonicalizedDir.endsWith(File.separator))' guard avoids this. Over-restriction only, never a bypass, and unreachable in realistic OBR usage."
+      },
+      {
+        "severity": "low",
+        "description": "The added 'targetCanonical.equals(dirCanonical)' clause admits target==dir, where the official fix rejects it (since '/base' does not start with '/base/'). Verified non-exploitable: destName='.', destName='', and destName='.'+destDir='.' all fail closed at the FileOutputStream with 'Is a directory', so no write occurs. The divergence changes only the exception type, not reachability of the sink."
+      }
+    ],
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "FileUtil.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "RunMojo.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java",
+        "tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java"
+      ],
+      "commits": [
+        "36a2bc430cc773db1cfd0b32e307d9da2d1697f7"
+      ]
+    }
+  }
+}

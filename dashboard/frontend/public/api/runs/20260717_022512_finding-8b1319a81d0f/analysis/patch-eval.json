@@ -1,0 +1,124 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:37.095037+00:00",
+    "finished_at": "2026-07-17T15:47:40.230721+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Adds a proper symlink-resolving canonicalization guard at the sink that closes the dangling-symlink write-through class, not just one payload.",
+        "evidence": "AbstractUnArchiver.extractFile: new guard `if(!resolveAgainstExistingSymlinks(canonicalDirPath, entryName, dereferenceLastSegment).startsWith(canonicalDirPath)) throw ...` plus helper using Files.isSymbolicLink/readSymbolicLink",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Fix sits at the extraction sink (same method as official), neutralizing the flaw that getCanonicalFile cannot resolve dangling symlinks, rather than patching a caller.",
+        "evidence": "Guard inserted right after existing canonicalDestPath.startsWith check in extractFile; helper resolveAgainstExistingSymlinks resolves each segment via readSymbolicLink",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Covers plain-file-over-symlink, write-through-parent, and preserves legitimate symlink re-extraction; lives in shared AbstractUnArchiver so both tar and zip source paths are covered.",
+        "evidence": "dereferenceLastSegment = StringUtils.isEmpty(symlinkDestination); tests shouldThrowExceptionWhenEntryWritesThroughDanglingSymlink..., shouldThrowExceptionWhenFileEntryReplacesDanglingSymlink..., shouldReExtractSymlink...",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive intent and location as official (block writing through an escaping symlink), but a different, broader mechanism than official's single Files.isSymbolicLink(canonicalDestPath) check.",
+        "evidence": "Official: `if(StringUtils.isEmpty(symlinkDestination) && Files.isSymbolicLink(canonicalDestPath)) throw`; ours resolves full path segment-by-segment",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Positive tests preserve dangling-symlink creation, inside-dir symlinks and re-extraction; however regressions_ran=0 so no project-wide regression confirmation.",
+        "evidence": "Tests shouldExtractDanglingSymlinkPointingOutside..., shouldExtractSymlinkWhenTargetStaysWithinDirectory pass; execution shows regressions_ran:0, regressions_passed:null",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe primitives (Path.startsWith is component-wise, not string prefix); minor edge risk in manual `..`-after-symlink resolution but it errs toward rejecting escapes.",
+        "evidence": "resolved = linkTarget.isAbsolute()? normalize(): resolved.getParent().resolve(linkTarget).normalize(); early bail when !resolved.startsWith(canonicalDirPath)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Correct but larger than the official minimal fix: adds a ~40-line helper plus guard where official added a 3-line check; scope stays within one production file/method though.",
+        "evidence": "New private static resolveAgainstExistingSymlinks(...) helper vs official's single if-statement",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Implements the CWE-022 defense of record: canonicalize resolving real (even dangling) symlinks, then verify the result stays under the base dir via component-wise Path.startsWith.",
+        "evidence": "Segment loop with Files.readSymbolicLink + normalize + `resolved.startsWith(canonicalDirPath)` against canonicalDirPath",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Weak execution evidence: pov_before_reproduced=false and regressions_ran=0, so the fix's correctness rests on code reasoning rather than demonstrated before/after behavior or a regression suite."
+      },
+      {
+        "severity": "low",
+        "description": "More permissive than the official fix: official rejects a plain file overwriting ANY existing symlink, while ours only rejects when the resolved path escapes the target dir — safe for path traversal but a policy divergence that could let a plain file follow an inside-pointing symlink."
+      },
+      {
+        "severity": "low",
+        "description": "Manual logical resolution of `..` after a followed symlink may diverge from OS physical resolution in exotic layouts; it appears to err toward rejecting escapes but is not identical to kernel semantics."
+      },
+      {
+        "severity": "low",
+        "description": "Larger/more complex than the minimal official fix (40-line helper), increasing maintenance and edge-case surface."
+      }
+    ],
+    "root_cause": "File#getCanonicalFile() cannot resolve a symlink whose target does not yet exist, so the existing in-directory check can be bypassed by an earlier archive entry that plants a dangling symlink escaping the target dir, through which a later entry then writes.",
+    "summary": "Our patch fixes the vulnerability at the same sink (AbstractUnArchiver.extractFile) as the official fix, adding a manual symlink-resolving canonicalization (Files.isSymbolicLink/readSymbolicLink per segment) that then verifies the resolved path stays under the target directory — the proper CWE-022 defense of record, and arguably broader than the official narrow isSymbolicLink check. It preserves legitimate symlink creation and re-extraction, backed by targeted tests. Confidence is tempered by weak execution evidence (POV did not reproduce pre-patch and zero regressions were run) and a minor policy divergence (it permits plain-file overwrites of symlinks that stay inside the dir, which the official fix blocks outright). Overall a sound, valid alternative fix.",
+    "overall": {
+      "mean": 4.0,
+      "score": 80,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "54759839fbdf85caf8442076f001d5fd64e0dcb2"
+      ]
+    }
+  }
+}

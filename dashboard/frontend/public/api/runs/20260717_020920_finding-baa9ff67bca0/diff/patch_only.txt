@@ -1,0 +1,196 @@
+diff --git a/src/main/java/org/apache/commons/io/FilenameUtils.java b/src/main/java/org/apache/commons/io/FilenameUtils.java
+index 9cddebb..6dc463a 100644
+--- a/src/main/java/org/apache/commons/io/FilenameUtils.java
++++ b/src/main/java/org/apache/commons/io/FilenameUtils.java
+@@ -19,8 +19,12 @@
+ import java.io.File;
+ import java.io.IOException;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.Collection;
++import java.util.List;
+ import java.util.Stack;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
+ 
+ /**
+  * General filename and filepath manipulation utilities.
+@@ -122,6 +126,23 @@ public class FilenameUtils {
+         }
+     }
+ 
++    private static final String[] EMPTY_STRING_ARRAY = new String[0];
++
++    private static final Pattern IPV4_PATTERN =
++            Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$");
++
++    private static final int IPV4_MAX_OCTET_VALUE = 255;
++
++    private static final int IPV6_MAX_HEX_GROUPS = 8;
++
++    private static final int IPV6_MAX_HEX_DIGITS_PER_GROUP = 4;
++
++    private static final int MAX_UNSIGNED_SHORT = 0xffff;
++
++    private static final int BASE_16 = 16;
++
++    private static final Pattern REG_NAME_PART_PATTERN = Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-]*$");
++
+     /**
+      * Instances should NOT be constructed in standard programming.
+      */
+@@ -679,13 +700,122 @@ public static int getPrefixLength(final String filename) {
+                 }
+                 posUnix = posUnix == NOT_FOUND ? posWin : posUnix;
+                 posWin = posWin == NOT_FOUND ? posUnix : posWin;
+-                return Math.min(posUnix, posWin) + 1;
++                final int pos = Math.min(posUnix, posWin) + 1;
++                final String hostnamePart = filename.substring(2, pos - 1);
++                return isValidHostName(hostnamePart) ? pos : NOT_FOUND;
+             } else {
+                 return isSeparator(ch0) ? 1 : 0;
+             }
+         }
+     }
+ 
++    /**
++     * Checks whether the given string is a valid host name or IP address, per RFC 3986,
++     * suitable for use as the host portion of a UNC-style ({@code //server/...}) path prefix.
++     * <p>
++     * This is used to reject inputs such as {@code //../foo} where the ".." would otherwise
++     * be silently absorbed into the path prefix and skipped by the ".." collapsing logic in
++     * {@link #doNormalize(String, char, boolean)}, allowing path traversal to go undetected.
++     *
++     * @param name the candidate host name
++     * @return true if {@code name} is a valid IPv6 address or RFC 3986 host name
++     */
++    private static boolean isValidHostName(final String name) {
++        return isIPv6Address(name) || isRFC3986HostName(name);
++    }
++
++    private static boolean isIPv4Address(final String name) {
++        final Matcher m = IPV4_PATTERN.matcher(name);
++        if (!m.matches() || m.groupCount() != 4) {
++            return false;
++        }
++
++        for (int i = 1; i <= 4; i++) {
++            final String ipSegment = m.group(i);
++            final int iIpSegment = Integer.parseInt(ipSegment);
++            if (iIpSegment > IPV4_MAX_OCTET_VALUE) {
++                return false;
++            }
++
++            if (ipSegment.length() > 1 && ipSegment.startsWith("0")) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++
++    private static boolean isIPv6Address(final String inet6Address) {
++        final boolean containsCompressedZeroes = inet6Address.contains("::");
++        if (containsCompressedZeroes && (inet6Address.indexOf("::") != inet6Address.lastIndexOf("::"))) {
++            return false;
++        }
++        if ((inet6Address.startsWith(":") && !inet6Address.startsWith("::"))
++                || (inet6Address.endsWith(":") && !inet6Address.endsWith("::"))) {
++            return false;
++        }
++        String[] octets = inet6Address.split(":");
++        if (containsCompressedZeroes) {
++            final List<String> octetList = new ArrayList<>(Arrays.asList(octets));
++            if (inet6Address.endsWith("::")) {
++                octetList.add("");
++            } else if (inet6Address.startsWith("::") && !octetList.isEmpty()) {
++                octetList.remove(0);
++            }
++            octets = octetList.toArray(EMPTY_STRING_ARRAY);
++        }
++        if (octets.length > IPV6_MAX_HEX_GROUPS) {
++            return false;
++        }
++        int validOctets = 0;
++        int emptyOctets = 0;
++        for (int index = 0; index < octets.length; index++) {
++            final String octet = octets[index];
++            if (octet.length() == 0) {
++                emptyOctets++;
++                if (emptyOctets > 1) {
++                    return false;
++                }
++            } else {
++                emptyOctets = 0;
++                if (index == octets.length - 1 && octet.contains(".")) {
++                    if (!isIPv4Address(octet)) {
++                        return false;
++                    }
++                    validOctets += 2;
++                    continue;
++                }
++                if (octet.length() > IPV6_MAX_HEX_DIGITS_PER_GROUP) {
++                    return false;
++                }
++                int octetInt;
++                try {
++                    octetInt = Integer.parseInt(octet, BASE_16);
++                } catch (final NumberFormatException e) {
++                    return false;
++                }
++                if (octetInt < 0 || octetInt > MAX_UNSIGNED_SHORT) {
++                    return false;
++                }
++            }
++            validOctets++;
++        }
++        return validOctets <= IPV6_MAX_HEX_GROUPS && (validOctets >= IPV6_MAX_HEX_GROUPS || containsCompressedZeroes);
++    }
++
++    private static boolean isRFC3986HostName(final String name) {
++        final String[] parts = name.split("\\.", -1);
++        for (int i = 0; i < parts.length; i++) {
++            if (parts[i].length() == 0) {
++                return i == parts.length - 1;
++            }
++            if (!REG_NAME_PART_PATTERN.matcher(parts[i]).matches()) {
++                return false;
++            }
++        }
++        return true;
++    }
++
+     /**
+      * Returns the index of the last directory separator character.
+      * <p>
+diff --git a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+index 234c25e..0d86732 100644
+--- a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
++++ b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+@@ -246,6 +246,26 @@ public void testNormalize() throws Exception {
+         assertEquals(SEP + SEP + "server" + SEP + "", FilenameUtils.normalize("//server/"));
+     }
+ 
++    /**
++     * Regression test for CVE-2021-29425: a leading double-separator whose "hostname"
++     * component is actually a traversal sequence (e.g. {@code //../foo}) must not be
++     * silently absorbed into the path prefix and skipped by the ".." collapsing logic.
++     * Such inputs must be rejected (return null) or otherwise not escape the root, the
++     * same as any other invalid double-dot-at-root path.
++     */
++    @Test
++    public void testNormalize_CVE_2021_29425_pathTraversal() throws Exception {
++        assertEquals(null, FilenameUtils.normalize("//../foo"));
++        assertEquals(null, FilenameUtils.normalize("\\\\..\\foo"));
++        assertEquals(null, FilenameUtils.normalize("//..\\foo"));
++        assertEquals(null, FilenameUtils.normalize("//foo/../../bar"));
++        assertEquals(null, FilenameUtils.normalize("//-server/foo"));
++        assertEquals(null, FilenameUtils.normalize("//.server/foo"));
++
++        assertEquals(-1, FilenameUtils.getPrefixLength("//../foo"));
++        assertEquals(-1, FilenameUtils.getPrefixLength("\\\\..\\foo"));
++    }
++
+     @Test
+     public void testNormalize_with_nullbytes() throws Exception {
+         try {

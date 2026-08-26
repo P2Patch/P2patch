@@ -1,0 +1,129 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:43.200488+00:00",
+    "finished_at": "2026-07-17T15:46:54.520397+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds an isPathUnderBase() containment check in both ClassPathResourceHandler.getResource and ExternalResourceHandler.getResource, normalizing base and candidate via StringUtils.cleanPath (which converts backslashes and collapses ../ segments) and verifying the candidate is a descendant of the base with trailing-slash-normalized startsWith. This is the correct CWE-022 defense-of-record — canonicalize then verify containment — applied at both real sinks, including the welcome-file resolution path. It is semantically the same protection as the official DirectoryTraversal.protectAgainst* check (removeLeadingAndTrailingSlashesFrom(path).startsWith(configuredFolder)), differing mainly in mechanism/location and in not centralizing state via StaticFilesFolder. POV no longer reproduces, regressions pass, and the trailing-slash normalization avoids the classic /public vs /public-evil prefix bug.",
+    "root_cause": "Request paths concatenated onto the configured static-files base are passed to File/classpath lookup without verifying the normalized resolved path stays inside the base, so ../ (and backslash-smuggled) segments escape the directory.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Normalized-containment check rejects the whole ../ / backslash traversal class, not just the observed payload.",
+        "evidence": "AbstractResourceHandler.isPathUnderBase + guards in ClassPathResourceHandler.getResource and ExternalResourceHandler.getResource returning null when !isPathUnderBase; cleanPath collapses '..' and converts '\\'.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Validates the resolved path at the sink/trust boundary in both resource handlers, not a caller or error message.",
+        "evidence": "isPathUnderBase(baseResource, addedPath) checked before `new ClassPathResource/ExternalResource(addedPath)`; welcomePath re-checked too.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Both handlers + welcome-file paths covered; does not add the centralized StaticFilesConfiguration/jar-path guard the official fix wraps, a possible residual sink.",
+        "evidence": "Patches ClassPathResourceHandler and ExternalResourceHandler; official_only includes StaticFilesConfiguration.java (consume/jar wrapping) not mirrored here.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy (verify resolved path under configured base) but different mechanism/location than the official DirectoryTraversal helper.",
+        "evidence": "Official uses removeLeadingAndTrailingSlashesFrom(resource.getPath()).startsWith(StaticFilesFolder.local/external()); ours pre-checks addedPath via cleanPath+startsWith with trailing-slash normalization.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Regressions and added tests pass; equal-to-base and legitimate descendant paths still resolve.",
+        "evidence": "regressions_ran=3 passed; pov_after_still_reproduces=false; trailing-slash normalization makes base==candidate resolve true.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Prefix-bug avoided via trailing-slash normalization; cleanPath is a safe primitive; no ReDoS/TOCTOU/crash introduced (returns null cleanly).",
+        "evidence": "normalizedBase/Candidate both get SLASH suffix before startsWith; null-guard at top of isPathUnderBase.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Localized guard calls plus a documented helper and tests; slightly larger than the official approach but focused.",
+        "evidence": "One helper in AbstractResourceHandler + two guard sites per handler; no unrelated edits.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Canonicalize-then-contain (defense-of-record) via string normalization, but no filesystem realpath/symlink resolution — same limitation as the official fix.",
+        "evidence": "StringUtils.cleanPath normalization + startsWith containment; no File.getCanonicalPath()/symlink resolution, matching official string-based startsWith.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Containment is string-based (cleanPath) rather than filesystem canonicalization; symlinks under an external base could theoretically point outside the directory. The official fix shares this limitation, so it is not a regression."
+      },
+      {
+        "severity": "low",
+        "description": "Official fix also wraps StaticFilesConfiguration.consume / jar handler path; if any static-file sink resolves outside ClassPathResourceHandler/ExternalResourceHandler.getResource, it would be uncovered by our patch. Both primary handlers are covered, so residual risk is low."
+      }
+    ],
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ClassPathResourceHandler.java",
+        "ExternalResourceHandler.java"
+      ],
+      "ours_only": [
+        "AbstractResourceHandler.java"
+      ],
+      "official_only": [
+        "DirectoryTraversal.java",
+        "StaticFilesConfiguration.java",
+        "StaticFilesFolder.java",
+        "StringUtils.java"
+      ],
+      "jaccard": 0.286,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "src/main/java/spark/staticfiles/DirectoryTraversal.java",
+        "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "src/main/java/spark/staticfiles/StaticFilesFolder.java",
+        "src/main/java/spark/utils/StringUtils.java"
+      ],
+      "commits": [
+        "efcb46c710e3f56805b9257a63d1306882f4faf9"
+      ]
+    }
+  }
+}

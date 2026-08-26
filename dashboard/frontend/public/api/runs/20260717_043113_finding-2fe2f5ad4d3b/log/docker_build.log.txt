@@ -1,0 +1,52 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81/Dockerfile -t simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.08kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72
+#4 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72 done
+#4 DONE 0.0s
+
+#5 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#5 CACHED
+
+#6 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#6 CACHED
+
+#7 [builder 5/7] RUN set -eux;     git clone "https://github.com/nahsra/antisamy" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "1.6.5" ]; then git checkout "1.6.5"; fi
+#7 CACHED
+
+#8 [builder 2/7] WORKDIR /workspace
+#8 CACHED
+
+#9 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#9 CACHED
+
+#10 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:03e8aa18d95967eadcdee8fbee059bf527a68ab9d3afb07f238eb99d335bc5ba done
+#11 exporting config sha256:9464125468e09b910f58c7f8ec68352f4f420535feadc20ee0ba224d4b90911b done
+#11 exporting attestation manifest sha256:7112cfd59680cce64ed91be3156b29144bf4a21e1d9b2a5e313e6bebedadb759 done
+#11 exporting manifest list sha256:56c3256970e49519884c53e7d984a5dc9370b51dc0cf01bd974df26e460fcaf6 done
+#11 naming to docker.io/library/simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee done
+#11 unpacking to docker.io/library/simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee done
+#11 DONE 0.0s
+

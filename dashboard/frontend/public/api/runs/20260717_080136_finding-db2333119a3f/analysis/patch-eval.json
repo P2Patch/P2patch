@@ -1,0 +1,125 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:55.980180+00:00",
+    "finished_at": "2026-07-17T15:47:42.084918+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch makes the executable be single-quoted and escaped exactly like arguments already are (setExecutableQuoteDelimiter('\\''), setSingleQuotedExecutableEscaped(true), executableEscapePattern \"'\\%s'\", and removing BourneShell's unifyQuotes-based getExecutable() override), which neutralizes the observed $(...)/backtick/;/| payloads at the shell sink and passes POV+regressions. It is a sound, localized quoting fix but is materially weaker than the official fix: it keeps conditional (trigger-char-gated) quoting rather than the official's unconditional quoting, so a newline-only payload (e.g. \"foo\\nreboot\", no trigger char) is still interpolated unquoted into /bin/sh -c and injects. It also never adopts the official's deeper defense of routing execute() through getCommandline()/Runtime.exec(argv) (no shell) and leaves the working-directory path on the old double-quote unifyQuotes. Class is mostly but not fully closed.",
+    "root_cause": "The executable string from Commandline.setExecutable() is interpolated into a `/bin/sh -c` command line with double-quote/no quoting that fails to neutralize POSIX shell metacharacters, so a correct fix must quote it so it can never break out (or not invoke a shell at all).",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "Single-quoting neutralizes the observed and most classic metacharacter payloads, but conditional (trigger-char-gated) quoting leaves a newline-only bypass reaching the same /bin/sh -c sink.",
+        "evidence": "BourneShell setExecutableQuoteDelimiter('\\''), setExecutableEscapePattern(\"'\\%s'\"); Shell.java getRawCommandLine now passes getExecutableEscapePattern(); but BASH_QUOTING_TRIGGER_CHARS lacks '\\n' so \"foo\\nreboot\" stays unquoted.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Fixes quoting at the Shell sink where the tainted executable is embedded into the shell command, the correct trust boundary for the shell path.",
+        "evidence": "Shell.java line ~150 quoteAndEscape(getExecutable(), getExecutableQuoteDelimiter(), ..., getExecutableEscapePattern(), false); BourneShell removes double-quoting unifyQuotes override.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Covers command-substitution/backtick/semicolon/embedded-quote variants but misses newline payloads (conditional quoting) and leaves getExecutionPreamble working-dir on old double-quote unifyQuotes; does not touch Commandline.java.",
+        "evidence": "Tests assert '$(...)', backtick, ';' quoted; but no '\\n' trigger char; BourneShell.unifyQuotes(dir) retained in getExecutionPreamble; official_only=Commandline.java untouched.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same intent and location (single-quote the executable in BourneShell/Shell) but different mechanism (conditional quoting + escape pattern) and omits official's execute()->getCommandline() no-shell change and unconditional quoting.",
+        "evidence": "Official setUnconditionalQuoting(true) + execute() uses getCommandline()/getLiteralExecutable(); ours keeps getShellCommandline() and conditional getQuotingTriggerChars().",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "POV fixed, 3 regressions pass, plain executables like 'chmod' remain unquoted so legitimate exec behavior is preserved.",
+        "evidence": "regressions_passed=true; testExecutableWithoutSpecialCharactersIsUnquoted asserts lines[2]=='chmod'.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Single-quote-and-escape uses safe primitives already proven for arguments; no new crash or injection introduced by the change itself.",
+        "evidence": "executableEscapePattern mirrors argumentEscapePattern \"'\\%s'\"; embedded-quote test yields correct '...'\\''...' escaping.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized edits to BourneShell and Shell mirroring existing argument handling; changes are focused.",
+        "evidence": "Two production files changed; Shell.java adds executableEscapePattern field/getter/setter and one call-site swap.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 3,
+        "rationale": "Relies on metacharacter quoting/escaping (the fragile approach per CWE-078 rubric) and keeps shell invocation; conditional quoting leaves a newline gap, unlike the official no-shell + unconditional-quote defense.",
+        "evidence": "execute() still uses getShellCommandline() (/bin/sh -c); official moves to Runtime.exec(getCommandline()) with literal executable and setUnconditionalQuoting(true).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Quoting is conditional on getQuotingTriggerChars(), which omits newline. An executable like \"foo\\nreboot\" (no trigger char, no space) is interpolated unquoted into /bin/sh -c and executes the injected command, so the CWE-078 class is not fully closed. The official fix avoids this via setUnconditionalQuoting(true)."
+      },
+      {
+        "severity": "medium",
+        "description": "execute() still routes through getShellCommandline() (/bin/sh -c ...), so security depends entirely on quoting correctness. The official fix changes execute() to Runtime.exec(getCommandline()) with the literal executable (no shell), removing the sink for local execution."
+      },
+      {
+        "severity": "low",
+        "description": "BourneShell.getExecutionPreamble() still uses the old double-quote unifyQuotes(dir) for the working directory, which does not neutralize $(...)/backticks; the official fix replaced it with single-quote quoteOneItem(dir,false). Residual injection vector via working directory if attacker-influenced."
+      }
+    ],
+    "overall": {
+      "mean": 3.5,
+      "score": 70,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "BourneShell.java",
+        "Shell.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "Commandline.java"
+      ],
+      "jaccard": 0.667,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 3,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+      ],
+      "commits": [
+        "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41"
+      ]
+    }
+  }
+}

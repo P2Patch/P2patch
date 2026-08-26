@@ -1,0 +1,99 @@
+diff --git a/src/main/java/org/owasp/validator/css/CssValidator.java b/src/main/java/org/owasp/validator/css/CssValidator.java
+index 8c92a50..73945e9 100644
+--- a/src/main/java/org/owasp/validator/css/CssValidator.java
++++ b/src/main/java/org/owasp/validator/css/CssValidator.java
+@@ -357,12 +357,30 @@ public class CssValidator {
+ 		case LexicalUnit.SAC_IDENT:
+ 			// just a string/identifier
+ 			String stringValue = lu.getStringValue();
++			if (containsHtmlMetacharacters(stringValue)) {
++				// The decoded token contains '<' and/or '>'. These have no
++				// legitimate use inside a CSS string/identifier and, since
++				// this value is echoed verbatim back into the cleaned
++				// stylesheet/style attribute, allowing them through would let
++				// an attacker smuggle markup (e.g. a closing </style> tag or
++				// a brand new element) past the CSS sanitizer regardless of
++				// how permissive a policy's value regex is. Treat the token
++				// as invalid rather than trying to encode it here, since
++				// this value is re-validated by the caller and will also be
++				// HTML-serialized later; encoding it now would risk double
++				// encoding.
++				return null;
++			}
+ 			if(stringValue.indexOf(" ") != -1)
+ 				stringValue = "\""+stringValue+"\"";
+ 			return stringValue;
+ 		case LexicalUnit.SAC_URI:
+ 			// this is a URL
+-			return "url(" + lu.getStringValue() + ")";
++			String uriValue = lu.getStringValue();
++			if (containsHtmlMetacharacters(uriValue)) {
++				return null;
++			}
++			return "url(" + uriValue + ")";
+ 		case LexicalUnit.SAC_RGBCOLOR:
+ 			// this is a rgb encoded color
+ 			StringBuffer sb = new StringBuffer("rgb(");
+@@ -397,4 +415,18 @@ public class CssValidator {
+ 			return null;
+ 		}
+ 	}
++
++	/**
++	 * Determines whether the given decoded CSS token contains characters
++	 * ('&lt;' or '&gt;') that have no legitimate use in a CSS string,
++	 * identifier or URI, but that could be used to smuggle markup (e.g. a
++	 * premature closing &lt;/style&gt; tag or a brand new element) through
++	 * once the cleaned CSS is written back into the sanitized output.
++	 *
++	 * @param value the decoded token value to check
++	 * @return true if the value contains '&lt;' or '&gt;'; false otherwise
++	 */
++	private boolean containsHtmlMetacharacters(String value) {
++		return value != null && (value.indexOf('<') != -1 || value.indexOf('>') != -1);
++	}
+ }
+diff --git a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+index e15a2bc..402c29f 100644
+--- a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
++++ b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java
+@@ -1662,5 +1662,39 @@ static final String test33 = "<html>\n"
+         assertThat(as.scan(input, revised, AntiSamy.DOM).getCleanHTML(), both(containsString("-webkit-border-radius")).and(containsString("-moz-border-radius")));
+         assertThat(as.scan(input, revised, AntiSamy.SAX).getCleanHTML(), both(containsString("-webkit-border-radius")).and(containsString("-moz-border-radius")));
+     }
++
++    @Test
++    public void testCssValueCannotSmuggleMarkup() throws ScanException, PolicyException {
++        // Root-cause regression test: '<' and '>' inside a CSS string,
++        // identifier or URI token must never survive into the cleaned CSS
++        // that gets written back into a style attribute or a <style> tag --
++        // regardless of how permissive a policy's value regexp is. Otherwise
++        // an attacker-controlled CSS token (e.g. a font-family name) could
++        // smuggle markup, such as a premature "</style>" close followed by a
++        // brand new element, past the sanitizer once it is echoed back into
++        // the output. Use a deliberately permissive custom policy (as an
++        // integrator might define) to prove the protection lives in
++        // CssValidator itself, not just in the bundled policy's regexp.
++        Pattern anything = Pattern.compile(".*", Pattern.DOTALL);
++        Property permissiveFontFamily = new Property("font-family", Arrays.asList(anything),
++                Collections.<String>emptyList(), Collections.<String>emptyList(), "", "");
++        Policy revised = policy.addCssProperty(permissiveFontFamily);
++
++        // style attribute path
++        String attrPayload = "<div style=\"font-family: 'x</style><script>alert(1)</script>y'\">test</div>";
++        String attrDomOut = as.scan(attrPayload, revised, AntiSamy.DOM).getCleanHTML();
++        String attrSaxOut = as.scan(attrPayload, revised, AntiSamy.SAX).getCleanHTML();
++        assertThat(attrDomOut, both(not(containsString("<script"))).and(not(containsString("</style>"))));
++        assertThat(attrSaxOut, both(not(containsString("<script"))).and(not(containsString("</style>"))));
++
++        // <style> tag path -- a lone '<' inside a CSS string does not
++        // terminate the raw-text <style> element at the HTML-parsing stage,
++        // so this exercises CSS-to-output reconstruction, not HTML parsing.
++        String styleTagPayload = "<style>p { font-family: 'x<y'; }</style>";
++        String styleDomOut = as.scan(styleTagPayload, revised, AntiSamy.DOM).getCleanHTML();
++        String styleSaxOut = as.scan(styleTagPayload, revised, AntiSamy.SAX).getCleanHTML();
++        assertThat(styleDomOut, not(containsString("x<y")));
++        assertThat(styleSaxOut, not(containsString("x<y")));
++    }
+ }
+ 

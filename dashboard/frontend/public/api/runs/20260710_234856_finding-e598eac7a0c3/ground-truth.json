@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-e598eac7a0c3",
+  "cve_id": "CVE-2022-26884",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "apache__dolphinscheduler_CVE-2022-26884_2.0.5",
+  "alert_file": "APACHE__DOLPHINSCHEDULER_CVE-2022-26884_2.0.5.json",
+  "github_url": "https://github.com/apache/dolphinscheduler",
+  "repo": "apache/dolphinscheduler",
+  "github_tag": "2.0.5",
+  "advisory_id": "GHSA-vpgf-fgm8-gxr2",
+  "buggy_commit_id": "f31328276c12821c21d1ce07e824bc74146c19b2",
+  "fix_commit_ids": [
+    "9717da6c255414eaef1c9ac943b0eb8989c1a85d"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "9717da6c255414eaef1c9ac943b0eb8989c1a85d",
+      "file": "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java",
+      "class": "LoggerRequestProcessor",
+      "class_start": "57.0",
+      "class_end": "185.0",
+      "method": "checkPathSecurity",
+      "method_start": "142.0",
+      "method_end": "148.0",
+      "signature": "boolean checkPathSecurity(String)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-26884",
+    "advisory": "https://github.com/advisories/GHSA-vpgf-fgm8-gxr2",
+    "repo": "https://github.com/apache/dolphinscheduler",
+    "buggy_commit": "https://github.com/apache/dolphinscheduler/commit/f31328276c12821c21d1ce07e824bc74146c19b2"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "9717da6c255414eaef1c9ac943b0eb8989c1a85d",
+      "url": "https://github.com/apache/dolphinscheduler/commit/9717da6c255414eaef1c9ac943b0eb8989c1a85d.diff",
+      "diff": "diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java\nindex 7115e24aad49..b56037e52aed 100644\n--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java\n+++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java\n@@ -46,6 +46,7 @@\n import java.util.stream.Collectors;\n import java.util.stream.Stream;\n \n+import org.apache.dolphinscheduler.spi.utils.StringUtils;\n import org.slf4j.Logger;\n import org.slf4j.LoggerFactory;\n \n@@ -141,10 +142,13 @@ public void process(Channel channel, Command command) {\n \n     private boolean checkPathSecurity(String path) {\n         String dsHome = System.getProperty(\"DOLPHINSCHEDULER_HOME\");\n-        if (path.startsWith(dsHome) && !path.contains(\"../\") && path.endsWith(\".log\")) {\n-            return true;\n+        if (!StringUtils.isBlank(path)) {\n+            if (path.startsWith(dsHome) && !path.contains(\"../\") && path.endsWith(\".log\")) {\n+                return true;\n+            }\n+        } else {\n+            logger.warn(\"path is null\");\n         }\n-\n         return false;\n     }\n \n",
+      "cached": true
+    }
+  ]
+}

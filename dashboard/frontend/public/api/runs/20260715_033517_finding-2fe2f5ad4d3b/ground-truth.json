@@ -1,0 +1,59 @@
+{
+  "finding_id": "finding-2fe2f5ad4d3b",
+  "cve_id": "CVE-2022-28367",
+  "cwe_id": "CWE-079",
+  "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+  "project_slug": "nahsra__antisamy_CVE-2022-28367_1.6.5",
+  "alert_file": "NAHSRA_ANTISAMY_CVE_2022_28367.json",
+  "github_url": "https://github.com/nahsra/antisamy",
+  "repo": "nahsra/antisamy",
+  "github_tag": "1.6.5",
+  "advisory_id": "GHSA-3pqg-4rqg-pg9g",
+  "buggy_commit_id": "b7c151112dd19928e700ee48639942fd1079d1e3",
+  "fix_commit_ids": [
+    "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+      "file": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java",
+      "class": "AntiSamyDOMScanner",
+      "class_start": "70.0",
+      "class_end": "783.0",
+      "method": "processStyleTag",
+      "method_start": "403.0",
+      "method_end": "446.0",
+      "signature": "boolean processStyleTag(Element,Node)",
+      "is_test": false
+    },
+    {
+      "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+      "file": "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java",
+      "class": "AntiSamyTest",
+      "class_start": "87.0",
+      "class_end": "1693.0",
+      "method": "testGithubIssue151",
+      "method_start": "1693.0",
+      "method_end": "1703.0",
+      "signature": "void testGithubIssue151()",
+      "is_test": true
+    }
+  ],
+  "fix_files": [
+    "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-28367",
+    "advisory": "https://github.com/advisories/GHSA-3pqg-4rqg-pg9g",
+    "repo": "https://github.com/nahsra/antisamy",
+    "buggy_commit": "https://github.com/nahsra/antisamy/commit/b7c151112dd19928e700ee48639942fd1079d1e3"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+      "url": "https://github.com/nahsra/antisamy/commit/0199e7e194dba5e7d7197703f43ebe22401e61ae.diff",
+      "diff": "diff --git a/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java b/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java\nindex eb7ffaab..a2ed7397 100644\n--- a/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java\n+++ b/src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java\n@@ -407,10 +407,17 @@ private boolean processStyleTag(Element ele, Node parentNode) {\n         CssScanner styleScanner = new CssScanner(policy, messages, policy.isEmbedStyleSheets());\n \n         try {\n-            Node firstChild = ele.getFirstChild();\n-            if (firstChild != null) {\n+            if (ele.getChildNodes().getLength() > 0) {\n+                String toScan = \"\";\n+\n+                for (int i = 0; i < ele.getChildNodes().getLength(); i++) {\n+                    Node childNode = ele.getChildNodes().item(i);\n+                    if (!toScan.isEmpty()){\n+                        toScan += \"\\n\";\n+                    }\n+                    toScan += childNode.getTextContent();\n+                }\n \n-                String toScan = firstChild.getNodeValue();\n                 CleanResults cr = styleScanner.scanStyleSheet(toScan, policy.getMaxInputSize());\n                 errorMessages.addAll(cr.getErrorMessages());\n \n@@ -422,12 +429,17 @@ private boolean processStyleTag(Element ele, Node parentNode) {\n                  * break all CSS. To prevent that, we have this check.\n                  */\n \n-                final String cleanHTML = cr.getCleanHTML();\n+                String cleanHTML = cr.getCleanHTML();\n+                cleanHTML = cleanHTML == null || cleanHTML.equals(\"\") ? \"/* */\" : cleanHTML;\n \n-                if (cleanHTML == null || cleanHTML.equals(\"\")) {\n-                    firstChild.setNodeValue(\"/* */\");\n-                } else {\n-                    firstChild.setNodeValue(cleanHTML);\n+                ele.getFirstChild().setNodeValue(cleanHTML);\n+                /*\n+                 * Remove every other node after cleaning CSS, there will\n+                 * be only one node in the end, as it always should have.\n+                 */\n+                for (int i = 1; i < ele.getChildNodes().getLength(); i++) {\n+                    Node childNode = ele.getChildNodes().item(i);\n+                    ele.removeChild(childNode);\n                 }\n             }\n \ndiff --git a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java\nindex f74c9f20..d1ab20bb 100644\n--- a/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java\n+++ b/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java\n@@ -1702,5 +1702,19 @@ public void testGithubIssue151() throws ScanException, PolicyException {\n         assertThat(result.getErrorMessages().size(), is(1));\n         assertThat(result.getCleanHTML(), both(containsString(\"img\")).and(not(containsString(\"CURSOR\"))));\n     }\n+\n+    @Test\n+    public void testSmuggledTagsInStyleContent() throws ScanException, PolicyException {\n+        // HTML tags may be smuggled into a style tag after parsing input to an internal representation.\n+        // If that happens, they should be treated as text content and not as children nodes.\n+\n+        Policy revised = policy.cloneWithDirective(Policy.USE_XHTML,\"true\");\n+        assertThat(as.scan(\"<style/>b<![cdata[</style><a href=javascript:alert(1)>test\", revised, AntiSamy.DOM).getCleanHTML(), not(containsString(\"javascript\")));\n+        assertThat(as.scan(\"<style/>b<![cdata[</style><a href=javascript:alert(1)>test\", revised, AntiSamy.SAX).getCleanHTML(), not(containsString(\"javascript\")));\n+\n+        Policy revised2 = policy.cloneWithDirective(Policy.USE_XHTML,\"false\");\n+        assertThat(as.scan(\"<select<style/>W<xmp<script>alert(1)</script>\", revised2, AntiSamy.DOM).getCleanHTML(), not(containsString(\"script\")));\n+        assertThat(as.scan(\"<select<style/>W<xmp<script>alert(1)</script>\", revised2, AntiSamy.SAX).getCleanHTML(), not(containsString(\"script\")));\n+    }\n }\n \ndiff --git a/src/test/java/org/owasp/validator/html/test/TestPolicy.java b/src/test/java/org/owasp/validator/html/test/TestPolicy.java\nindex 4b71ebbb..435175bc 100644\n--- a/src/test/java/org/owasp/validator/html/test/TestPolicy.java\n+++ b/src/test/java/org/owasp/validator/html/test/TestPolicy.java\n@@ -43,7 +43,7 @@\n  */\n public class TestPolicy extends InternalPolicy {\n \n-    protected TestPolicy(Policy.ParseContext parseContext) throws PolicyException {\n+    protected TestPolicy(Policy.ParseContext parseContext) {\n         super(parseContext);\n     }\n \n",
+      "cached": true
+    }
+  ]
+}

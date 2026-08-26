@@ -1,0 +1,137 @@
+diff --git a/src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java b/src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java
+index 00fd7c4..05c76d7 100644
+--- a/src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java
++++ b/src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java
+@@ -452,6 +452,16 @@ public class SlingServletResolver
+             final ResourceResolver resolver) {
+         Servlet servlet = null;
+ 
++        // SLING-12233 : reject resource types / script paths that contain
++        // invalid path segments (e.g. segments with more than two consecutive
++        // dots) as these can be used for path traversal (CVE-2024-23673)
++        if (isInvalidPath(scriptNameOrResourceType)) {
++            if (LOGGER.isDebugEnabled()) {
++                LOGGER.debug("Ignoring invalid resource type / script path {}", scriptNameOrResourceType);
++            }
++            return null;
++        }
++
+         // first check whether the type of a resource is the absolute
+         // path of a servlet (or script)
+         if (scriptNameOrResourceType.charAt(0) == '/') {
+@@ -495,6 +505,37 @@ public class SlingServletResolver
+         return servlet;
+     }
+ 
++    /**
++     * Checks whether the provided resource type / script path contains an
++     * invalid path segment. A segment is considered invalid if it consists of
++     * more than two consecutive dots (e.g. {@code ...}). Such segments are not
++     * normalized away by {@link ResourceUtil#normalize(String)} and can be used
++     * for path traversal (SLING-12233 / CVE-2024-23673).
++     *
++     * @param path the resource type or script path to check (may be {@code null})
++     * @return {@code true} if the path contains an invalid segment
++     */
++    static boolean isInvalidPath(final String path) {
++        if (path == null || path.length() == 0) {
++            return false;
++        }
++        int dotCount = 0;
++        for (int i = 0; i < path.length(); i++) {
++            final char c = path.charAt(i);
++            if (c == '/') {
++                if (dotCount > 2) {
++                    return true;
++                }
++                dotCount = 0;
++            } else if (c == '.') {
++                dotCount++;
++            } else {
++                dotCount = 0;
++            }
++        }
++        return dotCount > 2;
++    }
++
+     /**
+      * Returns a servlet suitable for handling a request. The
+      * <code>locationUtil</code> is used find any servlets or scripts usable for
+diff --git a/src/test/java/org/apache/sling/servlets/resolver/internal/SlingServletResolverInvalidPathTest.java b/src/test/java/org/apache/sling/servlets/resolver/internal/SlingServletResolverInvalidPathTest.java
+new file mode 100644
+index 0000000..5724f9c
+--- /dev/null
++++ b/src/test/java/org/apache/sling/servlets/resolver/internal/SlingServletResolverInvalidPathTest.java
+@@ -0,0 +1,72 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *   http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing,
++ * software distributed under the License is distributed on an
++ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++ * KIND, either express or implied.  See the License for the
++ * specific language governing permissions and limitations
++ * under the License.
++ */
++package org.apache.sling.servlets.resolver.internal;
++
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++
++import org.junit.Test;
++
++/**
++ * Regression test for SLING-12233 / CVE-2024-23673 (CWE-022 path traversal).
++ * Resource types / script paths that contain a segment with more than two
++ * consecutive dots (e.g. {@code ...}) must be rejected because such segments
++ * are not normalized away and can be abused for path traversal.
++ */
++public class SlingServletResolverInvalidPathTest {
++
++    @Test
++    public void rejectsTripleDotSegment() {
++        assertTrue(SlingServletResolver.isInvalidPath("/libs/proxy/.../uploaded.servlet"));
++    }
++
++    @Test
++    public void rejectsTrailingTripleDotSegment() {
++        assertTrue(SlingServletResolver.isInvalidPath("/libs/proxy/..."));
++    }
++
++    @Test
++    public void rejectsManyDotsSegment() {
++        assertTrue(SlingServletResolver.isInvalidPath("/apps/...../foo"));
++    }
++
++    @Test
++    public void allowsRegularPaths() {
++        assertFalse(SlingServletResolver.isInvalidPath("/libs/foo/bar.servlet"));
++        assertFalse(SlingServletResolver.isInvalidPath("foo/bar"));
++    }
++
++    @Test
++    public void allowsSingleAndDoubleDotSegments() {
++        // single dot and double dot are handled/normalized elsewhere
++        assertFalse(SlingServletResolver.isInvalidPath("/libs/./foo"));
++        assertFalse(SlingServletResolver.isInvalidPath("/libs/../foo"));
++    }
++
++    @Test
++    public void allowsDotsInsideSegment() {
++        assertFalse(SlingServletResolver.isInvalidPath("/libs/foo.bar.baz.servlet"));
++    }
++
++    @Test
++    public void handlesNullAndEmpty() {
++        assertFalse(SlingServletResolver.isInvalidPath(null));
++        assertFalse(SlingServletResolver.isInvalidPath(""));
++    }
++}

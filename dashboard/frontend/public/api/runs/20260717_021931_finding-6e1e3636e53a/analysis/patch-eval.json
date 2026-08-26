@@ -1,0 +1,147 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:27.267583+00:00",
+    "finished_at": "2026-07-17T15:42:33.111571+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adopts the correct defense-of-record for CWE-094: it verifies the resolved class is assignable to the expected base type (Property / FlippingStrategy) BEFORE any reflective construction, via a centralized MappingUtil.loadClass() helper. At the sinks it touches (PropertiesParser property+flipstrategy, XmlParser property+flipstrategy, PropertyFactory.createProperty, MappingUtil.instanceFlippingStrategy, ConsoleOperations.createFeature) it is semantically equivalent to — and cleaner than — the official fix, closing the whole attack class, not just the observed payload. However, it misses two sibling sinks that the official fix patched: both YamlParser sinks (parseProperties + parseFlipStrategy) and ConsoleOperations.updateFlippingStrategy, leaving YAML-config-driven and console-update code injection reachable. Mechanism is sound; coverage is incomplete.",
+    "root_cause": "Attacker-controlled class names from config files / HTTP params are passed to Class.forName(...).newInstance()/getConstructor(...).newInstance() with no type check, so any class with a matching constructor is instantiated (arbitrary code execution during construction).",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "At every patched sink the type is validated before construction, closing the whole class there (not just the payload); but YAML and console-update sinks remain reachable.",
+        "evidence": "MappingUtil.loadClass() checks expectedType.isAssignableFrom(clazz) before asSubclass; used in PropertiesParser.parseProperties/parseFeatures, XmlParser, PropertyFactory.createProperty. YamlParser untouched.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fix is at the sink/trust boundary — the class is rejected before its constructor runs, exactly the reflective-injection root cause.",
+        "evidence": "loadClass throws IllegalArgumentException before clazz.asSubclass/newInstance; test NotAPropertyClass.INSTANTIATED proves constructor never runs.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Main properties/xml/factory/web-createFeature paths covered, but ff4j-config-yaml (both sinks) and ConsoleOperations.updateFlippingStrategy — all patched officially — are left vulnerable.",
+        "evidence": "official_only includes YamlParser.java; our ConsoleOperations diff changes only createFeature (line ~105), not updateFlippingStrategy (official line ~249).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy (isAssignableFrom type gate before instantiation), different mechanism (centralized helper); equivalent/superset at covered sinks.",
+        "evidence": "loadClass(className, expectedType) vs official inline `if(!Property.class.isAssignableFrom(typeClass))` at each sink.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate Property/FlippingStrategy classes still pass the assignability check; added regression tests, no valid input broken.",
+        "evidence": "loadClass returns clazz.asSubclass(expectedType) for valid types; instanceFlippingStrategy path preserves prior FeatureAccessException wrapping.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Helper uses safe reflection primitives, preserves classLoader handling, no TOCTOU/injection introduced.",
+        "evidence": "MappingUtil.loadClass mirrors existing (classLoader==null?Class.forName:classLoader.loadClass) logic; asSubclass is type-safe.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, centralized change at the right place; slightly larger than official due to helper + added test classes, but appropriate.",
+        "evidence": "Single loadClass helper reused across 6 sinks; new NotAPropertyClass/NotAFlippingStrategyClass test helpers.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Uses the CWE-094 defense-of-record — a type allowlist enforced before dynamic construction — not string sanitization of the class name.",
+        "evidence": "expectedType.isAssignableFrom check rejects non-Property/non-FlippingStrategy classes prior to newInstance().",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "ff4j-config-yaml/YamlParser (parseProperties property sink and parseFlipStrategy) is not patched. The official fix guards both. YAML-config-driven code injection (Class.forName(...).newInstance() on attacker-controlled type/class) remains fully exploitable — a same-class sibling sink."
+      },
+      {
+        "severity": "medium",
+        "description": "ConsoleOperations.updateFlippingStrategy still calls Class.forName(strategy).newInstance() without a type check; our patch only fixed createFeature. Official fix guards both methods, so the web console update path remains vulnerable."
+      },
+      {
+        "severity": "low",
+        "description": "Execution evidence is weak: pov_before_reproduced=false and regressions_ran=0/regressions_passed=null, so no-regression and POV-closure claims are not empirically confirmed by the pipeline."
+      }
+    ],
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ConsoleOperations.java",
+        "MappingUtil.java",
+        "PropertiesParser.java",
+        "PropertyFactory.java",
+        "XmlParser.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "YamlParser.java",
+        "test-ff4j-features.json",
+        "test-ff4j-features.properties",
+        "test-ff4j-features.xml",
+        "test-ff4j-features.yml",
+        "test-ff4j-strategy.json",
+        "test-ff4j-strategy.properties",
+        "test-ff4j-strategy.xml",
+        "test-ff4j-strategy.yml"
+      ],
+      "jaccard": 0.357,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+        "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+        "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.yml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.yml",
+        "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java"
+      ],
+      "commits": [
+        "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6"
+      ]
+    }
+  }
+}

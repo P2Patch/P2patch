@@ -1,0 +1,130 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:48.264894+00:00",
+    "finished_at": "2026-07-17T15:42:45.957629+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch introduces a reusable canonical-path guard (Zip4jUtil.getSanitizedOutputFile) that canonicalizes the entry-resolved path and verifies it stays within the canonical extraction root, then applies it at the actual write sink (UnzipEngine.getOutputFileNameWithPath, line 443 — the exact node flagged by the taint trace) as well as the directory-creation and parent-creation paths in Unzip.java. This is the CWE-022 defense of record and is in fact stronger than the official fix, which only guards Unzip.initExtractFile and uses a startsWith check without a trailing separator (prefix-bypass prone). The only weaknesses are non-minimality (the diff commits build artifacts under target/ and a pom junit dependency) and the absence of executed regression runs.",
+    "root_cause": "Zip entry names flow unvalidated into new File(outPath + fileName) and reach filesystem write/mkdir/delete sinks, allowing \"../\" or absolute entry names to escape the extraction root; a correct fix must canonicalize the resolved path and confirm containment within the base directory at the sink.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical containment check applied at the exact sink from the taint trace closes the whole class, not just the payload.",
+        "evidence": "UnzipEngine.getOutputFileNameWithPath returns Zip4jUtil.getSanitizedOutputFile(outPath, fileName).getPath(); guard uses getCanonicalPath + startsWith(canonicalOutDir + File.separator).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the trust boundary — the sanitized path is what feeds the actual write sink (line 432).",
+        "evidence": "getSanitizedOutputFile in Zip4jUtil.java canonicalizes targetFile vs outDirFile before returning the File used for extraction.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers file-write sink plus directory mkdirs and parent-dir mkdirs paths in Unzip.java; absolute-path entries also neutralized via new File(outPath, fileName).",
+        "evidence": "Unzip.java initExtractFile directory branch (line 142) and parent-dir branch (line 192) both routed through getSanitizedOutputFile.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same canonicalize-then-verify strategy as official; applied at the sink and helper paths, semantically a superset of the official Unzip.initExtractFile guard.",
+        "evidence": "Official: !getCanonicalPath().startsWith(getCanonicalPath(outPath)); ours: equivalent check with File.separator appended, plus sink-level coverage.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Own ZipSlipTest confirms legit subdir extraction still works and traversal rejected, but no project regression suite was executed (regressions_ran=0).",
+        "evidence": "extractAllStillWorksForWellBehavedEntries passes; execution results show regressions_ran: 0, regressions_passed: null.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses getCanonicalPath (resolves symlinks/..) with a trailing-separator boundary avoiding prefix bypass; exception handling preserves ZipException semantics.",
+        "evidence": "startsWith(canonicalOutDir + File.separator) in Zip4jUtil; Unzip.java re-throws ZipException before wrapping.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Core production change is tight (3 files), but the diff commits target/ build artifacts and surefire reports plus a pom junit dependency, adding noise.",
+        "evidence": "createdFiles.lst, inputFiles.lst, TEST-*.xml under target/, and pom.xml junit dependency block.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize to real absolute path then verify containment within base dir — the CWE-022 defense of record, not a ../ blocklist.",
+        "evidence": "getSanitizedOutputFile: canonicalTarget.startsWith(canonicalOutDir + File.separator) after getCanonicalPath resolution.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Diff commits generated build artifacts (target/maven-status/*.lst, target/surefire-reports/*) and a pom.xml junit test dependency, reducing minimality and cluttering the production change."
+      },
+      {
+        "severity": "low",
+        "description": "No project regression suite was executed (regressions_ran=0), so functional preservation relies solely on the newly added ZipSlipTest; POV also did not reproduce pre-patch in the harness, weakening independent confirmation."
+      }
+    ],
+    "overall": {
+      "mean": 4.62,
+      "score": 92,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Unzip.java",
+        "pom.xml"
+      ],
+      "ours_only": [
+        "TEST-net.lingala.zip4j.unzip.ZipSlipTest.xml",
+        "UnzipEngine.java",
+        "Zip4jUtil.java",
+        "createdFiles.lst",
+        "inputFiles.lst",
+        "net.lingala.zip4j.unzip.ZipSlipTest.txt"
+      ],
+      "official_only": [
+        "InflaterInputStream.java",
+        "MANIFEST.MF"
+      ],
+      "jaccard": 0.2,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/META-INF/MANIFEST.MF",
+        "src/main/java/net/lingala/zip4j/io/InflaterInputStream.java",
+        "src/main/java/net/lingala/zip4j/unzip/Unzip.java"
+      ],
+      "commits": [
+        "59aeea594ff885e06c25751dc6334dfea1bed8c6"
+      ]
+    }
+  }
+}

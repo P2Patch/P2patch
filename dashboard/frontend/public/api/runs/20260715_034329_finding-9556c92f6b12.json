@@ -1,0 +1,605 @@
+{
+  "run_id": "20260715_034329_finding-9556c92f6b12",
+  "finding_id": "finding-9556c92f6b12",
+  "timestamp": "2026-07-15T03:43:29",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v1_full-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260715_034329_finding-9556c92f6b12",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-9556c92f6b12",
+    "cve_id": "CVE-2022-4244",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "codehaus-plexus__plexus-utils_CVE-2022-4244_3.0.23",
+    "alert_file": "CODEHAUS_PLEXUS_PLEXUS_UTILS_CVE_2022_4244.json",
+    "github_url": "https://github.com/codehaus-plexus/plexus-utils",
+    "repo": "codehaus-plexus/plexus-utils",
+    "github_tag": "3.0.23",
+    "advisory_id": "GHSA-g6ph-x5wf-g337",
+    "buggy_commit_id": "6176f91bb843eecddac857591ed20bda38e01470",
+    "fix_commit_ids": [
+      "33a2853df8185b4519b1b8bfae284f03392618ef"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "33a2853df8185b4519b1b8bfae284f03392618ef",
+        "file": "src/main/java/org/codehaus/plexus/util/Expand.java",
+        "class": "Expand",
+        "class_start": "77.0",
+        "class_end": "209.0",
+        "method": "extractFile",
+        "method_start": "134.0",
+        "method_end": "179.0",
+        "signature": "void extractFile(File,File,InputStream,String,Date,boolean)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/codehaus/plexus/util/Expand.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-4244",
+      "advisory": "https://github.com/advisories/GHSA-g6ph-x5wf-g337",
+      "repo": "https://github.com/codehaus-plexus/plexus-utils",
+      "buggy_commit": "https://github.com/codehaus-plexus/plexus-utils/commit/6176f91bb843eecddac857591ed20bda38e01470"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 116,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 148,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 153,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 1367,
+              "message": "filename : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "filenm : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1387,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1394,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 153,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 156,
+              "message": "f",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 116,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 148,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 153,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 1367,
+              "message": "filename : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "filenm : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1387,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1394,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 153,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 164,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 169,
+              "message": "f",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 116,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 148,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 153,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 1367,
+              "message": "filename : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "filenm : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1387,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1394,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 153,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 164,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 178,
+              "message": "f",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 116,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 148,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 153,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 1367,
+              "message": "filename : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "filenm : String",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1383,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1387,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 1394,
+              "message": "file : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/FileUtils.java"
+            },
+            {
+              "line": 153,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 164,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            },
+            {
+              "line": 204,
+              "message": "f",
+              "uri": "src/main/java/org/codehaus/plexus/util/Expand.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-9556c92f6b12",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-9556c92f6b12:66b0ccbb42f3",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B test -Dtest=ExpandTest"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-utils_[redacted]_3.0.23/51/Dockerfile",
+        "-t",
+        "simpleautosec-finding-9556c92f6b12:66b0ccbb42f3",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-utils_[redacted]_3.0.23/51"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9556c92f6b12:66b0ccbb42f3",
+        "bash",
+        "-lc",
+        "mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9556c92f6b12:66b0ccbb42f3",
+        "bash",
+        "-lc",
+        "mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-9556c92f6b12:66b0ccbb42f3",
+        "bash",
+        "-lc",
+        "mvn -B test -Dtest=ExpandTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 94937,
+        "duration_api_ms": 83723,
+        "num_turns": 10,
+        "cost_usd": 0.44137350000000003,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 3242,
+          "output": 5685,
+          "cache_read": 212875,
+          "cache_creation": 17296
+        }
+      },
+      "parsed_output": {
+        "evidence": "Ran in the project container: output was \"VULNERABLE: Zip Slip wrote file outside dest at /tmp/zipslip-pov6952209631107254699/escaped.txt\" with EXIT=0. Source confirmation: Expand.java:153 File f = FileUtils.resolveFile(dir, entryName); line 178 new FileOutputStream(f) with no check that f is under dir. FileUtils.resolveFile (line 1424) does new File(baseFile, filenm).getCanonicalFile(), which follows ../ segments out of the base directory.",
+        "expected_vulnerable_behavior": "Expand.expandFile/extractFile resolves the attacker-controlled ZipEntry name \"../escaped.txt\" via FileUtils.resolveFile(dest, entryName) and opens a FileOutputStream on the resolved path without a containment check, so the entry content is written to <base>/escaped.txt, which lies outside the requested destination directory <base>/dest. The POV detects the escaped file and prints \"VULNERABLE: Zip Slip wrote file outside dest ...\" and exits 0.",
+        "notes": "POV uses only the public Expand API and standard java.util.zip to build the archive; it does not modify product code or existing tests. Compiled classes and the POV .class are placed under .security-pipeline/pov/out. Uses File.createTempFile-derived base dir so escape target is a controlled, verifiable location outside dest.",
+        "pov_command": "mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov",
+        "pov_path": ".security-pipeline/pov/ZipSlipPov.java",
+        "regression_hint": "After a correct patch (e.g., verifying the canonical path of the resolved file starts with the canonical destination directory, or rejecting entry names containing traversal), the malicious entry is either not written outside dest or extraction throws; the escaped file no longer exists and the POV prints \"NOT VULNERABLE\" and exits non-zero (1).",
+        "status": "pov_created",
+        "summary": "Created a real proof-of-vulnerability for the CWE-022 Zip Slip in org.codehaus.plexus.util.Expand. Expand.extractFile() passes the raw ZipEntry name into FileUtils.resolveFile(dir, entryName) and writes to the resulting File without verifying it stays within the destination directory. A crafted archive with an entry named \"../escaped.txt\" causes Expand to write a file OUTSIDE the destination dir. The POV builds such an archive, runs Expand against a real dest directory through its public API (setSrc/setDest/execute), and confirms a file was written outside dest. It exits 0 on the unpatched code and exits 1 once a patch confines extraction to the destination."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 97422,
+        "duration_api_ms": 79864,
+        "num_turns": 13,
+        "cost_usd": 0.4772285,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 23,
+          "output": 5110,
+          "cache_read": 326267,
+          "cache_creation": 18146
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/codehaus/plexus/util/Expand.java",
+          "src/test/java/org/codehaus/plexus/util/ExpandTest.java"
+        ],
+        "patch_notes": "In Expand.extractFile(), immediately after `File f = FileUtils.resolveFile(dir, entryName);`, added a containment guard: compute `dir.getCanonicalPath() + File.separator` and `f.getCanonicalPath()`, and throw an Exception (\"Entry is outside of the target directory: ...\") unless the resolved canonical path is the destination directory itself or lies beneath it. This blocks all four reported sink paths (write at line 178, mkdirs at 169, parent mkdirs at 165, setLastModified at 204) since the check runs before any of them. Added ExpandTest with two JUnit-3-style cases matching the existing test structure: testZipSlipEntryIsRejected (a \"../escaped.txt\" entry is not written outside dest) and testNormalEntryIsExtracted (a normal \"sub/good.txt\" entry still extracts correctly), ensuring the fix preserves expected behavior.",
+        "regression_commands": [
+          "mvn -B test -Dtest=ExpandTest"
+        ],
+        "risk_notes": "Low risk. The guard only rejects entries that canonicalize outside the destination directory; legitimate entries (including nested subdirectories) are unaffected, as verified by testNormalEntryIsExtracted and the full ExpandTest run. The containment check uses canonical-path prefix matching with a trailing File.separator to avoid sibling-prefix false positives (e.g. \"/dest\" vs \"/dest-evil\"). Behavior on a malicious entry changes from silent out-of-bounds write to a thrown Exception, consistent with the POV's expected NOT VULNERABLE outcome. getCanonicalPath may throw IOException, which propagates as extractFile already declares `throws Exception`.",
+        "status": "patched",
+        "summary": "Fixed the Zip Slip path traversal (CWE-022) in org.codehaus.plexus.util.Expand.extractFile(). The method resolved attacker-controlled ZipEntry names via FileUtils.resolveFile(dir, entryName) — which follows \"../\" segments out of the destination via getCanonicalFile() — and then wrote/created the resulting File without verifying containment. Added a canonical-path containment check that rejects any entry resolving outside the destination directory before any write/mkdir/setLastModified occurs. A crafted entry named \"../escaped.txt\" now throws instead of writing outside dest."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 101475,
+        "duration_api_ms": 76663,
+        "num_turns": 11,
+        "cost_usd": 0.5060055,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 13,
+          "output": 4943,
+          "cache_read": 230617,
+          "cache_creation": 25986
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "cd /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_034329_finding-9556c92f6b12 && ./run_in_docker.sh 'mvn -B -q -DskipTests compile && mkdir -p .security-pipeline/pov/out && javac -cp target/classes -d .security-pipeline/pov/out .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:.security-pipeline/pov/out ZipSlipPov'",
+          "./run_in_docker.sh 'mvn -B test -Dtest=ExpandTest'",
+          "./run_in_docker.sh 'mvn -B test'",
+          "cd worktree && git diff --stat HEAD -- src/ && git status --porcelain -- src/"
+        ],
+        "diff_review": "patch_only.diff touches src/main/java/org/codehaus/plexus/util/Expand.java (12 added lines) and adds src/test/java/org/codehaus/plexus/util/ExpandTest.java. The guard is inserted immediately after `File f = FileUtils.resolveFile(dir, entryName);`: it computes `dir.getCanonicalPath() + File.separator` and `f.getCanonicalPath()`, throwing an Exception unless the resolved path equals the dest dir or starts with dest+separator. This runs before every reported sink (FileOutputStream write @178, mkdirs @169, parent mkdirs @165, setLastModified @204), so all four trace endpoints are covered. Trailing-separator prefix matching correctly prevents sibling-prefix bypass (e.g. /dest vs /dest-evil). getCanonicalPath's IOException propagates cleanly since extractFile already declares `throws Exception`. Legitimate nested entries (sub/good.txt) are unaffected. The change is a textbook minimal Zip Slip fix; it does not disable the POV, remove vulnerable functionality, or add unrelated behavior. git confirms only Expand.java is modified and ExpandTest.java added under src/.",
+        "issues": [
+          "Full `mvn -B test` has one failing test, DirectoryScannerTest.testRegexWithSlashInsideCharacterClass, but it is unrelated to and unaffected by this patch (Expand-only change) and is a pre-existing/environment-dependent failure; the security-relevant ExpandTest suite passes."
+        ],
+        "pov_result": "Independently reran the POV via the Docker wrapper: `mvn -B -q -DskipTests compile && javac ... ZipSlipPov.java && java ... ZipSlipPov`. Output: \"NOT VULNERABLE: extraction threw java.lang.Exception: Entry is outside of the target directory: ../escaped.txt\", EXIT=1. On unpatched code the orchestrator log shows EXIT=0 with \"VULNERABLE: Zip Slip wrote file outside dest\". The malicious ../escaped.txt entry is now blocked before any write. POV source is unmodified by the patch.",
+        "regression_result": "Reran the patcher's regression command `mvn -B test -Dtest=ExpandTest` in the container: 2 tests run, 0 failures/errors (testZipSlipEntryIsRejected and testNormalEntryIsExtracted both pass). Ran the full `mvn -B test`: 302 tests, 1 failure — DirectoryScannerTest.testRegexWithSlashInsideCharacterClass. This failure is unrelated to the patch: the change only affects Expand.extractFile and cannot influence DirectoryScanner regex matching; it is a pre-existing/environment-dependent failure, not a regression introduced by the fix.",
+        "summary": "The patch adds a canonical-path containment guard in Expand.extractFile() that rejects ZipEntry names resolving outside the destination directory, fixing the CWE-022 Zip Slip. The fix is minimal and isolated (Expand.java only, plus a new ExpandTest), does not alter the POV or remove functionality, the POV no longer reproduces (exits 1, NOT VULNERABLE), and the targeted ExpandTest regression passes. The only full-suite failure (DirectoryScannerTest regex test) is unrelated to and unaffected by this change.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 1.4246,
+    "num_turns": 34,
+    "agent_duration_ms": 293834
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log"
+    ]
+  }
+}

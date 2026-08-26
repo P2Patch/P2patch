@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-369",
+  "cve_id": "bugzilla-2611",
+  "note": "libtiff/tif_ojpeg.c's `OJPEGDecode()` dispatches straight into `OJPEGDecodeRaw()`/`OJPEGDecodeScanlines()` on every call with no check that the preceding `OJPEGPreDecode()` call for this strip/tile actually completed: `if (sp->libjpeg_jpeg_query_style==0) { if (OJPEGDecodeRaw(tif,buf,cc)==0) return(0); }` (tif_ojpeg.c:784-793). `OJPEGDecodeRaw()` immediately divides by a codec-state field only populated during a successful pre-decode: `if (cc%sp->bytes_per_line!=0)` (tif_ojpeg.c:816). For a crafted OJPEG-compressed image where `OJPEGPreDecode()` fails partway through (e.g. a malformed/truncated embedded JPEG stream), `sp->bytes_per_line` is left at its zero-initialized value and this modulo is an integer divide-by-zero -- delivered as SIGFPE, caught by UndefinedBehaviorSanitizer's `-fsanitize=integer-divide-by-zero`.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "OJPEGDecode() dispatches into OJPEGDecodeRaw()/OJPEGDecodeScanlines() with no check of a prior-success flag from OJPEGPreDecode() -- a failed pre-decode leaves codec state (including bytes_per_line) at its zero-initialized value",
+            "uri": "libtiff/tif_ojpeg.c",
+            "line": 785
+          },
+          {
+            "message": "if (cc%sp->bytes_per_line!=0) -- integer divide-by-zero when sp->bytes_per_line is still 0 because the preceding OJPEGPreDecode() call failed partway through",
+            "uri": "libtiff/tif_ojpeg.c",
+            "line": 816
+          }
+        ]
+      ]
+    }
+  ]
+}

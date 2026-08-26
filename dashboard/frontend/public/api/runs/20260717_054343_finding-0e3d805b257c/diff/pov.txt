@@ -1,0 +1,184 @@
+diff --git a/.security-pipeline/pov/PathTraversalScriptResolutionPovTest.java b/.security-pipeline/pov/PathTraversalScriptResolutionPovTest.java
+new file mode 100644
+index 0000000..077c85e
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalScriptResolutionPovTest.java
+@@ -0,0 +1,156 @@
++/*
++ * PoV for CWE-22 (Path Traversal) in the Apache Sling Servlets Resolver
++ * script-resolution machinery flagged by the finder alert.
++ *
++ * Root cause: org.apache.sling.servlets.resolver.internal.helper
++ * .NamedScriptResourceCollector#getWeightedResources(Set, Resource) builds an
++ * intermediate resource path by concatenating the caller-supplied
++ * "script name" directly onto the (trusted) location path:
++ *
++ *   current = getResource(resolver, location.getPath() + '/' +
++ *                          this.scriptName.substring(0, pos), useResourceCaching);
++ *
++ * Unlike the sibling branch a few lines above it in the very same method
++ * (the "extension" branch, which normalizes the path with
++ * ResourceUtil.normalize(...) and gates it through
++ * SlingServletResolver.isPathAllowed(...) before resolving it), this branch
++ * performs no normalization and no allow-list check on the path it builds
++ * before resolving it via the (real, package-visible) AbstractResourceCollector
++ * static helpers, which bottom out in ResourceResolver#getResource(String) --
++ * the same generic sink flagged repeatedly throughout the alert's trace
++ * (AbstractResourceCollector.getResourceOrNull -> ScriptResourceResolver ->
++ * MergingServletResourceProvider -> ServletResourceProvider -> ServletResource
++ * -> SlingServletResolver -> ScriptResource).
++ *
++ * "scriptName" is attacker/caller-influenced input: it is the literal
++ * "scriptName" argument of the two PUBLIC ServletResolver API methods
++ * SlingServletResolver#resolveServlet(Resource, String) and
++ * #resolveServlet(ResourceResolver, String), which route (when passed a
++ * request-less caller, i.e. any consumer that is not the request dispatcher
++ * itself -- e.g. SlingScriptHelper#getScript()-style "named script"
++ * lookups used by includes/templates) straight into
++ * NamedScriptResourceCollector.create(scriptNameOrResourceType, resource, ...).
++ *
++ * This test drives the real, unmodified NamedScriptResourceCollector /
++ * AbstractResourceCollector production code (no product code is patched or
++ * stubbed) and shows that a scriptName containing "../" segments causes the
++ * collector to resolve and return a script resource that lives completely
++ * outside the restricted directory it is supposed to be confined to (the
++ * resource-type-derived script folder of the resource being rendered,
++ * e.g. "/apps/myapp/comp"), reaching an unrelated, sensitive resource
++ * ("/secret/admin/leak.esp") elsewhere in the repository.
++ *
++ * This test PASSES (exit 0) on the vulnerable code, because it asserts that
++ * the out-of-tree resource IS found -- i.e. it asserts the presence of the
++ * vulnerable behavior. After a correct fix (normalizing + isPathAllowed
++ * -checking the intermediate path the same way the sibling branch already
++ * does, and/or rejecting scriptName values that escape the location subtree)
++ * the traversal result must no longer be resolvable, so this same assertion
++ * FAILS (non-zero exit), which is how a downstream patch verification step
++ * detects that the vulnerability has been closed.
++ */
++package org.apache.sling.servlets.resolver.internal.helper;
++
++import static org.junit.Assert.assertTrue;
++
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.Collections;
++import java.util.List;
++import java.util.Map;
++
++import org.apache.sling.api.resource.PersistenceException;
++import org.apache.sling.api.resource.Resource;
++import org.apache.sling.api.resource.ResourceResolver;
++import org.apache.sling.api.resource.ResourceUtil;
++import org.apache.sling.testing.resourceresolver.MockResourceResolverFactory;
++import org.apache.sling.testing.resourceresolver.MockResourceResolverFactoryOptions;
++import org.junit.Test;
++
++public class PathTraversalScriptResolutionPovTest {
++
++    @Test
++    public void namedScriptResourceCollectorEscapesResourceTypeScriptTreeViaDotDot() throws Exception {
++
++        // ---- Arrange: a realistic, out-of-the-box Sling resource resolver ----
++        // (single search path "/apps/", and executionPaths == null, i.e. the
++        // servlet resolver's "servletresolver.paths" OSGi property left at its
++        // default / unconfigured value -- isPathAllowed(..., null) accepts
++        // everything, exactly as SlingServletResolver.isPathAllowed(...) does
++        // for an unconfigured install).
++        MockResourceResolverFactoryOptions options = new MockResourceResolverFactoryOptions();
++        options.setSearchPaths(new String[] { "/apps/" });
++        MockResourceResolverFactory factory = new MockResourceResolverFactory(options);
++        ResourceResolver resolver = factory.getResourceResolver(null);
++
++        // Legitimate script location for the component being rendered:
++        // "/apps/" + resourceType("myapp/comp") == "/apps/myapp/comp".
++        // This is the "restricted directory" a named-script lookup for this
++        // resource is supposed to stay inside.
++        createResource(resolver, "/apps/myapp/comp", "sling:Folder");
++        createResource(resolver, "/apps/myapp/comp/legit.esp", "nt:file");
++
++        // A completely unrelated, sensitive resource elsewhere in the
++        // repository that must never be reachable through this component's
++        // named-script resolution.
++        createResource(resolver, "/secret", "sling:Folder");
++        createResource(resolver, "/secret/admin", "sling:Folder");
++        createResource(resolver, "/secret/admin/leak.esp", "nt:file");
++
++        // The resource being rendered; its resourceType drives
++        // NamedScriptResourceCollector's search location.
++        Resource contentResource = createResource(resolver, "/content/page", "myapp/comp");
++
++        // Attacker/caller-controlled scriptName, as passed to the PUBLIC
++        // ServletResolver#resolveServlet(Resource, String scriptName) /
++        // #resolveServlet(ResourceResolver, String scriptName) API methods,
++        // which SlingServletResolver forwards unmodified into
++        // NamedScriptResourceCollector.create(...) for any request-less
++        // (named-script) lookup.
++        String maliciousScriptName = "../../../secret/admin/leak";
++
++        // ---- Act: exercise the real, unmodified vulnerable production code ----
++        NamedScriptResourceCollector collector = NamedScriptResourceCollector.create(
++                maliciousScriptName,
++                contentResource,
++                null,   // executionPaths: unconfigured / unrestricted (the common default)
++                false);
++
++        Collection<Resource> found = collector.getServlets(resolver, Collections.emptyList());
++        List<String> foundPaths = new ArrayList<>();
++        for (Resource r : found) {
++            foundPaths.add(r.getPath());
++        }
++
++        // ---- Assert: reproduce the vulnerable behavior ----
++        // On unpatched code, NamedScriptResourceCollector escapes
++        // "/apps/myapp/comp" and resolves the out-of-tree secret resource, so
++        // this assertion holds (test exits 0). A correct fix must normalize +
++        // allow-list-check the intermediate path the same way the neighboring
++        // "extension" branch already does, and/or reject scriptName values
++        // that escape the location subtree -- once fixed, "/secret/admin/leak.esp"
++        // will no longer be resolvable this way and this assertion (and thus
++        // the test) will fail (non-zero exit).
++        assertTrue(
++            "Expected NamedScriptResourceCollector to resolve a script OUTSIDE the "
++          + "resource's own resourceType script tree (/apps/myapp/comp) via the "
++          + "scriptName '" + maliciousScriptName + "' (CWE-22 path traversal). "
++          + "found=" + foundPaths,
++            foundPaths.contains("/secret/admin/leak.esp"));
++
++        // sanity: the legitimate, in-tree script is unaffected by the fix expectation
++        assertTrue("expected setup sanity check to hold", resolver.getResource("/apps/myapp/comp/legit.esp") != null);
++    }
++
++    private static Resource createResource(ResourceResolver resolver, String path, String resourceType)
++            throws PersistenceException {
++        Resource existing = resolver.getResource(path);
++        if (existing != null) {
++            return existing;
++        }
++        String parentPath = ResourceUtil.getParent(path);
++        Resource parent = (parentPath == null) ? null : createResource(resolver, parentPath, "sling:Folder");
++        Map<String, Object> props = Collections.singletonMap(ResourceResolver.PROPERTY_RESOURCE_TYPE, (Object) resourceType);
++        return resolver.create(parent, ResourceUtil.getName(path), props);
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..a11b57c
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,16 @@
++#!/usr/bin/env bash
++set -euo pipefail
++cd /workspace/repo
++
++mvn -B -o -q -DskipTests test-compile
++
++CP="target/classes:target/test-classes"
++JARS="$(find /root/.m2/repository -name '*.jar' ! -iname '*sources*' ! -iname '*javadoc*' | tr '\n' ':')"
++CP="${CP}:${JARS}"
++
++rm -rf /tmp/povclasses
++mkdir -p /tmp/povclasses
++javac -nowarn -cp "$CP" -d /tmp/povclasses .security-pipeline/pov/PathTraversalScriptResolutionPovTest.java
++
++java -cp "/tmp/povclasses:${CP}" org.junit.runner.JUnitCore \
++  org.apache.sling.servlets.resolver.internal.helper.PathTraversalScriptResolutionPovTest

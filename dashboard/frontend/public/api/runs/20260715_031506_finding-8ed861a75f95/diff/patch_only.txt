@@ -1,0 +1,110 @@
+diff --git a/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java b/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
+index a5b7306..d8393be 100644
+--- a/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
++++ b/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
+@@ -87,6 +87,16 @@ public class FileResourceManager implements ResourceManager {
+         }
+         try {
+             File file = new File(base, path);
++            //security check to ensure the resolved file does not escape the base directory
++            //this protects against path traversal (e.g. "/../secret.txt")
++            String canonicalFile = file.getCanonicalPath();
++            String canonicalBase = new File(base).getCanonicalPath();
++            if (!canonicalBase.endsWith(File.separator)) {
++                canonicalBase = canonicalBase + File.separatorChar;
++            }
++            if (!(canonicalFile + File.separatorChar).startsWith(canonicalBase)) {
++                return null;
++            }
+             if (file.exists()) {
+                 //security check for case insensitive file systems
+                 //we make sure the case of the filename matches the case of the request
+diff --git a/core/src/test/java/io/undertow/server/handlers/file/FileResourceManagerTraversalTestCase.java b/core/src/test/java/io/undertow/server/handlers/file/FileResourceManagerTraversalTestCase.java
+new file mode 100644
+index 0000000..064ad86
+--- /dev/null
++++ b/core/src/test/java/io/undertow/server/handlers/file/FileResourceManagerTraversalTestCase.java
+@@ -0,0 +1,83 @@
++package io.undertow.server.handlers.file;
++
++import io.undertow.server.handlers.resource.FileResourceManager;
++import io.undertow.server.handlers.resource.Resource;
++import org.junit.Assert;
++import org.junit.Test;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.OutputStream;
++
++/**
++ * Regression test for CWE-022 path traversal in {@link FileResourceManager#getResource(String)}.
++ *
++ * A request path that escapes the configured base directory (e.g. "/../secret.txt") must not
++ * resolve to a file outside the base directory.
++ */
++public class FileResourceManagerTraversalTestCase {
++
++    @Test
++    public void testTraversalOutsideBaseIsRejected() throws IOException {
++        final File root = File.createTempFile("undertow-traversal", "");
++        Assert.assertTrue(root.delete());
++        Assert.assertTrue(root.mkdirs());
++        try {
++            final File base = new File(root, "webroot");
++            Assert.assertTrue(base.mkdirs());
++
++            // A secret file that lives as a sibling of the base directory (outside base).
++            final File secret = new File(root, "secret.txt");
++            OutputStream out = new FileOutputStream(secret);
++            try {
++                out.write("TOP-SECRET".getBytes("UTF-8"));
++            } finally {
++                out.close();
++            }
++
++            final FileResourceManager manager = new FileResourceManager(base, 1);
++
++            // Traversal attempt must not leak the sibling file outside base.
++            Assert.assertNull(manager.getResource("/../secret.txt"));
++            Assert.assertNull(manager.getResource("../secret.txt"));
++        } finally {
++            deleteRecursive(root);
++        }
++    }
++
++    @Test
++    public void testLegitimateFileInsideBaseIsServed() throws IOException {
++        final File root = File.createTempFile("undertow-traversal-ok", "");
++        Assert.assertTrue(root.delete());
++        Assert.assertTrue(root.mkdirs());
++        try {
++            final File base = new File(root, "webroot");
++            Assert.assertTrue(base.mkdirs());
++
++            final File inside = new File(base, "index.txt");
++            OutputStream out = new FileOutputStream(inside);
++            try {
++                out.write("hello".getBytes("UTF-8"));
++            } finally {
++                out.close();
++            }
++
++            final FileResourceManager manager = new FileResourceManager(base, 1);
++            Resource resource = manager.getResource("/index.txt");
++            Assert.assertNotNull(resource);
++        } finally {
++            deleteRecursive(root);
++        }
++    }
++
++    private static void deleteRecursive(File file) {
++        File[] children = file.listFiles();
++        if (children != null) {
++            for (File child : children) {
++                deleteRecursive(child);
++            }
++        }
++        file.delete();
++    }
++}

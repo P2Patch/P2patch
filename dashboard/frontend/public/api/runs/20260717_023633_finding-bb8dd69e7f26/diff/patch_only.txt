@@ -1,0 +1,172 @@
+diff --git a/src/main/java/spark/resource/AbstractResourceHandler.java b/src/main/java/spark/resource/AbstractResourceHandler.java
+index 5f952d6..fa9d926 100644
+--- a/src/main/java/spark/resource/AbstractResourceHandler.java
++++ b/src/main/java/spark/resource/AbstractResourceHandler.java
+@@ -22,6 +22,8 @@ import java.net.MalformedURLException;
+ import javax.servlet.RequestDispatcher;
+ import javax.servlet.http.HttpServletRequest;
+ 
++import spark.utils.StringUtils;
++
+ /**
+  * Abstract class providing functionality for finding resources based on an Http Servlet request.
+  * Code snippets copied from Eclipse Jetty source. Modifications made by Per Wendel.
+@@ -121,4 +123,48 @@ public abstract class AbstractResourceHandler {
+         return buf.toString();
+     }
+ 
++    /**
++     * Checks that a resolved candidate path is still contained within the configured base
++     * resource path, after normalization.
++     * <p>
++     * This is a defense-in-depth check against path traversal: {@link UriPath#canonical(String)}
++     * only recognizes '/' as a path separator, so request paths that smuggle traversal via
++     * other separators (e.g. backslashes) or via more '..' segments than there are leading
++     * path elements to consume are passed through unmodified. {@link StringUtils#cleanPath}
++     * (used to build the final {@code File}/classpath lookup) does normalize those separators
++     * and collapse '..' segments, but it never rejects a path whose leftover '..' segments
++     * would walk above the root it was concatenated onto - it just keeps them. Comparing the
++     * normalized candidate against the normalized base closes that gap.
++     *
++     * @param base      the configured base resource path
++     * @param candidate the candidate path (base concatenated with the requested path)
++     * @return true if candidate, once normalized, is base or a descendant of base
++     */
++    protected static boolean isPathUnderBase(String base, String candidate) {
++        if (base == null || candidate == null) {
++            return false;
++        }
++
++        String normalizedBase = StringUtils.cleanPath(base);
++        String normalizedCandidate = StringUtils.cleanPath(candidate);
++
++        // Normalize leading slash presence too, since callers may pass either
++        // filesystem-style paths (leading '/') or classpath-relative paths
++        // (leading '/' stripped, e.g. ClassPathResource#getPath()).
++        if (!normalizedBase.startsWith(SLASH)) {
++            normalizedBase = SLASH + normalizedBase;
++        }
++        if (!normalizedCandidate.startsWith(SLASH)) {
++            normalizedCandidate = SLASH + normalizedCandidate;
++        }
++        if (!normalizedBase.endsWith(SLASH)) {
++            normalizedBase += SLASH;
++        }
++        if (!normalizedCandidate.endsWith(SLASH)) {
++            normalizedCandidate += SLASH;
++        }
++
++        return normalizedCandidate.startsWith(normalizedBase);
++    }
++
+ }
+diff --git a/src/main/java/spark/resource/ClassPathResourceHandler.java b/src/main/java/spark/resource/ClassPathResourceHandler.java
+index 40789b7..7acca7b 100644
+--- a/src/main/java/spark/resource/ClassPathResourceHandler.java
++++ b/src/main/java/spark/resource/ClassPathResourceHandler.java
+@@ -66,12 +66,19 @@ public class ClassPathResourceHandler extends AbstractResourceHandler {
+             path = UriPath.canonical(path);
+ 
+             final String addedPath = addPaths(baseResource, path);
++            if (!isPathUnderBase(baseResource, addedPath)) {
++                return null;
++            }
+ 
+             ClassPathResource resource = new ClassPathResource(addedPath);
+ 
+             if (resource.exists() && resource.getFile().isDirectory()) {
+                 if (welcomeFile != null) {
+-                    resource = new ClassPathResource(addPaths(resource.getPath(), welcomeFile));
++                    final String welcomePath = addPaths(resource.getPath(), welcomeFile);
++                    if (!isPathUnderBase(baseResource, welcomePath)) {
++                        return null;
++                    }
++                    resource = new ClassPathResource(welcomePath);
+                 } else {
+                     //  No welcome file configured, serve nothing since it's a directory
+                     resource = null;
+diff --git a/src/main/java/spark/resource/ExternalResourceHandler.java b/src/main/java/spark/resource/ExternalResourceHandler.java
+index 7556f41..9752f5b 100644
+--- a/src/main/java/spark/resource/ExternalResourceHandler.java
++++ b/src/main/java/spark/resource/ExternalResourceHandler.java
+@@ -65,12 +65,19 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+             path = UriPath.canonical(path);
+ 
+             final String addedPath = addPaths(baseResource, path);
++            if (!isPathUnderBase(baseResource, addedPath)) {
++                return null;
++            }
+ 
+             ExternalResource resource = new ExternalResource(addedPath);
+ 
+             if (resource.exists() && resource.isDirectory()) {
+                 if (welcomeFile != null) {
+-                    resource = new ExternalResource(addPaths(resource.getPath(), welcomeFile));
++                    final String welcomePath = addPaths(resource.getPath(), welcomeFile);
++                    if (!isPathUnderBase(baseResource, welcomePath)) {
++                        return null;
++                    }
++                    resource = new ExternalResource(welcomePath);
+                 } else {
+                     //  No welcome file configured, serve nothing since it's a directory
+                     resource = null;
+diff --git a/src/test/java/spark/resource/ClassPathResourceHandlerTest.java b/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
+index e2fa60b..22bd448 100644
+--- a/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ClassPathResourceHandlerTest.java
+@@ -116,6 +116,25 @@ class ClassPathResourceHandlerTest {
+ 
+     }
+ 
++    @Test
++    public void testGetResource_whenPathTraversesAboveBaseResourceViaBackslash_thenReturnNull() throws Exception {
++        ClassPathResourceHandler classPathResourceHandler = new ClassPathResourceHandler("/public", "index.html");
++
++        // UriPath.canonical() only recognizes '/' as a path separator, so a backslash-based
++        // ".." sequence is passed through unmodified. The resolved path must still be rejected
++        // because it normalizes to a location outside the configured base resource ("/public").
++        assertNull("Should return null because the resolved path escapes the configured base resource",
++                   classPathResourceHandler.getResource("/..\\secret.txt"));
++    }
++
++    @Test
++    public void testGetResource_whenPathTraversesAboveBaseResourceViaSlash_thenReturnNull() throws Exception {
++        ClassPathResourceHandler classPathResourceHandler = new ClassPathResourceHandler("/public", "index.html");
++
++        assertNull("Should return null because the resolved path escapes the configured base resource",
++                   classPathResourceHandler.getResource("/../secret.txt"));
++    }
++
+     @Test
+     public void testGetResource_whenResourcePathExists_andResourcePathIsNotADirectory_thenReturnResourcePathObject() throws
+                                                                                                                      Exception {
+diff --git a/src/test/java/spark/resource/ExternalResourceHandlerTest.java b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+index f516969..e27763f 100644
+--- a/src/test/java/spark/resource/ExternalResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+@@ -100,6 +100,25 @@ public class ExternalResourceHandlerTest {
+ 
+     }
+ 
++    @Test
++    public void testGetResource_whenPathTraversesAboveBaseResourceViaBackslash_thenReturnNull() throws Exception {
++        ExternalResourceHandler externalResourceHandler = new ExternalResourceHandler("/public", "index.html");
++
++        // UriPath.canonical() only recognizes '/' as a path separator, so a backslash-based
++        // ".." sequence is passed through unmodified. The resolved path must still be rejected
++        // because it normalizes to a location outside the configured base resource ("/public").
++        assertNull("Should return null because the resolved path escapes the configured base resource",
++                   externalResourceHandler.getResource("/..\\secret.txt"));
++    }
++
++    @Test
++    public void testGetResource_whenPathTraversesAboveBaseResourceViaSlash_thenReturnNull() throws Exception {
++        ExternalResourceHandler externalResourceHandler = new ExternalResourceHandler("/public", "index.html");
++
++        assertNull("Should return null because the resolved path escapes the configured base resource",
++                   externalResourceHandler.getResource("/../secret.txt"));
++    }
++
+     @Test
+     public void testGetResource_whenResourcePathExists_andResourcePathIsNotADirectory_thenReturnResourcePathObject() throws
+                                                                                                                      Exception {

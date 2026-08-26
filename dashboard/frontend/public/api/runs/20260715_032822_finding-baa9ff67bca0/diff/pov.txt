@@ -1,0 +1,44 @@
+diff --git a/.security-pipeline/pov/PovCwe022.java b/.security-pipeline/pov/PovCwe022.java
+new file mode 100644
+index 0000000..c753c75
+--- /dev/null
++++ b/.security-pipeline/pov/PovCwe022.java
+@@ -0,0 +1,38 @@
++import org.apache.commons.io.FilenameUtils;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) — CVE-2021-29425.
++ *
++ * Apache Commons IO 2.6 FilenameUtils.doNormalize() treats a leading
++ * double-separator followed by ".." (e.g. "//../foo") as an authority/UNC
++ * style prefix and therefore leaves the ".." segment in place instead of
++ * resolving or rejecting it. A caller that normalizes untrusted input and
++ * then anchors it to a base directory can be walked out of that directory.
++ *
++ * This PoV drives the real public API FilenameUtils.normalize(String).
++ *
++ * Vulnerable behaviour: normalize("//../foo") returns a NON-null string that
++ * still contains a "../" traversal segment  -> exit 0.
++ * Correctly patched behaviour (Commons IO >= 2.7): the ".." is rejected
++ * (returns null) or fully resolved (no "../" remains) -> exit 1.
++ */
++public class PovCwe022 {
++    public static void main(String[] args) {
++        final String attack = "//../foo";
++        final String out = FilenameUtils.normalize(attack);
++
++        System.out.println("[pov] input     = " + attack);
++        System.out.println("[pov] normalize = " + out);
++
++        final boolean traversalSurvives = out != null && out.contains("..");
++
++        if (traversalSurvives) {
++            System.out.println("[pov] VULNERABLE: '..' traversal segment survived normalization "
++                    + "(path escapes the intended directory).");
++            System.exit(0);
++        }
++
++        System.out.println("[pov] NOT VULNERABLE: normalization neutralized the traversal.");
++        System.exit(1);
++    }
++}

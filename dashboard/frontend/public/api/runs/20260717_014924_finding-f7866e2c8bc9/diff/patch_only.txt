@@ -1,0 +1,166 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index bd462d9..83d359a 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -308,6 +308,12 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+         // Hmm. Symlinks re-evaluate back to the original file here. Unsure if this is a good thing...
+         final File f = FileUtils.resolveFile( dir, entryName );
+ 
++        if ( !isInsideDestination( dir, f ) )
++        {
++            throw new ArchiverException(
++                "Entry '" + entryName + "' is outside the target directory (possible path traversal / zip-slip)" );
++        }
++
+         try
+         {
+             if ( !isOverwrite() && f.exists() && ( f.lastModified() >= entryDate.getTime() ) )
+@@ -360,4 +366,17 @@ else if ( isDirectory )
+         }
+     }
+ 
++    /**
++     * Verifies that the resolved extraction target {@code f} is actually located inside {@code dir}, guarding
++     * against path traversal / "zip-slip" style archive entries (e.g. names containing {@code ../} sequences or
++     * absolute paths) that would otherwise resolve outside of the intended destination directory.
++     */
++    private boolean isInsideDestination( final File dir, final File f )
++        throws IOException
++    {
++        final String destDirPath = dir.getCanonicalPath() + File.separator;
++        final String entryPath = f.getCanonicalPath();
++        return entryPath.equals( dir.getCanonicalPath() ) || entryPath.startsWith( destDirPath );
++    }
++
+ }
+diff --git a/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverTest.java b/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverTest.java
+index 247045e..0552178 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverTest.java
+@@ -1,7 +1,11 @@
+ package org.codehaus.plexus.archiver.tar;
+ 
+ import java.io.File;
++import java.io.FileOutputStream;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+ import org.codehaus.plexus.PlexusTestCase;
++import org.codehaus.plexus.archiver.ArchiverException;
+ import org.codehaus.plexus.archiver.UnArchiver;
+ import org.codehaus.plexus.components.io.fileselectors.FileSelector;
+ import org.codehaus.plexus.components.io.fileselectors.IncludeExcludeFileSelector;
+@@ -108,4 +112,47 @@ public void testSelectors()
+                        } );
+     }
+ 
++    public void testTarPathTraversalIsBlocked()
++        throws Exception
++    {
++        File workDir = new File( getBasedir(), "target/tar-unarchiver-slip-test" );
++        FileUtils.deleteDirectory( workDir );
++
++        File outputDirectory = new File( workDir, "dest" );
++        outputDirectory.mkdirs();
++
++        File maliciousTar = new File( workDir, "evil.tar" );
++        TarArchiveOutputStream tos = new TarArchiveOutputStream( new FileOutputStream( maliciousTar ) );
++        try
++        {
++            TarArchiveEntry entry = new TarArchiveEntry( "../evil.txt" );
++            byte[] content = "pwned".getBytes( "UTF-8" );
++            entry.setSize( content.length );
++            tos.putArchiveEntry( entry );
++            tos.write( content );
++            tos.closeArchiveEntry();
++        }
++        finally
++        {
++            tos.close();
++        }
++
++        TarUnArchiver tarUn = (TarUnArchiver) lookup( UnArchiver.ROLE, "tar" );
++        tarUn.setSourceFile( maliciousTar );
++        tarUn.setDestDirectory( outputDirectory );
++
++        try
++        {
++            tarUn.extract();
++            fail( "Expected an ArchiverException because the tar entry escapes the destination directory" );
++        }
++        catch ( ArchiverException expected )
++        {
++            // expected
++        }
++
++        assertFalse( "Entry must not be written outside of the destination directory",
++                     new File( workDir, "evil.txt" ).exists() );
++    }
++
+ }
+diff --git a/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java b/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java
+index 1f72a61..5822b8e 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/zip/ZipUnArchiverTest.java
+@@ -1,9 +1,13 @@
+ package org.codehaus.plexus.archiver.zip;
+ 
+ import java.io.File;
++import java.io.FileOutputStream;
+ import java.lang.reflect.Method;
++import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
++import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+ import org.codehaus.plexus.PlexusTestCase;
+ import org.codehaus.plexus.archiver.Archiver;
++import org.codehaus.plexus.archiver.ArchiverException;
+ import org.codehaus.plexus.archiver.UnArchiver;
+ import org.codehaus.plexus.components.io.fileselectors.FileSelector;
+ import org.codehaus.plexus.components.io.fileselectors.IncludeExcludeFileSelector;
+@@ -190,6 +194,48 @@ public void testSelectors()
+                        } );
+     }
+ 
++    public void testZipPathTraversalIsBlocked()
++        throws Exception
++    {
++        File workDir = new File( getBasedir(), "target/zip-unarchiver-slip-test" );
++        FileUtils.deleteDirectory( workDir );
++
++        File outputDirectory = new File( workDir, "dest" );
++        outputDirectory.mkdirs();
++
++        File maliciousZip = new File( workDir, "evil.zip" );
++        ZipArchiveOutputStream zos = new ZipArchiveOutputStream( new FileOutputStream( maliciousZip ) );
++        try
++        {
++            ZipArchiveEntry entry = new ZipArchiveEntry( "../evil.txt" );
++            byte[] content = "pwned".getBytes( "UTF-8" );
++            entry.setSize( content.length );
++            zos.putArchiveEntry( entry );
++            zos.write( content );
++            zos.closeArchiveEntry();
++        }
++        finally
++        {
++            zos.close();
++        }
++
++        ZipUnArchiver zu = getZipUnArchiver( maliciousZip );
++        zu.setDestDirectory( outputDirectory );
++
++        try
++        {
++            zu.extract();
++            fail( "Expected an ArchiverException because the zip entry escapes the destination directory" );
++        }
++        catch ( ArchiverException expected )
++        {
++            // expected
++        }
++
++        assertFalse( "Entry must not be written outside of the destination directory",
++                     new File( workDir, "evil.txt" ).exists() );
++    }
++
+     private ZipArchiver getZipArchiver()
+     {
+         try

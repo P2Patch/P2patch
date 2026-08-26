@@ -1,0 +1,59 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.5/39/Dockerfile -t simpleautosec-finding-e598eac7a0c3:33668d748adb /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.5/39
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.12kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 ...
+
+#3 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 1.3s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6
+#5 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6 done
+#5 DONE 0.0s
+
+#6 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#6 CACHED
+
+#7 [builder 2/7] WORKDIR /workspace
+#7 CACHED
+
+#8 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#8 CACHED
+
+#9 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [builder 5/7] RUN set -eux;     git clone "https://github.com/apache/dolphinscheduler" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "2.0.5" ]; then git checkout "2.0.5"; fi
+#10 CACHED
+
+#11 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#11 CACHED
+
+#12 exporting to image
+#12 exporting layers done
+#12 exporting manifest sha256:d0e7f509c6a890c041a75785e06f82bd029173000afd196c0f7929f0ae3bdc96 done
+#12 exporting config sha256:a9d977155b10f56586d69a03368332b31af92c32a239fe173adfaebb0389f119 done
+#12 exporting attestation manifest sha256:0b34119c76c5fe1bd2e03ca856ed564c9f651dfa6f391c365f05ee346277c4d2 done
+#12 exporting manifest list sha256:0feab4373e802bf7faf46b0291d82b45e7344b451646802a929498b86dbbf7e9 done
+#12 naming to docker.io/library/simpleautosec-finding-e598eac7a0c3:33668d748adb done
+#12 unpacking to docker.io/library/simpleautosec-finding-e598eac7a0c3:33668d748adb
+#12 unpacking to docker.io/library/simpleautosec-finding-e598eac7a0c3:33668d748adb 2.5s done
+#12 DONE 2.5s
+

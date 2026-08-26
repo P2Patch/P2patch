@@ -1,0 +1,73 @@
+{
+  "source": {
+    "paper": "Well Begun is Half Done: Location-Aware and Trace-Guided Iterative Automated Vulnerability Repair",
+    "venue": "ICSE '26 (arXiv:2512.20203v1, 23 Dec 2025)",
+    "table": "Table 2 (p. 7), aggregates from §5 and §6",
+    "code": "https://github.com/Fino2020/LoopRepair",
+    "transcribed": "2026-08-12"
+  },
+  "metric": {
+    "plausible": "patch passes all available PoVs. NOTE: no functional-test gate at all — a strictly weaker bar than PatchAgent's and San2Patch's 'repaired'.",
+    "correct": "manually judged (n=3 annotators, >=2 years experience) semantically equivalent to the developer patch"
+  },
+  "task_setting": "Function-level AVR: the vulnerable function AND vulnerable statement are given as INPUT, from CrashAnalysis (CrashRepair) localization. LoopRepair does not localize from scratch — a materially easier information regime than PatchAgent/San2Patch (sanitizer report only) or ours (static alert only).",
+  "dataset": {
+    "name": "VulnLoc+",
+    "composition": "41 from the VulnLoc benchmark + 12 from Shariffdeen et al. (CrashRepair) = 53; 13 could not be localized, leaving 40 evaluated",
+    "projects": ["binutils", "coreutils", "jasper", "libarchive", "libjpeg", "libming", "libtiff", "libxml2", "potrace", "zziplib"],
+    "multi_hunk_share": "31/40 (77.5%) are multi-hunk vulnerabilities",
+    "note": "The 'RED-TEAM-*' rows in Table 2 are the 12 CrashRepair additions. All six of those present in our dataset (jasper CVE-2020-27828, CVE-2021-3272; libtiff CVE-2018-18557, CVE-2022-4645, CVE-2022-48281; libxml2 CVE-2016-1833) are exactly our C/C++ cases that are NOT in VulnLoc."
+  },
+  "backbone_model": "gpt-4o-mini",
+  "budget": {"iterations": 3, "candidates_per_function_per_iteration": 5},
+  "totals_reported": {
+    "looprepair": {
+      "iter_1": {"correct": 9,  "plausible": 19},
+      "iter_2": {"correct": 14, "plausible": 25},
+      "iter_3": {"correct": 15, "plausible": 27},
+      "of": 40
+    },
+    "baselines": {
+      "_note": "b of a/b = plausible, a = correct. NMT baselines were evaluated on a 36-case subset (3 excluded for fix-location extraction).",
+      "nmt": {
+        "vrepair":    {"correct": 2, "plausible": 5},
+        "vulrepair":  {"correct": 2, "plausible": 5},
+        "vqm":        {"correct": 4, "plausible": 5},
+        "vulmaster":  {"correct": 1, "plausible": 3}
+      },
+      "program_analysis": {
+        "crashrepair": {"correct": 5, "plausible": 27},
+        "vulnfix":     {"correct": 5, "plausible": 24}
+      },
+      "llm": {
+        "thinkrepair": {"correct": 5, "plausible": 19},
+        "chatrepair":  {"correct": 6, "plausible": 14},
+        "iter":        {"correct": 3, "plausible": 12}
+      }
+    }
+  },
+  "ablation": {
+    "looprepair":                       {"plausible": 27, "correct": 15},
+    "without_patch_hunk_location_pred": {"plausible": 24, "correct": 13},
+    "without_taint_guided_ranking":     {"plausible": 19, "correct": 7},
+    "without_both":                     {"plausible": 11, "correct": 3}
+  },
+  "localization_quality": {
+    "function_level_correct": "22/40",
+    "patch_hunk_locations_correct": "19/40",
+    "note": "Of the 22 with correct function-level localization, 19 got correct hunk predictions -> 12 correct patches. Of the 21 with incorrect hunk locations, only 3 correct patches. Localization quality dominates the result."
+  },
+  "cost_by_model": {
+    "gpt-4o-mini":       {"plausible": 27, "total_usd": 1.99,  "avg_usd": 0.074},
+    "deepseek-v3":       {"plausible": 22, "total_usd": 2.24,  "avg_usd": 0.102},
+    "gemini-1.5-flash":  {"plausible": 20, "total_usd": 1.214, "avg_usd": 0.061},
+    "gpt-3.5-turbo":     {"plausible": 17, "total_usd": 10.04, "avg_usd": 0.591},
+    "claude-3.5-sonnet": {"plausible": 9,  "total_usd": 48.87, "avg_usd": 5.430}
+  },
+  "timing": "Median plausible patch in 14.51 min; 92.59% within one hour; max 199 min. Failing cases dominate the tail (all three iterations run).",
+  "per_case": {
+    "_status": "NOT TRANSCRIBED",
+    "_reason": "Table 2 is a dense 12-column glyph matrix at small size; per-case transcription from the PDF is too error-prone to trust. The authors publish their generated patches and datasets at the repo — pull per-case results from baselines/vendor/looprepair/ after setup.sh, not from the PDF.",
+    "_action": "common/build_case_map.py leaves looprepair per-case fields null until this is filled from the repo."
+  }
+}

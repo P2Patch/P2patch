@@ -1,0 +1,274 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:12:42.530091+00:00",
+    "finished_at": "2026-07-11T23:14:04.363689+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds a technically sound Zip-Slip guard (canonicalize with getCanonicalPath, then verify the resolved entry stays inside the cache directory using startsWith with a trailing separator to avoid sibling-prefix bypass) at exactly the sink named in the taint trace: Main.java's splash-extraction (`splash = new File(splash, jarEntry)` ~line 2295). The mitigation itself is the CWE-022 defense-of-record and is arguably stronger than the official fix (canonical resolves symlinks vs. the official's normalize()). However, the official developer fix is in a completely different file/method — ZipMisc.unzip — which our patch does not touch (jaccard 0.0, covers_all_official=false), so the actual CVE sink likely remains unpatched. POV did not reproduce before the patch, so execution evidence for elimination is weak.",
+    "root_cause": "Untrusted zip/jar entry names are concatenated onto a base directory and written without verifying the resolved path stays within that base directory, allowing `../` traversal (Zip Slip) outside the intended extraction root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "Robustly closes the sink in the taint trace, but the official CVE sink (ZipMisc.unzip) is a different, untouched path that likely remains reachable.",
+        "evidence": "Main.java ~2295 guard `if(!canonicalSplash.startsWith(canonicalCacheDir)) return null`; official fix in ZipMisc.unzip not modified.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Fixes the flaw at the sink with a containment check for the traced path, but does not neutralize the official ZipMisc.unzip sink where the developers placed the fix.",
+        "evidence": "Guard added at cacheDir/splash join in Main.java; ZipMisc.java unchanged.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Only the Main.java path is covered; ZipMisc.unzip — the exact location of the official fix and the broadly-used goomph unzip API — is left unpatched.",
+        "evidence": "overlap_files=[], official_only=[ZipMisc.java], covers_all_official=false.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 3,
+        "rationale": "Same defensive strategy (canonicalize/normalize + startsWith containment) but applied in a different file/method than the official fix.",
+        "evidence": "Ours: getCanonicalPath+startsWith in Main.java; official: toPath().normalize().startsWith in ZipMisc.unzip.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Conservative: returns null and logs on violation, preserving legitimate extraction; but no regression tests were executed to confirm.",
+        "evidence": "regressions_ran=0; guarded return null with logging in Main.java.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe primitives correctly; IOException handled; separator appended to base prevents prefix-sibling false negatives; no TOCTOU/ReDoS introduced.",
+        "evidence": "`canonicalCacheDir = cacheDir.getCanonicalPath()+File.separator` and try/catch(IOException).",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change confined to the single extraction sink.",
+        "evidence": "~15 added lines at Main.java:2292-2312 only.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify-inside-base with symlink resolution and trailing-separator boundary is the CWE-022 defense of record, stronger than plain normalize().",
+        "evidence": "getCanonicalPath + startsWith(canonicalCacheDir+separator).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "The official fix is in ZipMisc.unzip, which our patch never touches (jaccard 0.0, covers_all_official=false). If the CVE's actual exploit path is the goomph ZipMisc.unzip API rather than the vendored Eclipse launcher Main.java, the vulnerability remains reproducible via that sink."
+      },
+      {
+        "severity": "medium",
+        "description": "Verification is weak: pov_before_reproduced=false and regressions_ran=0, so there is no positive execution evidence that the patch actually neutralizes the CVE or that legitimate behavior is preserved."
+      },
+      {
+        "severity": "low",
+        "description": "Fix is applied to a single sink in a large vendored Eclipse Main.java; other Zip/jar extraction sites in the codebase are not audited for the same class of flaw."
+      }
+    ],
+    "overall": {
+      "mean": 3.75,
+      "score": 75,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 75,
+        "score_mean": 75.7,
+        "score_min": 72,
+        "score_max": 80,
+        "score_stdev": 3.3,
+        "mean_median": 3.75,
+        "band_mode": "acceptable",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.18
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.67,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 75,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 72,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 80,
+          "band": "acceptable",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "Main.java"
+      ],
+      "official_only": [
+        "ZipMisc.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/com/diffplug/gradle/ZipMisc.java"
+      ],
+      "commits": [
+        "25f04f67ba62d9a14104bee13a0a0f2517afb8c8"
+      ]
+    }
+  }
+}

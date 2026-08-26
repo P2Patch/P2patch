@@ -1,0 +1,19 @@
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2459,7 +2459,7 @@
+ 		if (alpha) {
+ 			int adjust;
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + nc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				/*
+ 				 * For images with alpha, matte against
+@@ -2479,6 +2479,6 @@
+ 		} else {
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + nc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);

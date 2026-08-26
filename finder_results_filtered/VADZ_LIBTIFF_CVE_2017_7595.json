@@ -1,0 +1,47 @@
+{
+  "cwe_id": "cwe-369",
+  "cve_id": "CVE-2017-7595",
+  "note": "JPEGSetupEncode() (libtiff/tif_jpeg.c) sets sp->h_sampling = td->td_ycbcrsubsampling[0] and sp->v_sampling = td->td_ycbcrsubsampling[1] straight from the TIFF directory's YCbCrSubsampling tag -- populated from the untrusted input file by tif_dirread.c during TIFFReadDirectory(), with no range validation applied there -- then, with no zero-check on either field anywhere in the function, uses both as the divisor of a `%` (modulo) expression a few lines later: `td->td_tilelength % (sp->v_sampling * DCTSIZE)` (tile height), `td->td_tilewidth % (sp->h_sampling * DCTSIZE)` (tile width), and `td->td_rowsperstrip % (sp->v_sampling * DCTSIZE)` (rows per strip, non-tiled case). A subsampling factor of 0 makes any of these an integer-divide-by-zero trap.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "sp->v_sampling assigned from td->td_ycbcrsubsampling[1] -- the untrusted input TIFF's YCbCrSubsampling directory tag, parsed with no range validation by tif_dirread.c during TIFFReadDirectory()",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1628
+          },
+          {
+            "message": "td->td_tilelength % (sp->v_sampling * DCTSIZE) -- integer-divide-by-zero trap if sp->v_sampling is 0; no zero-check on sp->v_sampling anywhere in JPEGSetupEncode()",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1687
+          }
+        ],
+        [
+          {
+            "message": "sp->h_sampling assigned from td->td_ycbcrsubsampling[0] -- the untrusted input TIFF's YCbCrSubsampling directory tag, parsed with no range validation by tif_dirread.c during TIFFReadDirectory()",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1627
+          },
+          {
+            "message": "td->td_tilewidth % (sp->h_sampling * DCTSIZE) -- integer-divide-by-zero trap if sp->h_sampling is 0; no zero-check on sp->h_sampling anywhere in JPEGSetupEncode()",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1693
+          }
+        ],
+        [
+          {
+            "message": "sp->v_sampling assigned from td->td_ycbcrsubsampling[1] -- the untrusted input TIFF's YCbCrSubsampling directory tag, parsed with no range validation by tif_dirread.c during TIFFReadDirectory()",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1628
+          },
+          {
+            "message": "td->td_rowsperstrip % (sp->v_sampling * DCTSIZE) -- non-tiled-image sibling of the same unguarded division, integer-divide-by-zero trap if sp->v_sampling is 0",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1701
+          }
+        ]
+      ]
+    }
+  ]
+}

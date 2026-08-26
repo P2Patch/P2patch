@@ -1,0 +1,67 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_080136_finding-6ab3cd8c8d7b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-6ab3cd8c8d7b:a57f2699a90e bash -lc EXT="$(tr ':' '\n' < .security-pipeline/pov/cp.txt | grep -v '/org/apache/dolphinscheduler/' | paste -sd: -)"; DS="$(find . -type d -path '*/target/classes' | paste -sd: -)"; CP="dolphinscheduler-api/target/test-classes:dolphinscheduler-api/target/classes:dolphinscheduler-common/target/test-classes:${DS}:${EXT}"; java -cp "$CP" org.junit.runner.JUnitCore org.apache.dolphinscheduler.common.utils.FileUtilsTest
+exit_code=0
+timed_out=false
+
+--- stdout ---
+JUnit version 4.12
+.07:20:55.130 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.cpu.isalist
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.io.unicode.encoding
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.cpu.endian
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor.url.bug
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.separator
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.maintenance.version
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.boot.class.path
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.ext.dirs
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.version
+07:20:55.139 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.info
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: awt.toolkit
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.language
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.vendor
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.java.command
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.home
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.arch.data.model
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.class.path
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.name
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.encoding
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.awt.printerjob
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.timezone
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.home
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.management.compiler
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.specification.name
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.class.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.library.path
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.jnu.encoding
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.name
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.vendor
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.io.tmpdir
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: line.separator
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.endorsed.dirs
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: os.arch
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.awt.graphicsenv
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.runtime.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.specification.name
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.dir
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: user.country
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.java.launcher
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.os.patch.level
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.name
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: file.encoding.pkg
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: path.separator
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.vendor
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vendor.url
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: sun.boot.library.path
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.vm.version
+07:20:55.140 [main] INFO org.apache.dolphinscheduler.common.utils.PropertyUtils - Overriding property from system property: java.runtime.name
+....07:20:55.165 [main] INFO org.apache.dolphinscheduler.common.utils.FileUtils - create dir success /tmp/createWorkDirAndUserIfAbsent
+...
+Time: 1.563
+
+OK (8 tests)
+
+
+--- stderr ---
+

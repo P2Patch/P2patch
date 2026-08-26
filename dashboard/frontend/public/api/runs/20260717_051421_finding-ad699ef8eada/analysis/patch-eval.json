@@ -1,0 +1,129 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:23.956206+00:00",
+    "finished_at": "2026-07-17T15:42:19.070842+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch applies the same defensive strategy as the official fix: it excludes the code-execution-capable SCRIPT lookup (plus DNS and URL for SSRF/DoS) from the default lookup set registered by StringLookupFactory.addDefaultStringLookups(), which is the exact choke point feeding StringSubstitutor.createInterpolator(). The Text4Shell `${script:...}` payload can no longer be resolved by the default interpolator, closing the code-injection class rather than just the observed payload, and regressions pass. The only material divergence from ground truth is the re-enable mechanism (a coarse boolean opt-in property with a different name vs. the official granular comma-separated lookup-name list), which is a config-API detail with no impact on the secure-by-default behavior.",
+    "root_cause": "createInterpolator() registered the code-executing `script` lookup (and SSRF-capable dns/url) among its default lookups, so attacker-controlled template text reaching the interpolator was evaluated as code; a correct fix must stop these dangerous lookups from being registered by default.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "SCRIPT is removed from the default lookup map, so ${script:...} is left unresolved by the default interpolator for the entire class, not just one payload.",
+        "evidence": "StringLookupFactory.addDefaultStringLookups: `if (!includeUnsafeLookups && UNSAFE_DEFAULT_LOOKUPS.contains(stringLookup)) continue;` with UNSAFE_DEFAULT_LOOKUPS = {SCRIPT, DNS, URL}; pov_after_still_reproduces=false",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fix is at the registration/trust boundary that createInterpolator() consumes, the same location as the official fix, not a caller-side symptom.",
+        "evidence": "Edit to addDefaultStringLookups() (official localizes fix to same method)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers all three dangerous default lookups (script/dns/url) matching the official excluded set; the single default registration choke point is the only path feeding the interpolator.",
+        "evidence": "UNSAFE_DEFAULT_LOOKUPS = EnumSet.of(SCRIPT, DNS, URL); official removes dns, url, script from defaults",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Identical defensive strategy and location (remove dangerous lookups from defaults, gate with a system property), but the re-enable mechanism/property name differ from the official.",
+        "evidence": "Our DEFAULT_STRING_LOOKUPS_PROPERTY='...StringSubstitutor.enableInterpolationLookup' (boolean) vs official '...StringLookupFactory.defaultStringLookups' (comma-separated names)",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Regressions pass; legitimate use preserved via explicit direct lookups and an opt-in property; tests updated to reflect new secure defaults.",
+        "evidence": "regressions_ran=2, regressions_passed=true; testJavaScriptExplicitOptIn / testAddDefaultStringLookupsMapWithOptIn retain direct access",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses EnumSet and Boolean.getBoolean safely; no injection, TOCTOU, or crash introduced.",
+        "evidence": "isDefaultUnsafeStringLookupsEnabled() -> Boolean.getBoolean(DEFAULT_STRING_LOOKUPS_PROPERTY)",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized production change confined to one method plus supporting constants; remaining diff is tests.",
+        "evidence": "Only StringLookupFactory.java production edit: constants + guard in addDefaultStringLookups()",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "CWE-094 defense-of-record: eliminates dynamic eval of untrusted input from the default path by removing the script lookup, not by sanitizing the eval string.",
+        "evidence": "SCRIPT excluded from default registration; official fix uses the same approach",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Re-enable mechanism diverges from the official fix: ours is an all-or-nothing boolean property with a different name ('...StringSubstitutor.enableInterpolationLookup'), whereas the official uses a granular comma-separated lookup-name list ('...StringLookupFactory.defaultStringLookups'). Security default is equivalent, but users following upstream docs to re-enable specific lookups would find the documented property ineffective."
+      },
+      {
+        "severity": "low",
+        "description": "Official fix also refactored InterpolatorStringLookup.toKey and removed the defaults.properties/loadProperties machinery; our patch does not touch those, so it is a narrower change (functionally fine for the vulnerability but not a full superset of the upstream refactor)."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "StringLookupFactory.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "DefaultStringLookup.java",
+        "InterpolatorStringLookup.java",
+        "StringSubstitutor.java",
+        "changes.xml",
+        "defaults.properties",
+        "userguide.xml"
+      ],
+      "jaccard": 0.143,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/changes/changes.xml",
+        "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+        "src/main/java/org/apache/commons/text/lookup/DefaultStringLookup.java",
+        "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "src/main/resources/org/apache/commons/text/lookup/defaults.properties",
+        "src/site/xdoc/userguide.xml"
+      ],
+      "commits": [
+        "b9b40b903e2d1f9935039803c9852439576780ea"
+      ]
+    }
+  }
+}

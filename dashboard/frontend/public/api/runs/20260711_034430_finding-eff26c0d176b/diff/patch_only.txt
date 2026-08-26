@@ -1,0 +1,113 @@
+diff --git a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+index fb42dc1..ac6bd04 100644
+--- a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
++++ b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+@@ -112,7 +112,9 @@ public class IOUtils {
+ 			zip = new ZipFile(file);
+ 			String newPath = extractFolder;
+ 
+-			new File(newPath).mkdir();
++			File destDir = new File(newPath);
++			destDir.mkdir();
++			String canonicalDestDir = destDir.getCanonicalPath();
+ 			Enumeration<? extends ZipEntry> zipFileEntries = zip.entries();
+ 
+ 			// Process each entry
+@@ -123,6 +125,15 @@ public class IOUtils {
+ 
+ 				File destFile = new File(newPath, currentEntry);
+ 				// destFile = new File(newPath, destFile.getName());
++
++				// Guard against Zip Slip / path traversal: reject entries whose
++				// resolved path escapes the extraction directory.
++				String canonicalDestFile = destFile.getCanonicalPath();
++				if (!canonicalDestFile.equals(canonicalDestDir)
++						&& !canonicalDestFile.startsWith(canonicalDestDir + File.separator)) {
++					throw new IOException("Zip slip: " + currentEntry);
++				}
++
+ 				File destinationParent = destFile.getParentFile();
+ 
+ 				// create the parent directory structure if needed
+diff --git a/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+new file mode 100644
+index 0000000..00e8828
+--- /dev/null
++++ b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+@@ -0,0 +1,76 @@
++package com.alibaba.oneagent.utils;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.junit.Assert;
++import org.junit.Test;
++
++/**
++ * Regression test for the Zip Slip / path traversal issue (CWE-022) in
++ * {@link IOUtils#unzip(String, String)}.
++ */
++public class IOUtilsUnzipTest {
++
++    @Test
++    public void testUnzipRejectsPathTraversalEntry() throws IOException {
++        File base = File.createTempFile("zipslip-test", "");
++        Assert.assertTrue(base.delete());
++        Assert.assertTrue(base.mkdirs());
++
++        File extractDir = new File(base, "extract");
++        Assert.assertTrue(extractDir.mkdirs());
++
++        // Craft a zip containing a malicious entry that tries to escape the
++        // extraction directory into its parent.
++        File zipFile = new File(base, "malicious.zip");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++        try {
++            zos.putNextEntry(new ZipEntry("../ESCAPED.txt"));
++            zos.write("pwned".getBytes("UTF-8"));
++            zos.closeEntry();
++        } finally {
++            zos.close();
++        }
++
++        File escaped = new File(base, "ESCAPED.txt");
++
++        try {
++            IOUtils.unzip(zipFile.getAbsolutePath(), extractDir.getAbsolutePath());
++            Assert.fail("unzip should reject a zip entry that escapes the extraction directory");
++        } catch (IOException expected) {
++            // expected: traversal blocked
++        }
++
++        Assert.assertFalse("malicious entry must not be written outside the extraction directory",
++                escaped.exists());
++    }
++
++    @Test
++    public void testUnzipExtractsNormalEntry() throws IOException {
++        File base = File.createTempFile("zipslip-ok", "");
++        Assert.assertTrue(base.delete());
++        Assert.assertTrue(base.mkdirs());
++
++        File extractDir = new File(base, "extract");
++
++        File zipFile = new File(base, "good.zip");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++        try {
++            zos.putNextEntry(new ZipEntry("dir/hello.txt"));
++            zos.write("hello".getBytes("UTF-8"));
++            zos.closeEntry();
++        } finally {
++            zos.close();
++        }
++
++        IOUtils.unzip(zipFile.getAbsolutePath(), extractDir.getAbsolutePath());
++
++        File extracted = new File(extractDir, "dir/hello.txt");
++        Assert.assertTrue("normal entry should be extracted inside the extraction directory",
++                extracted.exists());
++    }
++}

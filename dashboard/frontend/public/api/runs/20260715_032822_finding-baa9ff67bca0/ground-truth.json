@@ -1,0 +1,57 @@
+{
+  "finding_id": "finding-baa9ff67bca0",
+  "cve_id": "CVE-2021-29425",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "asf__commons-io_CVE-2021-29425_2.6",
+  "alert_file": "ASF_COMMONS_IO_CVE_2021_29425.json",
+  "github_url": "https://github.com/apache/commons-io",
+  "repo": "apache/commons-io",
+  "github_tag": "2.6",
+  "advisory_id": "GHSA-gwrp-pvrq-jmwv",
+  "buggy_commit_id": "2ae025fe5c4a7d2046c53072b0898e37a079fe62",
+  "fix_commit_ids": [
+    "fe7543eee5cd4b2f9e78aa44c31031b68eba204d"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+      "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+      "class": "FilenameUtilsTestCase",
+      "class_start": "44.0",
+      "class_end": "1154.0",
+      "method": "testNormalize_with_nullbytes",
+      "method_start": "280.0",
+      "method_end": "287.0",
+      "signature": "void testNormalize_with_nullbytes()",
+      "is_test": true
+    },
+    {
+      "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+      "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+      "class": "FilenameUtilsTestCase",
+      "class_start": "44.0",
+      "class_end": "1154.0",
+      "method": "testNormalize",
+      "method_start": "101.0",
+      "method_end": "274.0",
+      "signature": "void testNormalize()",
+      "is_test": true
+    }
+  ],
+  "fix_files": [],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2021-29425",
+    "advisory": "https://github.com/advisories/GHSA-gwrp-pvrq-jmwv",
+    "repo": "https://github.com/apache/commons-io",
+    "buggy_commit": "https://github.com/apache/commons-io/commit/2ae025fe5c4a7d2046c53072b0898e37a079fe62"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+      "url": "https://github.com/apache/commons-io/commit/fe7543eee5cd4b2f9e78aa44c31031b68eba204d.diff",
+      "diff": "diff --git a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java\nindex 559c111548e..ab1030b587e 100644\n--- a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java\n+++ b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java\n@@ -272,6 +272,9 @@ public void testNormalize() {\n         assertEquals(null, FilenameUtils.normalize(\"\\\\\\\\g:2:3:4:5:6:7:8\\\\a\\\\b\\\\c.txt\"));\n         assertEquals(null, FilenameUtils.normalize(\"\\\\\\\\1ffff:2:3:4:5:6:7:8\\\\a\\\\b\\\\c.txt\"));\n         assertEquals(null, FilenameUtils.normalize(\"\\\\\\\\1:2\\\\a\\\\b\\\\c.txt\"));\n+        // IO-556\n+        assertEquals(null, FilenameUtils.normalize(\"//../foo\"));\n+        assertEquals(null, FilenameUtils.normalize(\"\\\\\\\\..\\\\foo\"));\n     }\n \n     /**\n",
+      "cached": true
+    }
+  ]
+}

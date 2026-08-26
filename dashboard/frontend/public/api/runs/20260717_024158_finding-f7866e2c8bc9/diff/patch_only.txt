@@ -1,0 +1,164 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index bd462d9..bf56201 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -308,6 +308,11 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+         // Hmm. Symlinks re-evaluate back to the original file here. Unsure if this is a good thing...
+         final File f = FileUtils.resolveFile( dir, entryName );
+ 
++        // Guard against path traversal ("zip slip"/"tar slip"): the resolved entry must stay
++        // within the destination directory. This is checked before any filesystem side effect
++        // (overwrite check, directory creation, symlink creation, or output stream write).
++        assertWithinDestination( dir, f, entryName );
++
+         try
+         {
+             if ( !isOverwrite() && f.exists() && ( f.lastModified() >= entryDate.getTime() ) )
+@@ -360,4 +365,34 @@ else if ( isDirectory )
+         }
+     }
+ 
++    /**
++     * Ensures that {@code target} is equal to or a descendant of {@code destination} once both paths are
++     * canonicalized, guarding against path traversal ("zip slip"/"tar slip") via entry names such as
++     * {@code ../../etc/passwd}, absolute paths, or backslash-based traversal sequences on platforms
++     * that treat {@code \} as a separator.
++     *
++     * @throws ArchiverException if {@code target} would resolve outside of {@code destination}
++     */
++    private void assertWithinDestination( final File destination, final File target, final String entryName )
++        throws ArchiverException
++    {
++        final String destPath;
++        final String targetPath;
++        try
++        {
++            destPath = destination.getCanonicalPath();
++            targetPath = target.getCanonicalPath();
++        }
++        catch ( final IOException e )
++        {
++            throw new ArchiverException( "Failed to resolve canonical path for entry '" + entryName + "'", e );
++        }
++
++        if ( !targetPath.equals( destPath ) && !targetPath.startsWith( destPath + File.separator ) )
++        {
++            throw new ArchiverException( "Entry '" + entryName + "' is outside the execution destination directory '"
++                + destPath + "': " + targetPath );
++        }
++    }
++
+ }
+diff --git a/src/test/java/org/codehaus/plexus/archiver/PathTraversalExtractionTest.java b/src/test/java/org/codehaus/plexus/archiver/PathTraversalExtractionTest.java
+new file mode 100644
+index 0000000..71f0a9b
+--- /dev/null
++++ b/src/test/java/org/codehaus/plexus/archiver/PathTraversalExtractionTest.java
+@@ -0,0 +1,107 @@
++package org.codehaus.plexus.archiver;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.OutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.codehaus.plexus.PlexusTestCase;
++import org.codehaus.plexus.archiver.tar.TarUnArchiver;
++import org.codehaus.plexus.archiver.zip.ZipUnArchiver;
++import org.codehaus.plexus.logging.console.ConsoleLogger;
++import org.codehaus.plexus.util.FileUtils;
++
++/**
++ * Regression test for CWE-022 path traversal ("tar slip" / "zip slip") in
++ * {@link AbstractUnArchiver#extractFile}. Archive entries whose name resolves outside of the
++ * requested destination directory must be rejected rather than written to disk, regardless of
++ * whether the archive is a tar or a zip.
++ */
++public class PathTraversalExtractionTest
++    extends PlexusTestCase
++{
++
++    public void testTarEntryCannotEscapeDestinationDirectory()
++        throws Exception
++    {
++        File workRoot = getTestFile( "target/output/tar-path-traversal" );
++        FileUtils.deleteDirectory( workRoot );
++        File dest = new File( workRoot, "dest" );
++        dest.mkdirs();
++
++        File tar = new File( workRoot, "malicious.tar" );
++        String maliciousEntryName = "../escaped-tar-marker.txt";
++        try ( OutputStream fos = new FileOutputStream( tar );
++              TarArchiveOutputStream tos = new TarArchiveOutputStream( fos ) )
++        {
++            tos.setLongFileMode( TarArchiveOutputStream.LONGFILE_GNU );
++            byte[] payload = "owned-by-path-traversal\n".getBytes( "UTF-8" );
++            TarArchiveEntry entry = new TarArchiveEntry( maliciousEntryName );
++            entry.setSize( payload.length );
++            tos.putArchiveEntry( entry );
++            tos.write( payload );
++            tos.closeArchiveEntry();
++        }
++
++        TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.ROLE, "tar" );
++        unarchiver.enableLogging( new ConsoleLogger( ConsoleLogger.LEVEL_INFO, "test" ) );
++        unarchiver.setSourceFile( tar );
++        unarchiver.setDestDirectory( dest );
++
++        try
++        {
++            unarchiver.extract();
++            fail( "Expected an ArchiverException rejecting the path-traversing tar entry" );
++        }
++        catch ( ArchiverException expected )
++        {
++            // expected: entry name resolves outside of the destination directory
++        }
++
++        File escaped = new File( workRoot, "escaped-tar-marker.txt" );
++        assertFalse( "Archive entry must not be written outside the destination directory",
++                     escaped.exists() );
++    }
++
++    public void testZipEntryCannotEscapeDestinationDirectory()
++        throws Exception
++    {
++        File workRoot = getTestFile( "target/output/zip-path-traversal" );
++        FileUtils.deleteDirectory( workRoot );
++        File dest = new File( workRoot, "dest" );
++        dest.mkdirs();
++
++        File zip = new File( workRoot, "malicious.zip" );
++        String maliciousEntryName = "../escaped-zip-marker.txt";
++        try ( OutputStream fos = new FileOutputStream( zip );
++              ZipOutputStream zos = new ZipOutputStream( fos ) )
++        {
++            byte[] payload = "owned-by-path-traversal\n".getBytes( "UTF-8" );
++            ZipEntry entry = new ZipEntry( maliciousEntryName );
++            zos.putNextEntry( entry );
++            zos.write( payload );
++            zos.closeEntry();
++        }
++
++        ZipUnArchiver unarchiver = (ZipUnArchiver) lookup( UnArchiver.ROLE, "zip" );
++        unarchiver.enableLogging( new ConsoleLogger( ConsoleLogger.LEVEL_INFO, "test" ) );
++        unarchiver.setSourceFile( zip );
++        unarchiver.setDestDirectory( dest );
++
++        try
++        {
++            unarchiver.extract();
++            fail( "Expected an ArchiverException rejecting the path-traversing zip entry" );
++        }
++        catch ( ArchiverException expected )
++        {
++            // expected: entry name resolves outside of the destination directory
++        }
++
++        File escaped = new File( workRoot, "escaped-zip-marker.txt" );
++        assertFalse( "Archive entry must not be written outside the destination directory",
++                     escaped.exists() );
++    }
++}

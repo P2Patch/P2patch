@@ -1,0 +1,45 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12/Dockerfile -t simpleautosec-finding-11bd97cc3c1c:6479321ee913 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.53kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.2s
+
+#3 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6
+#3 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6 done
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 4/5] RUN set -eux;     git clone "https://github.com/apache/tapestry-5" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "5.4.4" ]; then git checkout "5.4.4"; fi
+#5 CACHED
+
+#6 [builder 2/7] WORKDIR /workspace
+#6 CACHED
+
+#7 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#7 CACHED
+
+#8 [builder 5/5] RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:71485766cbefbf1aa76535659dd5ba6f8ef15709292c4e98c74c16f70e826be8 done
+#9 exporting config sha256:b70c42f469d5634e886a8bb293e2a0035d197a5b8f5d551f6e5622da028fdab9 done
+#9 exporting attestation manifest sha256:a7085d4d77335df4e912aaba4e495aab7566fb40514cf446b0729f3b9b91d881 done
+#9 exporting manifest list sha256:87916414f83f977f95ed5a013e9b2cab18ad8db655c81e9a64cb6c7839035f00 done
+#9 naming to docker.io/library/simpleautosec-finding-11bd97cc3c1c:6479321ee913 done
+#9 DONE 0.0s
+

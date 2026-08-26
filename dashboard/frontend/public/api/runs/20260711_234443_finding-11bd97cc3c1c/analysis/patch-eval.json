@@ -1,0 +1,278 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:21:15.121487+00:00",
+    "finished_at": "2026-07-11T23:26:56.916132+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Neutralizes forward-slash '../WEB-INF' via post-resolution re-screen, but backslash traversal (the official-fix target) still passes.",
+        "evidence": "ContextAssetRequestHandler re-check illegal.matcher(resource.getPath()); backslash '..\\\\WEB-INF\\\\web.xml' resolves to '/..\\\\WEB-INF\\\\web.xml' which the ^web-inf anchored regex (line 38) does not match.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Guards the single caller with an allowlist re-screen instead of fixing the missing separator normalization at the shared sink forFile.",
+        "evidence": "Official patch edits AbstractResource.forFile:104 (replace '\\\\'->'/'); ours only edits ContextAssetRequestHandler.handleAssetRequest.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Only ContextAssetRequestHandler is covered and only the forward-slash variant; backslash variant and other forFile callers/resource types remain exposed.",
+        "evidence": "forFile at AbstractResource:93 is the shared sink for all Resource subtypes; patch untouched there, backslash path uncollapsed.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Shares the goal of blocking WEB-INF/META-INF access but uses a different location and mechanism and fails to cover the backslash case the official fix specifically addresses.",
+        "evidence": "Official: normalize separators in forFile; ours: blocklist re-screen in the handler, backslash not normalized.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Adds passing tests and catching IllegalStateException->false is reasonable; legit assets resolve outside WEB-INF so unaffected, but no regression suite was executed.",
+        "evidence": "regressions_ran=0, pov_after_present=false; new DataProvider tests added in ContextAssetRequestHandlerTest.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Reject-branch and try/catch are safe; simple regex (no ReDoS). Broad IllegalStateException catch and dead resource==null check are minor.",
+        "evidence": "catch(IllegalStateException) -> return false; forFile never returns null.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Change is tight and localized to one handler method plus its test.",
+        "evidence": "Single edit at ContextAssetRequestHandler:55 region.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Relies on a start-anchored WEB-INF/META-INF blocklist rather than canonicalize-then-contain; fragile to separator variants (backslash), the exact bypass the CWE-022 defense-of-record prevents.",
+        "evidence": "illegal pattern line 38 anchored ^web-inf; no canonicalization/containment check against context root; backslash bypass survives.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Backslash-separated traversal (e.g. '..\\\\WEB-INF\\\\web.xml') bypasses the re-screen: unpatched forFile only splits on '/', so it yields resource path '/..\\\\WEB-INF\\\\web.xml' which the ^(web|meta)-inf anchored regex does not match; on Windows getRealPath then traverses to the protected file. This is precisely the class the official forFile separator-normalization fix closes, and it survives our patch."
+      },
+      {
+        "severity": "medium",
+        "description": "Fix is applied only at ContextAssetRequestHandler; the shared sink forFile (AbstractResource) and other Resource callers reaching file sinks remain unprotected, so overlap with the official fix location is zero."
+      },
+      {
+        "severity": "low",
+        "description": "Mitigation is a start-anchored WEB-INF/META-INF blocklist rather than canonicalize-and-contain-within-base-dir, the CWE-022 defense-of-record; fragile to separator/encoding variants."
+      },
+      {
+        "severity": "low",
+        "description": "POV did not reproduce before the patch (pov_before_reproduced=false) and no regression tests were executed (regressions_ran=0), so both effectiveness against the real vector and absence of regressions are only weakly evidenced."
+      }
+    ],
+    "summary": "Our patch adds a post-resolution re-screen in ContextAssetRequestHandler that catches forward-slash '../WEB-INF' traversal after forFile collapses the '..' segments, and it is a tight, low-risk change. However, it does not address the vulnerability's actual root cause: the official fix normalizes backslash-to-forward-slash inside AbstractResource.forFile so that Windows-style '..\\\\WEB-INF' segments are collapsed and screened uniformly. Because our patch leaves forFile untouched and relies on a start-anchored WEB-INF/META-INF blocklist, a backslash payload resolves to '/..\\\\WEB-INF\\\\web.xml', evades the regex, and remains exploitable on Windows. It is therefore a weaker subset of the official fix that closes only one variant at one call site.",
+    "root_cause": "forFile() splits relative paths only on '/', so backslash-separated '..' segments are never normalized or collapsed and slip past the WEB-INF/META-INF screen to reach getRealPath, enabling path traversal on the shared resource-resolution sink.",
+    "overall": {
+      "mean": 2.75,
+      "score": 55,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 55,
+        "score_mean": 53.3,
+        "score_min": 50,
+        "score_max": 55,
+        "score_stdev": 2.36,
+        "mean_median": 2.75,
+        "band_mode": "incomplete",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.12
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.0,
+        "no_regressions": 0.67
+      },
+      "per_sample": [
+        {
+          "score": 55,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 50,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 55,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "ContextAssetRequestHandler.java"
+      ],
+      "official_only": [
+        "AbstractResource.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+      ],
+      "commits": [
+        "6dd7219fd4707467a36091e2f7f5f6460c619099"
+      ]
+    }
+  }
+}

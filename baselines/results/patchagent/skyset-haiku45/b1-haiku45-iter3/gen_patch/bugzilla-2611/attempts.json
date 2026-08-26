@@ -1,0 +1,10 @@
+[
+  {
+    "accepted": true,
+    "agent_number": 1,
+    "attempt_in_agent": 1,
+    "case": "extractfix-libtiff-9a72a69-divide_by_zero",
+    "patch": "--- a/libtiff/tif_ojpeg.c\n+++ b/libtiff/tif_ojpeg.c\n@@ -813,6 +813,11 @@\n \tuint32 q;\n \tuint8* r;\n \tuint8 sx,sy;\n+\tif (sp->bytes_per_line==0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\"bytes_per_line is zero\");\n+\t\treturn(0);\n+\t}\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n",
+    "verdict": "Congratulations! The patch is correct!\nHere is the patch:\n--- a/libtiff/tif_ojpeg.c\n+++ b/libtiff/tif_ojpeg.c\n@@ -813,6 +813,11 @@\n \tuint32 q;\n \tuint8* r;\n \tuint8 sx,sy;\n+\tif (sp->bytes_per_line==0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\"bytes_per_line is zero\");\n+\t\treturn(0);\n+\t}\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n\nHere is the validation report:\n"
+  }
+]

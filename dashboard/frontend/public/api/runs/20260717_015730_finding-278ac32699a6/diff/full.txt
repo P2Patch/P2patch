@@ -1,0 +1,148 @@
+diff --git a/src/main/java/spark/resource/ClassPathResourceHandler.java b/src/main/java/spark/resource/ClassPathResourceHandler.java
+index c9f6251..f11e87b 100644
+--- a/src/main/java/spark/resource/ClassPathResourceHandler.java
++++ b/src/main/java/spark/resource/ClassPathResourceHandler.java
+@@ -66,6 +66,13 @@ public class ClassPathResourceHandler extends AbstractResourceHandler {
+         try {
+             path = UriPath.canonical(path);
+ 
++            if (path == null) {
++                // UriPath.canonical() returns null when the path tries to climb
++                // above its own root (e.g. too many "../" segments) - treat that
++                // the same as any other directory traversal attempt.
++                throw new DirectoryTraversal.DirectoryTraversalDetection("classpath");
++            }
++
+             final String addedPath = addPaths(baseResource, path);
+ 
+             ClassPathResource resource = new ClassPathResource(addedPath);
+diff --git a/src/main/java/spark/resource/ExternalResourceHandler.java b/src/main/java/spark/resource/ExternalResourceHandler.java
+index 8e5df90..2c25eff 100644
+--- a/src/main/java/spark/resource/ExternalResourceHandler.java
++++ b/src/main/java/spark/resource/ExternalResourceHandler.java
+@@ -65,6 +65,13 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+         try {
+             path = UriPath.canonical(path);
+ 
++            if (path == null) {
++                // UriPath.canonical() returns null when the path tries to climb
++                // above its own root (e.g. too many "../" segments) - treat that
++                // the same as any other directory traversal attempt.
++                throw new DirectoryTraversal.DirectoryTraversalDetection("external");
++            }
++
+             final String addedPath = addPaths(baseResource, path);
+ 
+             ExternalResource resource = new ExternalResource(addedPath);
+diff --git a/src/main/java/spark/resource/UriPath.java b/src/main/java/spark/resource/UriPath.java
+index b824c68..b08ef64 100644
+--- a/src/main/java/spark/resource/UriPath.java
++++ b/src/main/java/spark/resource/UriPath.java
+@@ -34,6 +34,13 @@ public class UriPath {
+             return path;
+         }
+ 
++        // Normalize Windows-style separators before scanning for "." / ".." segments.
++        // Without this, a traversal sequence smuggled in as "..\\" slips past the
++        // '/'-only segment detection below, only to be reinterpreted as "../" by
++        // later path handling (e.g. StringUtils.cleanPath), escaping the intended
++        // base directory.
++        path = path.replace('\\', '/');
++
+         int end = path.length();
+         int start = path.lastIndexOf('/', end);
+ 
+diff --git a/src/main/java/spark/staticfiles/DirectoryTraversal.java b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+index 080fbe4..ddde196 100644
+--- a/src/main/java/spark/staticfiles/DirectoryTraversal.java
++++ b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+@@ -10,18 +10,36 @@ import static spark.utils.StringUtils.removeLeadingAndTrailingSlashesFrom;
+ public class DirectoryTraversal {
+ 
+     public static void protectAgainstInClassPath(String path) {
+-        if (!removeLeadingAndTrailingSlashesFrom(path).startsWith(StaticFilesFolder.local())) {
++        if (!isWithinBase(removeLeadingAndTrailingSlashesFrom(path), StaticFilesFolder.local())) {
+             throw new DirectoryTraversalDetection("classpath");
+         }
+     }
+ 
+     public static void protectAgainstForExternal(String path) {
+         String nixLikePath = Paths.get(path).toAbsolutePath().toString().replace("\\", "/");
+-        if (!removeLeadingAndTrailingSlashesFrom(nixLikePath).startsWith(StaticFilesFolder.external())) {
++        if (!isWithinBase(removeLeadingAndTrailingSlashesFrom(nixLikePath), StaticFilesFolder.external())) {
+             throw new DirectoryTraversalDetection("external");
+         }
+     }
+ 
++    /**
++     * Checks that {@code path} is either exactly {@code base} or a path segment
++     * beneath it. A plain {@code startsWith(base)} would incorrectly accept a
++     * sibling resource whose name merely shares the base folder's name as a
++     * string prefix (e.g. base "public" matching "public-secret/file"), which
++     * is a directory-traversal-adjacent bypass of the intended containment.
++     */
++    private static boolean isWithinBase(String path, String base) {
++        if (base == null) {
++            return false;
++        }
++        if (base.isEmpty()) {
++            // Base resolves to the root - nothing to escape from.
++            return true;
++        }
++        return path.equals(base) || path.startsWith(base + "/");
++    }
++
+     public static final class DirectoryTraversalDetection extends RuntimeException {
+         private static final long serialVersionUID = 1L;
+ 
+diff --git a/src/test/java/spark/resource/UriPathTest.java b/src/test/java/spark/resource/UriPathTest.java
+index 4003456..386abcb 100644
+--- a/src/test/java/spark/resource/UriPathTest.java
++++ b/src/test/java/spark/resource/UriPathTest.java
+@@ -54,6 +54,15 @@ public class UriPathTest {
+             {"a/../..", null},
+             {"/foo/../../bar", null},
+             {"/foo/../bar//", "/bar//"},
++
++            // Backslashes must be treated as path separators too, otherwise a
++            // ".." smuggled in as "..\\" slips past this forward-slash-only
++            // detection, only to be reinterpreted as a real ".." later on by
++            // StringUtils.cleanPath - escaping the intended base directory.
++            {"/..\\foo", null},
++            {"/foo\\..\\..\\bar", null},
++            {"/foo\\bar", "/foo/bar"},
++            {"/foo\\..\\bar", "/bar"},
+         };
+ 
+         for (String[] aCanonical : canonical) {
+diff --git a/src/test/java/spark/staticfiles/StaticFilesTestExternal.java b/src/test/java/spark/staticfiles/StaticFilesTestExternal.java
+index 32a4b76..00dda55 100644
+--- a/src/test/java/spark/staticfiles/StaticFilesTestExternal.java
++++ b/src/test/java/spark/staticfiles/StaticFilesTestExternal.java
+@@ -121,8 +121,24 @@ public class StaticFilesTestExternal {
+         String path = "/" + URLEncoder.encode("..\\..\\spark\\", "UTF-8") + "Spark.class";
+         SparkTestUtil.UrlResponse response = doGet(path);
+ 
+-        Assert.assertEquals(404, response.status);
+-        Assert.assertEquals(NOT_FOUND_BRO, response.body);
++        // The "\.." segments are backslash-encoded to try to sneak past the
++        // forward-slash-based traversal detection. They must be rejected just
++        // like their forward-slash equivalent, rather than being normalized
++        // later on and allowed to escape the external folder.
++        Assert.assertEquals(400, response.status);
++
++        testGet();
++    }
++
++    @Test
++    public void testDirectoryTraversalProtectionExternalBackslashEscapesToSiblingFolder() throws Exception {
++        // folderOutsideStaticFiles ("dumpsterstuff/Spark.class") is a sibling of the
++        // configured external folder ("sparkish"), one level up. Encoding the ".."
++        // as a backslash must not allow it to be resolved and escape the folder.
++        String path = "/" + URLEncoder.encode("..\\dumpsterstuff\\", "UTF-8") + "Spark.class";
++        SparkTestUtil.UrlResponse response = doGet(path);
++
++        Assert.assertEquals(400, response.status);
+ 
+         testGet();
+     }

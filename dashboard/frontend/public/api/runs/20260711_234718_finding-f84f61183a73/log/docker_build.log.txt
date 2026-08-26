@@ -1,0 +1,45 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38/Dockerfile -t simpleautosec-finding-f84f61183a73:e4500ff8cbcd /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/diffplug__goomph_[redacted]_3.37.1/38
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.54kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.5s
+
+#3 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6
+#3 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6 done
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#5 CACHED
+
+#6 [builder 4/5] RUN set -eux;     git clone "https://github.com/diffplug/goomph" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "3.37.1" ]; then git checkout "3.37.1"; fi
+#6 CACHED
+
+#7 [builder 2/7] WORKDIR /workspace
+#7 CACHED
+
+#8 [builder 5/5] RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 exporting manifest sha256:aee105ee8d5e320a8ab35b4f38a99b5b6bfadbdcf4914a256374ec5ae350c20b done
+#9 exporting config sha256:303cc197ce49d5f6e611a4d6684fb3e5ebeaf365b5ea555fe4a383d14d86d448 done
+#9 exporting attestation manifest sha256:228d749e224bbd0c4fef7a8fe8bb6e28cbd181ce5cfa8b7ee4b51d8c571f7105 0.0s done
+#9 exporting manifest list sha256:a84e826f72972bb504076d935029f7fb5a249a337c909439667bec245fb8a7e6 done
+#9 naming to docker.io/library/simpleautosec-finding-f84f61183a73:e4500ff8cbcd done
+#9 DONE 0.1s
+

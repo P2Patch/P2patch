@@ -1,0 +1,52 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/undertow-io__undertow_[redacted]_1.0.16.Final/28/Dockerfile -t simpleautosec-finding-8ed861a75f95:bc82b1e162b1 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/undertow-io__undertow_[redacted]_1.0.16.Final/28
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.13kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72
+#4 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72 done
+#4 DONE 0.0s
+
+#5 [builder 2/7] WORKDIR /workspace
+#5 CACHED
+
+#6 [builder 5/7] RUN set -eux;     git clone "https://github.com/undertow-io/undertow" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "1.0.16.Final" ]; then git checkout "1.0.16.Final"; fi
+#6 CACHED
+
+#7 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#7 CACHED
+
+#8 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#8 CACHED
+
+#9 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#9 CACHED
+
+#10 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:5c740c107cec94a80498f74f04a9a37bd3c7e76851ff2ab2cd57b06a2220842c done
+#11 exporting config sha256:0d3e18aac3fafcf7ecfea81816a5e45dcc9cd6e60b1cadc51e9b40c24b87270c done
+#11 exporting attestation manifest sha256:00e7fd21d0801f87aa371ed83df854eaddccc38808a0bdf2ced69502ce8a75e0 0.0s done
+#11 exporting manifest list sha256:c8dd3b8f484bc971087f49ae129b2c94fd9d87e29849ec9624f72d420f8c2efe done
+#11 naming to docker.io/library/simpleautosec-finding-8ed861a75f95:bc82b1e162b1 done
+#11 unpacking to docker.io/library/simpleautosec-finding-8ed861a75f95:bc82b1e162b1 done
+#11 DONE 0.1s
+

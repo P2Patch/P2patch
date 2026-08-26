@@ -1,0 +1,346 @@
+{
+  "run_id": "20260717_015212_finding-b5cb9a960ea8",
+  "finding_id": "finding-b5cb9a960ea8",
+  "timestamp": "2026-07-17T01:52:12",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_015212_finding-b5cb9a960ea8",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-b5cb9a960ea8",
+    "cve_id": "CVE-2018-12036",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "jeremylong__DependencyCheck_CVE-2018-12036_3.1.2",
+    "alert_file": "JEREMYLONG_DEPENDENCYCHECK_CVE_2018_12036.json",
+    "github_url": "https://github.com/jeremylong/DependencyCheck",
+    "repo": "jeremylong/DependencyCheck",
+    "github_tag": "3.1.2",
+    "advisory_id": "GHSA-hcwx-7q5v-vc67",
+    "buggy_commit_id": "c3b5b3c0d7fe7283b4cd421149d6fb620476f67d",
+    "fix_commit_ids": [
+      "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+        "file": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+        "class": "ArchiveAnalyzer",
+        "class_start": "67.0",
+        "class_end": "615.0",
+        "method": "extractFiles",
+        "method_start": "380.0",
+        "method_end": "442.0",
+        "signature": "void extractFiles(File,File,Engine)",
+        "is_test": false
+      },
+      {
+        "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+        "file": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+        "class": "ArchiveAnalyzer",
+        "class_start": "67.0",
+        "class_end": "615.0",
+        "method": "extractArchive",
+        "method_start": "512.0",
+        "method_end": "529.0",
+        "signature": "void extractArchive(ArchiveInputStream,File,Engine)",
+        "is_test": false
+      },
+      {
+        "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+        "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+        "class": "ExtractionUtil",
+        "class_start": "48.0",
+        "class_end": "244.0",
+        "method": "extractFiles",
+        "method_start": "85.0",
+        "method_end": "121.0",
+        "signature": "void extractFiles(File,File,Engine)",
+        "is_test": false
+      },
+      {
+        "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+        "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+        "class": "ExtractionUtil",
+        "class_start": "48.0",
+        "class_end": "244.0",
+        "method": "extractGzip",
+        "method_start": "244.0",
+        "method_end": "262.0",
+        "signature": "void extractGzip(File)",
+        "is_test": false
+      },
+      {
+        "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+        "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+        "class": "ExtractionUtil",
+        "class_start": "48.0",
+        "class_end": "244.0",
+        "method": "extractArchive",
+        "method_start": "161.0",
+        "method_end": "182.0",
+        "signature": "void extractArchive(ArchiveInputStream,File,FilenameFilter)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+      "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-12036",
+      "advisory": "https://github.com/advisories/GHSA-hcwx-7q5v-vc67",
+      "repo": "https://github.com/jeremylong/DependencyCheck",
+      "buggy_commit": "https://github.com/jeremylong/DependencyCheck/commit/c3b5b3c0d7fe7283b4cd421149d6fb620476f67d"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 516,
+              "message": "getName(...) : String",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 516,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 518,
+              "message": "file",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 516,
+              "message": "getName(...) : String",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 516,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 523,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 540,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 541,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 542,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 542,
+              "message": "getParentFile(...) : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 543,
+              "message": "parent",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 516,
+              "message": "getName(...) : String",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 516,
+              "message": "new File(...) : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 523,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 540,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 541,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 542,
+              "message": "file : File",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            },
+            {
+              "line": 547,
+              "message": "file",
+              "uri": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-b5cb9a960ea8",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_015212_finding-b5cb9a960ea8/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-b5cb9a960ea8:e240ecad7ef0",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/jeremylong__DependencyCheck_[redacted]_3.1.2/29/Dockerfile",
+        "-t",
+        "simpleautosec-finding-b5cb9a960ea8:e240ecad7ef0",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/jeremylong__DependencyCheck_[redacted]_3.1.2/29"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 219058,
+        "duration_api_ms": 168586,
+        "num_turns": 28,
+        "cost_usd": 0.9775220999999998,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 54,
+          "output": 13791,
+          "cache_read": 1318277,
+          "cache_creation": 62502
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+          "core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java"
+        ],
+        "patch_notes": "In ArchiveAnalyzer.java: added a private static method validateExtractionTarget(File destination, File file, String entryName) that resolves the canonical paths of both destination and file, and throws AnalysisException if file's canonical path is not equal to, or nested under, destination's canonical path. Added a call to this method immediately after `final File file = new File(destination, entry.getName());` in extractArchive(), before the isDirectory()/engine.accept() branching, so both the directory-creation path and the extractAcceptedFile()->FileOutputStream path are guarded by a single root-cause check. AnalysisException thrown here is already caught by the existing `catch (IOException | AnalysisException ex)` block in extractArchive() and wrapped into ArchiveExtractionException, so no changes to exception handling/control flow were needed elsewhere. Added two unit tests to ArchiveAnalyzerTest.java that invoke the new private method via reflection: one confirms a traversal payload like '../../evil.sh' is rejected with AnalysisException, another confirms a normal nested relative entry name is accepted without exception.",
+        "regression_commands": [
+          "mvn -pl core -am -Dtest=ArchiveAnalyzerTest -DfailIfNoTests=false test"
+        ],
+        "risk_notes": "Low risk: the change only adds a validation check at entry-target construction time; it does not alter behavior for legitimate archive entries whose paths resolve inside the destination directory. Uses File.getCanonicalPath() (resolves symlinks and '..' segments) rather than getAbsolutePath() to avoid bypasses via non-normalized paths. One pre-existing, unrelated test-suite issue observed during verification: NspAnalyzerTest, NspSearchTest, and CentralAnalyzerTest fail in this sandboxed/offline environment because they perform live network calls to api.nodesecurity.io and Maven Central; these failures are unrelated to this change and reproduce identically on unmodified code. ArchiveAnalyzerTest itself passed (3 run, 0 failures, 0 errors, 1 pre-existing conditional skip) and the core module built successfully.",
+        "status": "patched",
+        "summary": "Fixed a Zip Slip / path traversal vulnerability (CWE-22) in ArchiveAnalyzer.extractArchive(): archive entry names (from entry.getName()) were used unsanitized to build the extraction target File via `new File(destination, entry.getName())`, so a malicious archive entry containing '../' sequences (or an absolute path) could cause files to be written outside the intended extraction directory — affecting directory creation (mkdirs), extractAcceptedFile's parent directory creation, and the final FileOutputStream write. Added a validateExtractionTarget() helper that canonicalizes both the destination directory and the resolved entry target and rejects (throwing AnalysisException, caught by the existing exception handling) any entry whose canonical path does not fall within the destination directory. This is called once at the point the File is constructed for every entry (line 516), before either the directory-creation branch or the extractAcceptedFile() branch, so it covers all three originally flagged sink paths (mkdirs for directory entries, parent.mkdirs(), and the FileOutputStream write) as well as alternate encodings/variants of the same entry name (e.g. nested '../../', since canonical path resolution normalizes all such forms)."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.9775,
+    "num_turns": 28,
+    "agent_duration_ms": 219058
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

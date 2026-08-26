@@ -1,0 +1,53 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_3.5/30/Dockerfile -t simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_3.5/30
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.16kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [builder 1/7] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72
+#4 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:9fd5233e39b963aad25dae3ca002c5a1b435c378f6d484c24f0c68be34b54b72 done
+#4 DONE 0.0s
+
+#5 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#5 CACHED
+
+#6 [builder 2/7] WORKDIR /workspace
+#6 CACHED
+
+#7 [builder 5/7] RUN set -eux;     git clone "https://github.com/codehaus-plexus/plexus-archiver" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "3.5" ]; then git checkout "3.5"; fi
+#7 CACHED
+
+#8 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#8 CACHED
+
+#9 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests package
+#10 CACHED
+
+#11 exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:6091926dc2a136944865b40f98a272094461ae345411862b7ff119f1d9a4ddc8 done
+#11 exporting config sha256:9af92e931bed41532d0a0abca5e25645496d9ae6d93e7f23c43b514a18303786 done
+#11 exporting attestation manifest sha256:7a3ce0df34304003d3d183ec2f74da3db07f1cda3cb747719b5c1a81a228ae13 0.0s done
+#11 exporting manifest list sha256:a6b59ed161545b79021f9ff69b15aa975978286ae342ea57fc34f4753f81feba done
+#11 naming to docker.io/library/simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb
+#11 naming to docker.io/library/simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb done
+#11 unpacking to docker.io/library/simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb done
+#11 DONE 0.0s
+

@@ -1,0 +1,1557 @@
+{
+  "run_id": "20260717_023633_finding-bb8dd69e7f26",
+  "finding_id": "finding-bb8dd69e7f26",
+  "timestamp": "2026-07-17T02:36:33",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_023633_finding-bb8dd69e7f26",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-bb8dd69e7f26",
+    "cve_id": "CVE-2016-9177",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "perwendel__spark_CVE-2016-9177_2.5.1",
+    "alert_file": "PERWENDEL_CVE_2016_9177.json",
+    "github_url": "https://github.com/perwendel/spark",
+    "repo": "perwendel/spark",
+    "github_tag": "2.5.1",
+    "advisory_id": "GHSA-89gc-6cw6-4vch",
+    "buggy_commit_id": "ce57dfb949ed183405f75dee8cf3262b45c9b3b5",
+    "fix_commit_ids": [
+      "efcb46c710e3f56805b9257a63d1306882f4faf9"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "class": "ClassPathResourceHandler",
+        "class_start": "31.0",
+        "class_end": "60.0",
+        "method": "getResource",
+        "method_start": "60.0",
+        "method_end": "87.0",
+        "signature": "AbstractFileResolvingResource getResource(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "class": "ExternalResourceHandler",
+        "class_start": "31.0",
+        "class_end": "59.0",
+        "method": "getResource",
+        "method_start": "59.0",
+        "method_end": "86.0",
+        "signature": "AbstractFileResolvingResource getResource(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "consumeWithFileResourceHandlers",
+        "method_start": "85.0",
+        "method_end": "106.0",
+        "signature": "boolean consumeWithFileResourceHandlers(HttpServletRequest,HttpServletResponse)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "configure",
+        "method_start": "155.0",
+        "method_end": "180.0",
+        "signature": "void configure(String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "setExpireTimeSeconds",
+        "method_start": "239.0",
+        "method_end": "241.0",
+        "signature": "void setExpireTimeSeconds(long)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "class": "StaticFilesConfiguration",
+        "class_start": "49.0",
+        "class_end": "248.0",
+        "method": "configureJarCase",
+        "method_start": "185.0",
+        "method_end": "203.0",
+        "signature": "boolean configureJarCase(String,ClassPathResource)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/main/java/spark/utils/StringUtils.java",
+        "class": "StringUtils",
+        "class_start": "45.0",
+        "class_end": "376.0",
+        "method": "toString",
+        "method_start": "376.0",
+        "method_end": "390.0",
+        "signature": "String toString(byte,String)",
+        "is_test": false
+      },
+      {
+        "commit": "efcb46c710e3f56805b9257a63d1306882f4faf9",
+        "file": "src/test/java/spark/StaticFilesTest.java",
+        "class": "StaticFilesTest",
+        "class_start": "42.0",
+        "class_end": "166.0",
+        "method": "testCustomMimeType",
+        "method_start": "107.0",
+        "method_end": "109.0",
+        "signature": "void testCustomMimeType()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/spark/resource/ClassPathResourceHandler.java",
+      "src/main/java/spark/resource/ExternalResourceHandler.java",
+      "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+      "src/main/java/spark/utils/StringUtils.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2016-9177",
+      "advisory": "https://github.com/advisories/GHSA-89gc-6cw6-4vch",
+      "repo": "https://github.com/perwendel/spark",
+      "buggy_commit": "https://github.com/perwendel/spark/commit/ce57dfb949ed183405f75dee8cf3262b45c9b3b5"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 46,
+              "message": "getAttribute(...) : Object",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 46,
+              "message": "(...)... : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "servletPath : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 83,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "pathInContext : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 65,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 32,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 34,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 65,
+              "message": "canonical(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 67,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 85,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 67,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 69,
+              "message": "addedPath : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 39,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 218,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 266,
+              "message": "... + ... : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 40,
+              "message": "cleanPath(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "this <.field> [post update] : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 69,
+              "message": "new ExternalResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "...?...:... : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "getResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 86,
+              "message": "getResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 88,
+              "message": "resource : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 106,
+              "message": "parameter this : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 111,
+              "message": "this <.method> : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 44,
+              "message": "parameter this : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 45,
+              "message": "this <.method> : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 77,
+              "message": "parameter this : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 78,
+              "message": "this <.field> : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 78,
+              "message": "file : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 78,
+              "message": "toURI(...) : URI",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 78,
+              "message": "toURL(...) : URL",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 45,
+              "message": "getURL(...) : URL",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 46,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 210,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 212,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "getFile(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 46,
+              "message": "getFile(...) : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 111,
+              "message": "getFile(...) : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 112,
+              "message": "file",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 46,
+              "message": "getAttribute(...) : Object",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 46,
+              "message": "(...)... : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "servletPath : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 83,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "pathInContext : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 60,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 66,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 32,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 34,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 66,
+              "message": "canonical(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 85,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 70,
+              "message": "addedPath : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 61,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 75,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 77,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 218,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 266,
+              "message": "... + ... : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 77,
+              "message": "cleanPath(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "this [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "this <constr(this)> [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 70,
+              "message": "new ClassPathResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 81,
+              "message": "...?...:... : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "getResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 86,
+              "message": "getResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 92,
+              "message": "resource : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 136,
+              "message": "parameter this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 139,
+              "message": "this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 139,
+              "message": "this.path",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            }
+          ],
+          [
+            {
+              "line": 50,
+              "message": "getServletPath(...) : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "servletPath : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 83,
+              "message": "segment1 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 58,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "pathInContext : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 60,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 66,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 32,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 34,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 66,
+              "message": "canonical(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 85,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 70,
+              "message": "addedPath : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 61,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 75,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 77,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 218,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 266,
+              "message": "... + ... : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 77,
+              "message": "cleanPath(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "this [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "this <constr(this)> [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 70,
+              "message": "new ClassPathResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 81,
+              "message": "...?...:... : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "getResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 86,
+              "message": "getResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 92,
+              "message": "resource : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 136,
+              "message": "parameter this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 139,
+              "message": "this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 139,
+              "message": "this.path",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 32,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 34,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 66,
+              "message": "canonical(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 85,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 68,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 70,
+              "message": "addedPath : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 61,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 75,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 77,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 218,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 266,
+              "message": "... + ... : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 77,
+              "message": "cleanPath(...) : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 81,
+              "message": "this [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 62,
+              "message": "this <constr(this)> [post update] : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 70,
+              "message": "new ClassPathResource(...) : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 72,
+              "message": "resource : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            },
+            {
+              "line": 44,
+              "message": "parameter this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 45,
+              "message": "this <.method> : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 158,
+              "message": "parameter this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 163,
+              "message": "this : ClassPathResource [path] : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 163,
+              "message": "this.path : String",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 163,
+              "message": "getResource(...) : URL",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 168,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/resource/ClassPathResource.java"
+            },
+            {
+              "line": 45,
+              "message": "getURL(...) : URL",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 46,
+              "message": "url : URL",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 210,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 212,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "resourceUrl : URL",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "getFile(...) : String",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/utils/ResourceUtils.java"
+            },
+            {
+              "line": 46,
+              "message": "getFile(...) : File",
+              "uri": "src/main/java/spark/resource/AbstractFileResolvingResource.java"
+            },
+            {
+              "line": 72,
+              "message": "getFile(...)",
+              "uri": "src/main/java/spark/resource/ClassPathResourceHandler.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 32,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 34,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/UriPath.java"
+            },
+            {
+              "line": 65,
+              "message": "canonical(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 67,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 85,
+              "message": "segment2 : String",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 67,
+              "message": "addPaths(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 69,
+              "message": "addedPath : String",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 39,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "path : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 218,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "path : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 131,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 133,
+              "message": "inString : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 222,
+              "message": "replace(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "pathToUse : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 231,
+              "message": "substring(...) : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 266,
+              "message": "... + ... : String",
+              "uri": "src/main/java/spark/utils/StringUtils.java"
+            },
+            {
+              "line": 40,
+              "message": "cleanPath(...) : String",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 40,
+              "message": "this <.field> [post update] : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 69,
+              "message": "new ExternalResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 80,
+              "message": "...?...:... : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResourceHandler.java"
+            },
+            {
+              "line": 59,
+              "message": "getResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/AbstractResourceHandler.java"
+            },
+            {
+              "line": 86,
+              "message": "getResource(...) : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 92,
+              "message": "resource : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/staticfiles/StaticFilesConfiguration.java"
+            },
+            {
+              "line": 66,
+              "message": "parameter this : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 67,
+              "message": "this <.field> : ExternalResource [file] : File",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            },
+            {
+              "line": 67,
+              "message": "file",
+              "uri": "src/main/java/spark/resource/ExternalResource.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-bb8dd69e7f26",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -q -B -DskipTests package",
+        "mvn -q -B -Dtest=spark.resource.ExternalResourceHandlerTest,spark.resource.ClassPathResourceHandlerTest,spark.resource.UriPathTest,spark.resource.AbstractResourceTest test",
+        "mvn -B test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/perwendel__spark_[redacted]_2.5.1/3/Dockerfile",
+        "-t",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/perwendel__spark_[redacted]_2.5.1/3"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -q -B -DskipTests package"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -q -B -Dtest=spark.resource.ExternalResourceHandlerTest,spark.resource.ClassPathResourceHandlerTest,spark.resource.UriPathTest,spark.resource.AbstractResourceTest test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    },
+    {
+      "name": "regression_3",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae",
+        "bash",
+        "-lc",
+        "mvn -B test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_3.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 533327,
+        "duration_api_ms": 407989,
+        "num_turns": 46,
+        "cost_usd": 2.0809485000000003,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 76,
+          "output": 35065,
+          "cache_read": 3100005,
+          "cache_creation": 104124
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause / sink: `spark.resource.ExternalResourceHandler#getResource(String)` at src/main/java/spark/resource/ExternalResourceHandler.java:59-69, specifically the `new ExternalResource(addedPath)` call at line 69, which delegates to `ExternalResource(String path)` (src/main/java/spark/resource/ExternalResource.java:39-40) doing `file = new File(StringUtils.cleanPath(path))`. Trust boundary: `path`/`addedPath` derives from `HttpServletRequest#getServletPath()`/`getPathInfo()` (attacker-controlled HTTP request path) via `AbstractResourceHandler#getResource(HttpServletRequest)` (AbstractResourceHandler.java:46-59) → `addPaths()` (AbstractResourceHandler.java:58,80-121). The resolved `File`/URL is never checked against the configured base resource root before being read/streamed (StaticFilesConfiguration.java:86-92, AbstractFileResolvingResource.java:44-46/106-112).\n\nConfirmed mechanism: `UriPath.canonical(path)` (UriPath.java:32-34, logic at lines 30-181) only treats `/` as a path separator, so a request path containing Windows-style `..\\` sequences is returned completely unmodified (no traversal detected, nothing rejected). The unmodified string is concatenated onto the base resource root by `addPaths()` and only THEN normalized by `StringUtils.cleanPath()` (StringUtils.java:200-266), which does treat `\\` as a separator and does collapse `..` — but, unlike `UriPath.canonical()`, it never rejects a path whose leftover `..` count exceeds the number of consumable preceding segments (see the \"Remaining top paths need to be retained\" block, StringUtils.java run at ~255-263): those excess `..` are just prepended to the result. The resulting `File`/URL is used directly to check existence and stream content with no containment check anywhere downstream.\n\nEvery distinct sink/source-to-sink path in the alert sharing this exact root cause that a complete fix must guard:\n1. (POV'd here) `AbstractResourceHandler.getResource(HttpServletRequest)` → `ExternalResourceHandler.getResource(String)` → `new ExternalResource(addedPath)` → `ExternalResource.file` (File read) — ExternalResourceHandler.java:59-69, ExternalResource.java:39-40/77-78, verified experimentally: servletPath `\"/..\\secret.txt\"` against base `<tmp>/public` resolves to and reads `<tmp>/secret.txt`.\n2. `ExternalResourceHandler.getResource(String)` welcome-file branch: `new ExternalResource(addPaths(resource.getPath(), welcomeFile))` (ExternalResourceHandler.java:65-67) — same `ExternalResource` constructor sink, reachable when the traversed target resolves to a directory and a welcome file is configured.\n3. `AbstractResourceHandler.getResource(HttpServletRequest)` → `ClassPathResourceHandler.getResource(String)` → `new ClassPathResource(addedPath)` → `ClassPathResource.path` field, consumed by `getInputStream()`/`exists()` via `ClassLoader.getResource(this.path)` (ClassPathResourceHandler.java:60-70, ClassPathResource.java:61-81/136-139) — experimentally confirmed the identical backslash bypass (`\"/..\\cp-secret.txt\"`) escapes a classpath-exploded-directory base and reads a sibling file on the classpath root.\n4. `ClassPathResourceHandler.getResource(String)` welcome-file branch: `new ClassPathResource(addPaths(resource.getPath(), welcomeFile))` (ClassPathResourceHandler.java:66-70) and the `resource.getFile()` directory check (ClassPathResourceHandler.java:72, via `AbstractFileResolvingResource.getFile()` → `ResourceUtils.getFile(url,...)`) — same `ClassPathResource` sink family, also reachable via `AbstractResourceHandler#getServletPath()`-only branch (no INCLUDE attributes / no pathInfo), i.e. line 50 of AbstractResourceHandler.java, confirming the source is not limited to the `RequestDispatcher.INCLUDE_*` attribute branch.\n\nAll four converge on the same defect: `UriPath.canonical()` is a no-op for backslash-delimited traversal, and `StringUtils.cleanPath()` (the only later normalizer) does not enforce that the result stays within the segment it was concatenated onto.",
+        "expected_vulnerable_behavior": "On the current (unpatched) code, ExternalResourceHandler.getResource(request) resolves a non-null ExternalResource for the crafted servlet path \"/..\\secret.txt\" whose canonical file path is `<tempRoot>/secret.txt` — strictly outside the configured base resource directory `<tempRoot>/public` — and resource.getInputStream() streams back the exact contents of that out-of-root file (\"TOP-SECRET-CONTENT-1234\"). The JUnit test asserts exactly this and exits 0. A correct fix must make getResource(...) reject/return null (or otherwise fail the assertions) for this request, causing the same command to exit non-zero.",
+        "notes": "Targeted alert trace: vulnerability #1 (and its sibling #4, which is the same ExternalResource/ExternalResourceHandler sink family reached via the welcome-file re-resolution branch) — i.e. AbstractResourceHandler.getResource(HttpServletRequest) → ExternalResourceHandler.getResource(String) → UriPath.canonical → addPaths → new ExternalResource(path) → StringUtils.cleanPath → new File(...) → AbstractFileResolvingResource.getFile(). Chosen as the primary PoV because: (1) it demonstrates the clearest, most severe consequence — arbitrary out-of-root file disclosure via the real public request-handling API, not a synthetic call into an internal method; (2) it is the simplest, fully deterministic reproduction (a single \"..\" via backslash cancels exactly one path segment, landing precisely on a sibling file regardless of the temp directory's absolute depth — no dependency on filesystem layout like /etc/passwd); (3) vulnerabilities #2/#3 (ClassPathResourceHandler/ClassPathResource) share the exact same root-cause defect (UriPath.canonical() blind to backslashes + StringUtils.cleanPath()'s no-reject leftover-\"..\" behavior) and were independently verified working with an identical payload against a classpath-exploded-directory base (target/classes), confirming a correct fix must cover both handler families, not just the one exercised by this PoV. That secondary confirmation was done via a throwaway exploratory harness (not retained) and is documented in `evidence`/`regression_hint` for the patcher.\n\nThe PoV file is self-contained (default package, no changes to pom.xml or src/test/java) and is compiled/run manually via javac + org.junit.runner.JUnitCore in the pov_command, which naturally exits 0 on success / 1 on JUnit failure. Verified both directions inside the project's docker container: (a) exit 0 against the pristine repo (git status clean save for the new pov files); (b) exit 1 after temporarily adding a canonical-path containment check to ExternalResourceHandler.getResource(String) to simulate a correct fix — that temporary edit was fully reverted afterward (git status confirmed clean again) before finalizing this report.",
+        "pov_command": "mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest",
+        "pov_path": ".security-pipeline/pov/PathTraversalPovTest.java",
+        "regression_hint": "Invariant a correct fix must enforce, at every sink above: after resolving a request path against a configured base resource root (external filesystem root for ExternalResourceHandler/ExternalResource, or classpath/base folder for ClassPathResourceHandler/ClassPathResource — including each handler's welcome-file re-resolution branch), the FINAL resolved absolute/canonical location (File.getCanonicalPath() for ExternalResource; the resolved URL/File for ClassPathResource) MUST start with the configured base root's canonical path (with a trailing separator, or an exact-prefix-plus-separator check, to avoid `/public-evil` bypassing a naive `startsWith(\"/public\")` check). If it does not, the handler must return null (treat as not-found), not silently serve/stream the escaped resource.\n\nThis must be enforced uniformly, not just by trying to patch `UriPath.canonical()` to also recognize `\\`, because:\n- `UriPath.canonical()` operates on the request path alone, before it is concatenated with the base resource root, so even a correct canonicalizer only proves the request path doesn't escape *itself* — it cannot prove the final concatenated path doesn't escape the *base root* (e.g. sequences that are \"legal\" relative to the request path's own leading `/` but still net-negative once combined with a short base root). The containment check must happen after concatenation/resolution, at (or immediately after) the point the `File`/`URL` is actually constructed.\n- `StringUtils.cleanPath()` must not be trusted as a security boundary either: it silently keeps leftover `..` instead of rejecting, by design (it's a generic path-normalization utility, not a sandboxing one).\n\nKnown bypass variants the fix must also block (beyond the base `/../` case that `UriPath.canonical()` already partially blocks):\n- Backslash-delimited traversal: `..\\`, `..\\\\`, `a\\..\\..\\etc\\passwd` (demonstrated in the PoV).\n- Mixed separators: `..\\/..\\/etc/passwd`, `.\\/../` combinations.\n- Traversal reachable via the welcome-file re-resolution path (`ExternalResourceHandler`/`ClassPathResourceHandler` lines ~65-70), where a second `addPaths`+construct occurs using `resource.getPath()` (already-resolved) + welcomeFile — must also be re-validated for containment, not just the first resolution.\n- The `getServletPath()`-only source branch (no `RequestDispatcher.INCLUDE_*` attributes present) at AbstractResourceHandler.java:50, in addition to the `INCLUDE_SERVLET_PATH`/`INCLUDE_PATH_INFO` attribute-based branch (lines 46-48) — both must be covered since they converge on the same `addPaths`/`getResource(String)` sink.\n- Both concrete handler/resource pairs: `ExternalResourceHandler`/`ExternalResource` (filesystem) and `ClassPathResourceHandler`/`ClassPathResource` (classpath, when backed by an exploded directory rather than a jar) — a fix applied to only one class leaves the other exploitable via the identical technique.\n- Double-encoded or literal `%2e%2e` sequences reaching this code as literal characters (e.g. if a servlet container or reverse proxy does not decode before dispatch) should also be considered, though this PoV's primary demonstrated bypass is the unescaped backslash case, which needs no encoding at all.",
+        "status": "pov_created",
+        "summary": "Created a real JUnit-based PoV that drives the public spark.resource.AbstractResourceHandler#getResource(HttpServletRequest) → ExternalResourceHandler#getResource(String) → ExternalResource(String) flow with a mocked HttpServletRequest whose servlet path is \"/..\\secret.txt\". UriPath.canonical() only recognizes '/' as a separator, so the backslash-based \"..\" sequence passes through unrejected; StringUtils.cleanPath() (invoked later inside the ExternalResource constructor) does normalize backslashes and collapse \"..\", but never rejects paths whose \"..\" count exceeds available segments — it just keeps the leftover \"..\". The resulting File silently escapes the configured base resource directory. The PoV proves this by reading and returning the content of a file placed one directory above the configured \"public\" root, entirely outside the app's configured static-file root."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 299021,
+        "duration_api_ms": 256792,
+        "num_turns": 30,
+        "cost_usd": 1.4188416,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 46,
+          "output": 24692,
+          "cache_read": 1764292,
+          "cache_creation": 86506
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/spark/resource/AbstractResourceHandler.java",
+          "src/main/java/spark/resource/ExternalResourceHandler.java",
+          "src/main/java/spark/resource/ClassPathResourceHandler.java",
+          "src/test/java/spark/resource/ExternalResourceHandlerTest.java",
+          "src/test/java/spark/resource/ClassPathResourceHandlerTest.java"
+        ],
+        "patch_notes": "Root cause: AbstractResourceHandler.getResource(HttpServletRequest) resolves servletPath/pathInfo into a request path, which ExternalResourceHandler/ClassPathResourceHandler concatenate onto their configured base resource directory via addPaths(), and only then normalize with StringUtils.cleanPath() inside the ExternalResource/ClassPathResource constructors. UriPath.canonical(), called earlier on the raw request path alone, is blind to backslash-delimited '..' and does not know about the base root at all, so it cannot prove the final concatenated path stays contained. Fix: added AbstractResourceHandler.isPathUnderBase(base, candidate), a static helper that cleanPath()-normalizes both the base and the candidate (also normalizing leading-slash presence so it works for both filesystem-style and classpath-relative paths), appends a trailing separator to each, and requires candidate to start with base. Called this check in ExternalResourceHandler.getResource(String) and ClassPathResourceHandler.getResource(String) right after addPaths(baseResource, path) and again after addPaths(resource.getPath(), welcomeFile) in the welcome-file branch of each, returning null (treated as not-found) whenever containment fails. Added 4 new regression tests (2 per handler) exercising both the backslash-based bypass and a plain '/../' request; all pre-existing tests (295 total in the suite) continue to pass unmodified.",
+        "regression_commands": [
+          "mvn -q -B -DskipTests package",
+          "mvn -q -B -Dtest=spark.resource.ExternalResourceHandlerTest,spark.resource.ClassPathResourceHandlerTest,spark.resource.UriPathTest,spark.resource.AbstractResourceTest test",
+          "mvn -B test"
+        ],
+        "risk_notes": "Change is additive (an early-return null guard) and does not alter behavior for any path that stays within the base resource root, so legitimate static-file serving (including welcome-file resolution) is unaffected — confirmed by the full `mvn test` run (295/295 passing, including StaticFilesTest/StaticFilesMemberTest/GenericIntegrationTest which exercise real static-file serving end to end). The POV (.security-pipeline/pov/PathTraversalPovTest.java) now fails with an AssertionError instead of succeeding, confirming the vulnerable behavior is blocked; per instructions its command was not added to regression_commands since the orchestrator runs it separately. The fix relies on StringUtils.cleanPath() for normalization (same utility already trusted downstream by both resource classes), so it inherits that utility's semantics rather than introducing a new parsing path; no filesystem I/O or symlink resolution is required since the check operates purely on the string form of the concatenated path before any File/classloader access occurs.",
+        "status": "patched",
+        "summary": "Fixed CWE-022 path traversal in spark's static resource handlers. UriPath.canonical() only recognizes '/' as a path separator, so a backslash-based '..' sequence (or any traversal with more '..' segments than consumable preceding segments) passed through unrejected; StringUtils.cleanPath() later normalizes separators and collapses '..' but never rejects leftover '..' that walk above the concatenation root, so the final File/classpath lookup silently escaped the configured base resource directory. Added a shared AbstractResourceHandler.isPathUnderBase(base, candidate) containment check (normalizes both paths via StringUtils.cleanPath, adds leading/trailing '/' boundaries, and requires the candidate to be base or a descendant) and applied it in both ExternalResourceHandler.getResource(String) and ClassPathResourceHandler.getResource(String) immediately after computing the concatenated path and before constructing the ExternalResource/ClassPathResource, as well as after computing the welcome-file re-resolution path in both handlers. This closes all four sink paths in the alert (both handler families, both the direct and welcome-file branches) with one root-cause fix at the trust boundary, since both branches converge on the same addPaths()+cleanPath() pattern."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 74953,
+        "duration_api_ms": 55780,
+        "num_turns": 10,
+        "cost_usd": 0.5716629,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 2119,
+          "output": 5283,
+          "cache_read": 456243,
+          "cache_creation": 58198
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "cat <run_dir>/git/patch_only.diff",
+          "cat <run_dir>/git/pov.diff | head -100",
+          "grep -n SLASH worktree/src/main/java/spark/resource/AbstractResourceHandler.java",
+          "git -C worktree status --short",
+          "git -C worktree diff --stat HEAD",
+          "./run_in_docker.sh 'mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp \"target/classes:$(cat /tmp/pov_cp.txt)\" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp \"/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)\" org.junit.runner.JUnitCore PathTraversalPovTest'",
+          "./run_in_docker.sh 'mvn -q -B -Dtest=spark.resource.ExternalResourceHandlerTest,spark.resource.ClassPathResourceHandlerTest,spark.resource.UriPathTest,spark.resource.AbstractResourceTest test'"
+        ],
+        "diff_review": "patch_only.diff touches only src/main/java/spark/resource/{AbstractResourceHandler,ExternalResourceHandler,ClassPathResourceHandler}.java plus two test files; it does not touch the POV file (.security-pipeline/pov/PathTraversalPovTest.java is untouched/untracked, not part of patch_only.diff). The new isPathUnderBase() helper normalizes both base and candidate with the existing StringUtils.cleanPath() utility, adds consistent leading/trailing slash boundaries (avoiding a naive startsWith bypass like '/public-evil' matching '/public'), and requires the candidate to remain within the base. It is invoked immediately after each addPaths() concatenation (both the primary resolution and the welcome-file branch) in both handler classes, returning null (treated as not-found) on containment failure — matching the CWE-022 alert's guidance that the check must occur after concatenation/resolution, and covering both the ExternalResourceHandler/ExternalResource and ClassPathResourceHandler/ClassPathResource sink families named in the alert traces. The change is minimal, additive (early-return guard only), does not alter behavior for legitimate in-root paths, and does not modify or weaken the POV. Two new regression tests per handler (backslash and plain '../' traversal) were added and are appropriate, not a removal of coverage.",
+        "issues": [],
+        "pov_result": "Independently reran the exact pov_command via the docker wrapper against the patched worktree: JUnit run failed (exit 1) with AssertionError 'Vulnerable behavior expected: ExternalResourceHandler resolved a resource for a ..\\ traversal request path instead of rejecting it' — confirming the ExternalResourceHandler now returns null for the crafted backslash-traversal servlet path and the out-of-root secret file is no longer disclosed. This matches the orchestrator's reported pov_after_patch result (exit 1) and contrasts with pov_before_patch (exit 0, vulnerable).",
+        "regression_result": "Independently reran the targeted regression command (ExternalResourceHandlerTest, ClassPathResourceHandlerTest, UriPathTest, AbstractResourceTest) via the docker wrapper: 27/27 tests passed, 0 failures/errors — matching the orchestrator's regression_2 log. The orchestrator's full `mvn -B test` run (regression_3) also reports 295/295 passing with BUILD SUCCESS, and `mvn -B -DskipTests package` succeeds. No regressions observed.",
+        "summary": "The patch adds a shared containment check (AbstractResourceHandler.isPathUnderBase) applied after path concatenation in both ExternalResourceHandler.getResource(String) and ClassPathResourceHandler.getResource(String) (including their welcome-file re-resolution branches), rejecting any resolved path that normalizes outside the configured base resource root. This directly closes the CWE-022 gap where UriPath.canonical() ignored backslash-based '..' traversal and StringUtils.cleanPath() normalized but never rejected excess '..' segments. Independently reran the POV and targeted regressions via the docker wrapper: POV now fails (vulnerability no longer reproduces) and all existing resource-handler tests plus the full test suite reported by the orchestrator pass.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.0715,
+    "num_turns": 86,
+    "agent_duration_ms": 907301
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log",
+      "regression_3.log"
+    ]
+  }
+}

@@ -1,0 +1,138 @@
+diff --git a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+index 75a4b6c..58b75cb 100644
+--- a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
++++ b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+@@ -52,7 +52,18 @@ public class ContextAssetRequestHandler implements AssetRequestHandler
+             return false;
+         }
+ 
+-        return path.stream(rootContextResource.forFile(path.resourcePath));
++        Resource resource = rootContextResource.forFile(path.resourcePath);
++
++        // TAP5-2530: forFile() normalizes any ".." segments in the requested path, so an
++        // attacker can craft a path such as "foo/../WEB-INF/web.xml" that slips past the
++        // check above (it doesn't literally start with a protected prefix) yet resolves to a
++        // protected resource. Re-check the fully normalized resource path before streaming.
++        if (illegal.matcher(resource.getPath()).matches())
++        {
++            return false;
++        }
++
++        return path.stream(resource);
+     }
+ 
+ }
+diff --git a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+index 767ed12..033642e 100644
+--- a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
++++ b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+@@ -14,11 +14,17 @@
+ 
+ package org.apache.tapestry5.internal.services.assets;
+ 
++import org.apache.tapestry5.internal.services.ResourceStreamer;
++import org.apache.tapestry5.ioc.Resource;
++import org.apache.tapestry5.ioc.internal.util.AbstractResource;
+ import org.apache.tapestry5.ioc.test.TestBase;
++import org.apache.tapestry5.services.assets.StreamableResource;
+ import org.testng.annotations.DataProvider;
+ import org.testng.annotations.Test;
+ 
+ import java.io.IOException;
++import java.net.URL;
++import java.util.Set;
+ 
+ public class ContextAssetRequestHandlerTest extends TestBase
+ {
+@@ -41,4 +47,91 @@ public class ContextAssetRequestHandlerTest extends TestBase
+         assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
+                 "Handler should return false for invalid path.");
+     }
++
++    @DataProvider
++    public Object[][] traversal_paths()
++    {
++        return new Object[][]
++                {
++                        {"foo/../WEB-INF/web.xml"},
++                        {"a/b/../../WEB-INF/classes/hibernate.cfg.xml"},
++                        {"x/../META-INF/MANIFEST.MF"},
++                        {"assets/../Index.tml"}};
++    }
++
++    /**
++     * TAP5-2530: a path such as "foo/../WEB-INF/web.xml" does not literally start with a
++     * protected prefix, so it slips past the initial check, but forFile() normalizes the ".."
++     * segments and resolves to a protected resource. The handler must re-check the normalized
++     * path and reject the request. The root resource here always reports that it exists and the
++     * streamer always succeeds, so the only thing preventing the protected resource from being
++     * streamed is the normalized-path check.
++     */
++    @Test(dataProvider = "traversal_paths")
++    public void ensure_traversal_assets_are_rejected(String path) throws IOException
++    {
++        RecordingResourceStreamer streamer = new RecordingResourceStreamer();
++        Resource root = new AlwaysExistingResource("");
++
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(streamer, root);
++
++        assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
++                "Handler should return false for a path that normalizes into a protected folder.");
++
++        assertNull(streamer.streamed,
++                "The protected resource must not be streamed to the client.");
++    }
++
++    /**
++     * A resource whose folder navigation ({@link AbstractResource#forFile(String)}) behaves like the
++     * real context resources, but which always reports that it exists so that the traversal test does
++     * not depend on the presence of an actual file on the classpath.
++     */
++    private static class AlwaysExistingResource extends AbstractResource
++    {
++        AlwaysExistingResource(String path)
++        {
++            super(path);
++        }
++
++        @Override
++        protected Resource newResource(String path)
++        {
++            return new AlwaysExistingResource(path);
++        }
++
++        @Override
++        public URL toURL()
++        {
++            return null;
++        }
++
++        @Override
++        public boolean exists()
++        {
++            return true;
++        }
++
++        @Override
++        public String toString()
++        {
++            return "AlwaysExistingResource[" + getPath() + "]";
++        }
++    }
++
++    private static class RecordingResourceStreamer implements ResourceStreamer
++    {
++        Resource streamed;
++
++        public boolean streamResource(Resource resource, String providedChecksum, Set<Options> options)
++        {
++            this.streamed = resource;
++            return true;
++        }
++
++        public boolean streamResource(StreamableResource resource, String providedChecksum, Set<Options> options)
++        {
++            return true;
++        }
++    }
+ }

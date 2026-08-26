@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-93146093deb4/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-93146093deb4:a27710aa4208 bash -lc rm -rf /tmp/pov-classes && mkdir -p /tmp/pov-classes && javac -d /tmp/pov-classes obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java && javac -cp /tmp/pov-classes -d /tmp/pov-classes .security-pipeline/pov/PovPathTraversal.java && java -cp /tmp/pov-classes PovPathTraversal
+exit_code=0
+timed_out=false
+
+--- stdout ---
+extraction dir : /tmp/obr-pov8038524063965231129/out
+escape file    : /tmp/obr-pov8038524063965231129/out_evil/pwned.txt
+escape written : true
+outside dir    : true
+VULNERABLE: JAR entry escaped the extraction directory (CWE-022).
+
+--- stderr ---
+

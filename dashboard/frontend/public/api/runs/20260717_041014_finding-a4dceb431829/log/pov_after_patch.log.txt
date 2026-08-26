@@ -1,0 +1,28 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041014_finding-a4dceb431829/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-a4dceb431829:211b726dc24d bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+copyDirectoryFromPod(...) rejected/failed on malicious tar: java.io.IOException: Entry ../pov-tarslip-escaped-file.txt is outside of the target destination directory /tmp/copy-tarslip-pov8089478997830374652/safe-extract-target (resolved to /tmp/copy-tarslip-pov8089478997830374652/pov-tarslip-escaped-file.txt); refusing to extract
+destination                 = /tmp/copy-tarslip-pov8089478997830374652/safe-extract-target
+malicious file entry name    = ../pov-tarslip-escaped-file.txt
+malicious dir entry name     = ../pov-tarslip-escaped-dir
+resolved escape file path    = /tmp/copy-tarslip-pov8089478997830374652/pov-tarslip-escaped-file.txt
+resolved escape dir path     = /tmp/copy-tarslip-pov8089478997830374652/pov-tarslip-escaped-dir
+copyDirectoryFromPod threw   = true
+escaped file exists          = false
+escaped file outside dest    = false
+escaped file marker matches  = false
+escaped dir exists           = false
+escaped dir outside dest     = false
+RESULT: SAFE - Copy.copyDirectoryFromPod() did not write outside the requested destination directory.
+
+--- stderr ---
+warning: No SupportedSourceVersion annotation found on io.sundr.builder.internal.processor.BuildableProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.builder.internal.processor.BuildableProcessor' less than -source '1.8'
+warning: No SupportedSourceVersion annotation found on io.sundr.builder.internal.processor.ExternalBuildableProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.builder.internal.processor.ExternalBuildableProcessor' less than -source '1.8'
+warning: No SupportedSourceVersion annotation found on io.sundr.resourcecify.internal.processor.ResourcecifyProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.resourcecify.internal.processor.ResourcecifyProcessor' less than -source '1.8'
+6 warnings
+

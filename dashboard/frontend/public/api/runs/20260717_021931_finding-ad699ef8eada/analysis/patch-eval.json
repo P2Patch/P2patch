@@ -1,0 +1,129 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:20.431187+00:00",
+    "finished_at": "2026-07-17T15:41:59.678201+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "SCRIPT lookup is unconditionally removed from the default interpolator, so the code-eval sink is unreachable for any payload, not just the observed one.",
+        "evidence": "StringLookupFactory.addDefaultStringLookups: `if (stringLookup == SCRIPT || DNS || URL) continue;`",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fix is at the factory that builds the default lookup map (the trust boundary), eliminating the dangerous capability rather than filtering the payload.",
+        "evidence": "StringLookupFactory.java addDefaultStringLookups loop skip",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "All three dangerous lookups (script/dns/url) are excluded at the single shared registration point used by createInterpolator() and interpolatorStringLookup(...,addDefaults=true), covering both taint paths.",
+        "evidence": "single continue-guard in addDefaultStringLookups covers all interpolator construction paths",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy and exact location as official (remove dns/url/script from defaults), but omits the official's DEFAULT_STRING_LOOKUPS_PROPERTY reconfiguration mechanism; hardcodes exclusion instead.",
+        "evidence": "official adds system-property configurability in addDefaultStringLookups; ours hardcodes `continue`",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate lookups preserved; tests updated to opt-in dangerous lookups explicitly and pass; behavior matches official's intentional removal.",
+        "evidence": "createInterpolatorWith(...) helper; updated StringLookupFactoryTest asserts absence of script/dns/url",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Simple enum-comparison skip introduces no injection, TOCTOU, or ReDoS; uses safe primitives.",
+        "evidence": "enum identity check in addDefaultStringLookups",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change: one guard in the factory plus doc/test updates; no unrelated edits.",
+        "evidence": "StringLookupFactory.java single continue block",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Uses the CWE-094 defense-of-record: eliminate the dynamic-eval capability from the default set rather than sanitizing the eval string.",
+        "evidence": "SCRIPT lookup removed from defaults entirely",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Unlike the official fix, our patch hardcodes the exclusion and does not add the DEFAULT_STRING_LOOKUPS_PROPERTY system property, so users cannot reconfigure the default lookup set without changing code. This is a feature/parity gap, not a security weakness."
+      },
+      {
+        "severity": "low",
+        "description": "pov_before_reproduced is false in the execution results, so the POV harness did not positively demonstrate the pre-patch exploit; the security conclusion rests on code analysis (script lookup removed from defaults) rather than an observed before/after trigger. regressions_ran=0 means the regression suite was not exercised in this run."
+      }
+    ],
+    "summary": "Our patch removes the script, dns, and url lookups from the default interpolator at StringLookupFactory.addDefaultStringLookups — the exact location and defensive strategy of the official fix — thereby eliminating the code-injection (and SSRF) capability for the whole attack class rather than blocking a single payload. It is semantically equivalent to the security core of the official fix; the only divergence is that it hardcodes the exclusion instead of exposing the official's DEFAULT_STRING_LOOKUPS_PROPERTY for reconfiguration, a functionality/parity gap with no security impact. Tests were correctly updated so legitimate opt-in usage of those lookups still works. Minor caveat: the POV did not positively reproduce pre-patch and no regression tests ran, so verification leans on code analysis.",
+    "root_cause": "StringSubstitutor.createInterpolator() wired the SCRIPT lookup (dynamic script eval) into the default lookup map, letting untrusted interpolated input reach ScriptStringLookup and execute arbitrary code; a correct fix must remove that eval-capable lookup from the default set.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "StringLookupFactory.java",
+        "StringSubstitutor.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "DefaultStringLookup.java",
+        "InterpolatorStringLookup.java",
+        "changes.xml",
+        "defaults.properties",
+        "userguide.xml"
+      ],
+      "jaccard": 0.286,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/changes/changes.xml",
+        "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+        "src/main/java/org/apache/commons/text/lookup/DefaultStringLookup.java",
+        "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "src/main/resources/org/apache/commons/text/lookup/defaults.properties",
+        "src/site/xdoc/userguide.xml"
+      ],
+      "commits": [
+        "b9b40b903e2d1f9935039803c9852439576780ea"
+      ]
+    }
+  }
+}

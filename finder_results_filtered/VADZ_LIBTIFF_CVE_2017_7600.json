@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-20",
+  "cve_id": "CVE-2017-7600",
+  "note": "tiffcp copies every input directory tag listed in its `tags[]` table -- including TIFFTAG_SMAXSAMPLEVALUE (TIFF_DOUBLE, tools/tiffcp.c:578) -- from the untrusted input TIFF straight to the output TIFF's in-memory directory (td->td_smaxsamplevalue, a double array), with no range validation. When the output directory is written, TIFFWriteDirectorySec() (libtiff/tif_dirwrite.c:594) calls TIFFWriteDirectoryTagSampleformatArray(tif,&ndir,dir,TIFFTAG_SMAXSAMPLEVALUE,td_samplesperpixel,td->td_smaxsamplevalue) with that attacker-controlled double array as `value`. For the SAMPLEFORMAT_UINT / bitspersample<=8 case, each element is narrowed with a bare `(uint8)value[i]` C-style cast and no range check -- a double outside uint8's representable range ([0,255]) is undefined behavior (UBSan: \"outside the range of representable values of type 'unsigned char'\"). This is the SAMPLEFORMAT_UINT counterpart of the same unguarded narrowing pattern a few lines earlier in the same function, which handles the SAMPLEFORMAT_INT case for a sibling tag.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "TIFFTAG_SMAXSAMPLEVALUE declared TIFF_DOUBLE in tiffcp's generic tag-copy table -- copied verbatim from the untrusted input TIFF's directory to the output TIFF's td->td_smaxsamplevalue with no range validation",
+            "uri": "tools/tiffcp.c",
+            "line": 578
+          },
+          {
+            "message": "TIFFWriteDirectorySec() passes td->td_smaxsamplevalue (the untrusted double array) as `value` to TIFFWriteDirectoryTagSampleformatArray()",
+            "uri": "libtiff/tif_dirwrite.c",
+            "line": 594
+          },
+          {
+            "message": "((uint8*)conv)[i] = (uint8)value[i] -- bare C-style cast narrows the attacker-controlled double with no range check; a value outside uint8's range ([0,255]) is undefined behavior",
+            "uri": "libtiff/tif_dirwrite.c",
+            "line": 994
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+index 7e45661..3d7e630 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+@@ -135,7 +135,16 @@ public class StaticHandlerImpl implements StaticHandler {
+       if (log.isTraceEnabled()) log.trace("Not GET or HEAD so ignoring request");
+       context.next();
+     } else {
+-      String path = Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false));
++      String path = Utils.urlDecode(context.normalisedPath(), false);
++      // Normalize Windows-style backslash separators to forward slashes before
++      // dot-segment removal. Otherwise backslash-based traversal sequences (e.g.
++      // "\..\..\") survive removeDots (which only collapses forward-slash "../"),
++      // and can escape the web root on platforms where '\' is a path separator
++      // (CWE-022 path traversal).
++      if (path != null) {
++        path = path.replace('\\', '/');
++      }
++      path = Utils.removeDots(path);
+       // if the normalized path is null it cannot be resolved
+       if (path == null) {
+         log.warn("Invalid path: " + context.request().path());
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+index cbd8abc..0669db0 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+@@ -107,6 +107,23 @@ public class StaticHandlerTest extends WebTestBase {
+     testRequest(HttpMethod.GET, "otherpage.html", 404, "Not Found");
+   }
+ 
++  @Test
++  public void testCantEscapeWebRootWithEncodedBackslash() throws Exception {
++    // Percent-encoded backslashes (%5C == '\') must be normalized like forward
++    // slashes before dot-segment removal, otherwise backslash-based traversal
++    // survives normalization and can escape the web root on platforms where '\'
++    // is a path separator (CWE-022 path traversal).
++    testRequest(HttpMethod.GET, "/%5C..%5C..%5C..%5C..%5Cwindows%5Cwin.ini", 404, "Not Found");
++  }
++
++  @Test
++  public void testEncodedBackslashSeparatorsAreNormalized() throws Exception {
++    // The backslash separators are collapsed within the web root so this
++    // resolves to /otherpage.html. Without normalization the literal backslash
++    // path would not exist (404) and, on Windows, could reach outside the root.
++    testRequest(HttpMethod.GET, "/somedir%5C..%5Cotherpage.html", 200, "OK", "<html><body>Other page</body></html>");
++  }
++
+   @Test
+   public void testGetHiddenPage() throws Exception {
+     testRequest(HttpMethod.GET, "/.hidden.html", 200, "OK", "<html><body>Hidden page</body></html>");

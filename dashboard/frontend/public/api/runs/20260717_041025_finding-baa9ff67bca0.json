@@ -1,0 +1,627 @@
+{
+  "run_id": "20260717_041025_finding-baa9ff67bca0",
+  "finding_id": "finding-baa9ff67bca0",
+  "timestamp": "2026-07-17T04:10:25",
+  "status": "rejected",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Regression command failed: mvn -B test",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_041025_finding-baa9ff67bca0",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-baa9ff67bca0",
+    "cve_id": "CVE-2021-29425",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "asf__commons-io_CVE-2021-29425_2.6",
+    "alert_file": "ASF_COMMONS_IO_CVE_2021_29425.json",
+    "github_url": "https://github.com/apache/commons-io",
+    "repo": "apache/commons-io",
+    "github_tag": "2.6",
+    "advisory_id": "GHSA-gwrp-pvrq-jmwv",
+    "buggy_commit_id": "2ae025fe5c4a7d2046c53072b0898e37a079fe62",
+    "fix_commit_ids": [
+      "fe7543eee5cd4b2f9e78aa44c31031b68eba204d"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+        "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+        "class": "FilenameUtilsTestCase",
+        "class_start": "44.0",
+        "class_end": "1154.0",
+        "method": "testNormalize_with_nullbytes",
+        "method_start": "280.0",
+        "method_end": "287.0",
+        "signature": "void testNormalize_with_nullbytes()",
+        "is_test": true
+      },
+      {
+        "commit": "fe7543eee5cd4b2f9e78aa44c31031b68eba204d",
+        "file": "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java",
+        "class": "FilenameUtilsTestCase",
+        "class_start": "44.0",
+        "class_end": "1154.0",
+        "method": "testNormalize",
+        "method_start": "101.0",
+        "method_end": "274.0",
+        "signature": "void testNormalize()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2021-29425",
+      "advisory": "https://github.com/advisories/GHSA-gwrp-pvrq-jmwv",
+      "repo": "https://github.com/apache/commons-io",
+      "buggy_commit": "https://github.com/apache/commons-io/commit/2ae025fe5c4a7d2046c53072b0898e37a079fe62"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 209,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 210,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 178,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 179,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 209,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 210,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 147,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 148,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 274,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 282,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 398,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "path : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 413,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 416,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 436,
+              "message": "new String(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FilenameUtils.java"
+            },
+            {
+              "line": 243,
+              "message": "doNormalize(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FilenameUtils.java"
+            },
+            {
+              "line": 304,
+              "message": "normalize(...) : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 313,
+              "message": "... + ... : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 313,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 316,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 483,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 502,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 572,
+              "message": "cmdAttribs : String[] [[]] : String",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            },
+            {
+              "line": 573,
+              "message": "cmdAttribs",
+              "uri": "src/main/java/org/apache/commons/io/FileSystemUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "skipped",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "skipped",
+      "detail": null
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-baa9ff67bca0",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "category": "agent_failure",
+      "name": "failed",
+      "reason": "Regression command failed: mvn -B test",
+      "status": "rejected"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-io_[redacted]_2.6/19/Dockerfile",
+        "-t",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-io_[redacted]_2.6/19"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "bash",
+        "-lc",
+        "rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "bash",
+        "-lc",
+        "rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "bash",
+        "-lc",
+        "mvn -B -DskipTests package"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "bash",
+        "-lc",
+        "mvn -B -Dtest=FilenameUtilsTestCase,FileSystemUtilsTestCase test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    },
+    {
+      "name": "regression_3",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-baa9ff67bca0:5c546ef5848d",
+        "bash",
+        "-lc",
+        "mvn -B test"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "regression_3.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 298512,
+        "duration_api_ms": 290707,
+        "num_turns": 28,
+        "cost_usd": 1.1073183,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 54,
+          "output": 23516,
+          "cache_read": 1458401,
+          "cache_creation": 52816
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause / sink: FilenameUtils.doNormalize(String, char, boolean) at src/main/java/org/apache/commons/io/FilenameUtils.java:348-442, driven by FilenameUtils.getPrefixLength(String) at lines 633-687. Trust boundary: any untrusted, externally-supplied path string that a caller passes into FilenameUtils.normalize()/normalizeNoEndSeparator() expecting it to either fully resolve \"..\" segments or return null when the path would escape above its root (this is the method's documented contract, verified interactively: normalize(\"/../secret.txt\") -> null, normalize(\"//../secret.txt\") -> \"//../secret.txt\" unchanged, on the unpatched tree).\n\nConcretely: getPrefixLength() treats any path beginning with two separators (lines 674-682) as a Windows UNC prefix \"\\\\\\\\server\\\\\", computing the prefix length as `indexOf(separator, 2) + 1` with no validation of the \"server name\" substring. When that substring is literally \"..\" (e.g. \"//../foo\"), the prefix absorbs the traversal token entirely (prefix=5 for \"//../foo\"). doNormalize's double-dot-collapse loop (lines 405-430) only begins scanning at `prefix + 2`, so the \"..\" that was swallowed into the prefix is never evaluated by the \"no parent segment -> return null\" logic that correctly fires for \"/../foo\" (prefix=1, dot-dot loop starts at 3, immediately trips the `i == prefix + 2` early-return-null branch at line 409-411). The result is silently passed through unresolved and non-null.\n\nEvery trace in the alert is downstream of this same defect, and a complete fix must guard ALL of them:\n1. FilenameUtils.doNormalize/getPrefixLength itself (root cause) — the direct sink exercised by this PoV via FilenameUtils.normalize(String).\n2. FilenameUtils.normalize(String, boolean) (line 241-244) and normalizeNoEndSeparator(String) / normalizeNoEndSeparator(String, boolean) (lines 288-337) — all route through the same doNormalize/getPrefixLength pair and inherit the identical bypass.\n3. FileSystemUtils.freeSpaceUnix / freeSpaceWindows / freeSpaceOS (traces at lines 147-148, 178-179, 209-210, 274, 282) — call FilenameUtils.normalize(path) (line 304) on the caller-supplied `path` argument and then splice the (possibly mis-normalized, still-traversal-bearing) result directly into a `cmdAttribs` String[] (lines 313/316) that is handed to `openProcess`/`Runtime.exec` (lines 398-573) as a literal argument to `df`/`dir` — i.e. the same normalize() defect here feeds a command argument rather than a file path, so a value normalize() failed to null-out or fully resolve can carry an attacker-influenced path fragment into the spawned process's arguments.",
+        "expected_vulnerable_behavior": "On unpatched code, FilenameUtils.normalize(\"//../secret.txt\") returns the literal string \"//../secret.txt\" (non-null, unmodified) instead of null, even though the semantically identical single-slash form FilenameUtils.normalize(\"/../secret.txt\") correctly returns null per the method's own documented contract (\"If the double dot has no parent path segment to work with, null is returned\"). Any caller using `normalize(path) == null` as a path-traversal rejection gate is silently bypassed by this double-slash-prefixed payload. The PoV prints both results and exits 0 to signal the bypass was reproduced.",
+        "notes": "Targeted the 4th alert trace (FilenameUtils.java lines 436→243→...→FileSystemUtils.java normalize()/cmdAttribs), specifically its root cause at FilenameUtils.doNormalize/getPrefixLength, rather than the FileSystemUtils.freeSpace* command-construction traces (traces 1-3), because: (a) all four traces share this exact same defect as their common origin — the finder's own alert note says this is fundamentally a FilenameUtils.normalize path-traversal-neutralization bug, not an OS-command-injection bug; (b) FileSystemUtils.freeSpace*/openProcess only becomes exploitable to spawn arbitrary commands under much stronger additional assumptions (attacker controls the whole `path` argument to a rarely-invoked, effectively-unmaintained deprecated API) whereas the normalize() defect is directly reachable by any caller of the public, widely-used FilenameUtils.normalize()/normalizeNoEndSeparator() API; (c) exercising normalize() directly gives a fast, deterministic, non-OS-dependent PoV (no need to shell out or depend on `df`/`dir` being present in the container) while still faithfully reproducing the documented CVE-2021-29425 behavior. Verified experimentally inside the project's Docker image: unpatched normalize(\"//../secret.txt\") == \"//../secret.txt\" (bypass, PoV exits 0); after applying the equivalent upstream fix (reject \".\" / \"..\" as a UNC host-name component in getPrefixLength) normalize(\"//../secret.txt\") == null (PoV exits 1). Confirmed the product tree was restored to its original, unmodified state (`git status`/`git diff` show no changes to src/main) after this verification — only .security-pipeline/pov/PathTraversalPOV.java was added.",
+        "pov_command": "rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV",
+        "pov_path": ".security-pipeline/pov/PathTraversalPOV.java",
+        "regression_hint": "Invariant a correct fix must enforce: FilenameUtils.getPrefixLength()/doNormalize() must treat a path whose \"double-separator prefix\" host/server-name component is \".\" or \"..\" as invalid (matching upstream commons-io's CVE-2021-29425 fix), so that FilenameUtils.normalize(\"//../x\") returns null, exactly as FilenameUtils.normalize(\"/../x\") already does — i.e. normalize() must be consistent regardless of how many leading separators precede a leading \"..\" with no real parent segment to consume.\n\nKnown bypass variants / sibling call sites the fix must also verify (not just the one path this PoV exercises):\n- Backslash form: \"\\\\\\\\..\\\\secret.txt\" (Windows separator variant of the same UNC-prefix confusion).\n- Mixed separators: \"//..\\\\secret.txt\", \"\\\\\\\\../secret.txt\".\n- Trailing content after the swallowed \"..\": \"//../../secret.txt\" currently returns null already (second \"..\" trips the early check) but should be re-tested after the fix to ensure no regression.\n- Deeper nesting: \"//../a/../../secret.txt\" and other combinations that still rely on the same swallowed leading \"..\".\n- normalizeNoEndSeparator(String) and normalizeNoEndSeparator(String, boolean) — same defect, separate public entry points, must be covered by the same fix in getPrefixLength since both delegate to doNormalize.\n- FileSystemUtils.freeSpaceUnix/freeSpaceWindows/freeSpaceOS — once normalize() is fixed to return null for these payloads, confirm the callers actually reject a null return (i.e. they don't silently pass a null/garbage value into the cmdAttribs array and invoke the OS command anyway); this is a secondary check beyond the normalize() fix itself since the alert traces show the tainted `path` flowing all the way to cmdAttribs/openProcess.",
+        "status": "pov_created",
+        "summary": "Created a compiled-and-run Java PoV that calls FilenameUtils.normalize() (the shared root cause behind every FileSystemUtils/FilenameUtils trace in the alert) directly and proves that a caller relying on the documented \"normalize() returns null when a path tries to escape above the filesystem root\" contract is bypassed by prefixing a traversal payload with an extra leading separator (\\\"//../secret.txt\\\" vs the correctly-rejected \\\"/../secret.txt\\\"). This is the CVE-2021-29425 class of bug."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 280459,
+        "duration_api_ms": 173040,
+        "num_turns": 28,
+        "cost_usd": 1.0068663000000002,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 54,
+          "output": 15910,
+          "cache_read": 1484721,
+          "cache_creation": 53773
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/apache/commons/io/FilenameUtils.java",
+          "src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java"
+        ],
+        "patch_notes": "Root cause: getPrefixLength() classified any path beginning with two separators as a UNC-style prefix, computing prefix length via indexOf(separator, 2)+1 without validating the host-name substring. When that substring was \".\" or \"..\", the traversal token was absorbed into the prefix, so doNormalize's dot-dot collapsing loop (starting at prefix+2) never evaluated it, and normalize returned the string unchanged instead of null. Fix: reject the path (return NOT_FOUND) when the host-name substring between the two leading separators and the next separator equals \".\" or \"..\". Added regression test testNormalize_rejectsDoubleSeparatorDotDotPrefix covering the PoV payload and bypass variants (backslash, mixed separators, deeper nesting, normalizeNoEndSeparator), plus confirmation that legitimate UNC paths still work.",
+        "regression_commands": [
+          "mvn -B -DskipTests package",
+          "mvn -B -Dtest=FilenameUtilsTestCase,FileSystemUtilsTestCase test",
+          "mvn -B test"
+        ],
+        "risk_notes": "Low risk, narrow fix. All FilenameUtils/FileSystemUtils tests pass (38/38, 28/28). Full suite has 4 pre-existing unrelated failures from running as root in the container, present before and after this change. Manually confirmed the alert PoV now reports SAFE after patch.",
+        "status": "patched",
+        "summary": "Fixed CVE-2021-29425-class path traversal in FilenameUtils.getPrefixLength(): a leading double-separator (UNC-style) prefix whose host-name component is \".\" or \"..\" is now rejected, so normalize()/normalizeNoEndSeparator() correctly return null for payloads like \"//../secret.txt\", matching existing behavior for \"/../secret.txt\". Closes the root-cause defect shared by every trace in the alert."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 2.1142,
+    "num_turns": 56,
+    "agent_duration_ms": 578971
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log",
+      "regression_3.log"
+    ]
+  }
+}

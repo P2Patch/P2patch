@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2016-3186",
+  "note": "readextension() (tools/gif2tiff.c) reads a GIF extension sub-block length one byte at a time with `(void) getc(infile); while ((count = getc(infile)) && count <= 255) if (fread(buf, 1, count, infile) != (size_t) count) {...}`, where `int count` and `char buf[255]` are both local to the function. `getc()` returns `EOF` (-1 on any POSIX platform) once the file is truncated or malformed at this exact point in the stream, and the loop's only guard, `count <= 255`, is true for -1 exactly as it is for any in-range byte -- there is no lower bound. `fread`'s third parameter is `size_t`, so the `(size_t) count` cast (and fread()'s own internal size_t coercion of its size argument) turns -1 into SIZE_MAX/an enormous unsigned length, and `fread(buf, 1, count, infile)` is handed that length with only the 255-byte stack buffer `buf` behind it -- a stack buffer overflow. On a crafted GIF whose extension block is truncated right after its introducer byte, getc(infile) at the crash-triggering iteration returns EOF, and fread() aborts under glibc FORTIFY_SOURCE (__chk_fail) or reports an ASan stack-buffer-overflow, rather than a raw segfault, because the write is caught before it corrupts adjacent stack memory undetected. The rest of readextension()'s body has no other bounds issue: the only other read is the initial `(void) getc(infile)` whose result is discarded (not used as a size), and buf's capacity (255 bytes) exactly matches the loop's upper bound (count <= 255).",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "(void) getc(infile); while ((count = getc(infile)) && count <= 255) : `count` (declared `int`) is read one byte at a time from the attacker-supplied GIF's extension sub-block; the loop's only guard upper-bounds count against 255 and never lower-bounds it, so getc()'s EOF return (-1) on a truncated/malformed stream passes the condition exactly like any in-range byte would",
+            "uri": "tools/gif2tiff.c",
+            "line": 352
+          },
+          {
+            "message": "if (fread(buf, 1, count, infile) != (size_t) count) { : `buf` is a 255-byte stack array (`char buf[255]`); fread's size argument is `count`, coerced to size_t both here and internally by fread itself -- when count is -1 this becomes SIZE_MAX/an enormous unsigned length, and fread is handed that length with only 255 bytes of real stack storage behind it -- CWE-119 stack buffer overflow",
+            "uri": "tools/gif2tiff.c",
+            "line": 353
+          }
+        ]
+      ]
+    }
+  ]
+}

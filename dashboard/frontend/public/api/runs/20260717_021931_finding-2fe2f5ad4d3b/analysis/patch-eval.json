@@ -1,0 +1,130 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:41:17.229654+00:00",
+    "finished_at": "2026-07-17T08:47:00.125414+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 1,
+        "rationale": "Empirically disproven: I compiled and ran the official CVE POV against our patched worktree and it still reproduces in DOM mode — the exact path named by the taint trace.",
+        "evidence": "Ran upstream payloads against /tmp/pe_ours (our patch): POVRESULT|case1-xhtml-true|DOM|VULNERABLE=true|out=<style><![CDATA[b {}</style><a href=javascript:alert(1)>test]]></style> and POVRESULT|case2-xhtml-false|DOM|VULNERABLE=true|out=<select><style>W {}<script>alert(1)</script></style></select>. Same harness with the official fix applied to a pristine tree: all four probes VULNERABLE=false.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 1,
+        "rationale": "The flaw is in AntiSamyDOMScanner.processStyleTag, which scans only ele.getFirstChild().getNodeValue(); our patch never touches that method and instead guards CssValidator, a sink the payload never reaches.",
+        "evidence": "Confirmed in patched worktree: AntiSamyDOMScanner.java:410 still reads `Node firstChild = ele.getFirstChild();` unchanged. Sibling text nodes are never handed to CssScanner/CssValidator, so CssValidator.containsHtmlMetacharacters (CssValidator.java:360,380,429) never inspects the smuggled `</style><a href=javascript:...>` markup.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 1,
+        "rationale": "The single real exploit path for this CVE is entirely unaddressed; the patch closes only a hypothetical hardening gap that requires an integrator-supplied permissive policy regex.",
+        "evidence": "structural overlap jaccard=0.0, covers_all_official=false; official_only=[AntiSamyDOMScanner.java], ours_only=[CssValidator.java]. Both official POV cases still fire in DOM mode post-patch.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 1,
+        "rationale": "Different file, method, and defensive strategy, and — decisively — it does not achieve the official fix's security effect on the reference POV.",
+        "evidence": "Official fix rewrites processStyleTag to concatenate all child nodes' getTextContent(), scan them together, then remove children 1..n. Our patch adds a '<'/'>' token blocklist in CssValidator.lexicalValueToString's SAC_STRING_VALUE/SAC_IDENT/SAC_URI branches. No overlap in mechanism or outcome.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "No regressions: the entire suite passes against our patch; only a minor, arguably-intended over-restriction for custom permissive policies.",
+        "evidence": "Ran JUnitCore over TagMatcherTest, AntiSamyTest, LiteralTest, PolicyTest, TagTest against our patch in the pipeline builder image: 'OK (88 tests)'. AntiSamyTest alone: 'OK (67 tests)', including the patcher's own added testCssValueCannotSmuggleMarkup.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Introduces no new weakness — returning null flows into the existing 'value == null -> invalid property' handling, and the check uses indexOf (no regex, so no ReDoS).",
+        "evidence": "CssValidator.java:429 `containsHtmlMetacharacters` uses value.indexOf('<')/indexOf('>'); null-return at lines 360/380 reuses the pre-existing null contract already returned by the method's `default:` branch. 88/88 tests pass, so no null-consumer crash surfaced.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "The diff is small and tightly localized, but it is localized in the wrong place, and it adds a test that enshrines non-CVE behavior.",
+        "evidence": "34 added lines in CssValidator.java plus a 34-line test in AntiSamyTest.java; the correct fix is ~20 lines confined to AntiSamyDOMScanner.processStyleTag (lines 403-446), which the patch never opens.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "For CWE-079 the defense-of-record is context-aware output encoding at the sink or a safe auto-escaping serializer; this is an input-side character blocklist applied at a node the payload bypasses entirely.",
+        "evidence": "containsHtmlMetacharacters() denylists only '<' and '>' on decoded CSS tokens (CssValidator.java:429). The official fix instead ensures all <style> child text is routed through the CSS sanitizer and collapsed to one node, so nothing can bypass the sink — a structural fix, not a character filter.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_wrong",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "The patch does not fix CVE-2022-28367. I compiled the patched worktree in the pipeline's own builder image and ran the upstream fix commit's POV payloads: DOM mode still emits `<style><![CDATA[b {}</style><a href=javascript:alert(1)>test]]></style>`. Because <style> is an HTML5 raw-text element, its content ends at the first `</style>`, making the following `<a href=javascript:alert(1)>` live, executable markup. The second payload likewise leaks `<script>alert(1)</script>` past the sanitizer. Applying the official fix to a pristine tree and re-running the identical harness yields VULNERABLE=false on all four probes, confirming the harness is sound and the gap is our patch's."
+      },
+      {
+        "severity": "high",
+        "description": "Root cause untouched. The flaw is that AntiSamyDOMScanner.processStyleTag (line 410) reads and sanitizes only `ele.getFirstChild().getNodeValue()`. When the HTML parser splits a <style> element's content into multiple child nodes, every sibling node after the first is never passed to CssScanner and is serialized verbatim into the output. Our patch hardens CssValidator.lexicalValueToString — a sink the attacker payload never traverses, since the smuggled markup is never fed to the CSS parser in the first place. The guard is therefore unreachable for this attack class."
+      },
+      {
+        "severity": "medium",
+        "description": "The run's 'accepted' status is not evidence of a fix and should not be read as one. verdict.json shows profile='baseline' with reason 'Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate)'; git/pov.diff is empty and regressions_ran=0. Thus pov_before_reproduced=false only means no POV was ever generated, not that the vulnerability was absent or closed. The patch was accepted with zero exploit validation."
+      },
+      {
+        "severity": "medium",
+        "description": "The patcher's own added test (testCssValueCannotSmuggleMarkup) passes but provides false assurance: it constructs a deliberately permissive custom `.*` font-family policy to manufacture a scenario the bundled policies already exclude via their value regexes. It asserts a hardening property unrelated to the CVE, so a green suite masks the fact that the real vulnerability is untouched. The patcher's summary claim of having 'root-caused the CWE-079 CSS-to-output XSS' is incorrect for this CVE."
+      },
+      {
+        "severity": "low",
+        "description": "Minor over-restriction: any CSS string, identifier, or url() token whose decoded value contains a literal '<' or '>' now causes the entire property to be dropped. This is benign for all bundled policies (88/88 tests pass) and is arguably desirable hardening, but it is a silent behavior change for integrators with permissive custom value regexes."
+      }
+    ],
+    "root_cause": "AntiSamyDOMScanner.processStyleTag sanitizes only the <style> element's first child node (`ele.getFirstChild().getNodeValue()`), so when the HTML parser splits the element's content into multiple child nodes, every sibling node bypasses the CSS sanitizer entirely and is serialized verbatim into the output, letting an attacker smuggle a premature `</style>` plus live markup past the sanitizer.",
+    "summary": "This patch does not fix the vulnerability. I verified empirically — compiling the patched worktree in the pipeline's own builder image and running the upstream fix commit's POV payloads — that both official cases still reproduce in DOM mode, the exact path named by the taint trace, yielding a live `<a href=javascript:alert(1)>` after a smuggled `</style>` break-out; the same harness against the official fix returns clean output on all probes. The root cause is that processStyleTag scans only the <style> tag's first child node, so sibling nodes never reach the CSS parser at all; our patch instead adds a '<'/'>' blocklist inside CssValidator.lexicalValueToString, defending a sink the payload never traverses, and it leaves AntiSamyDOMScanner.java:410 untouched. The patch is regression-free (88/88 tests pass) and harmless, but it is security-ineffective: it fixes a hypothetical hardening gap reachable only via an integrator-supplied permissive policy regex, while the CVE remains fully exploitable. Note that the run's 'accepted' status carries no weight here — it is a baseline-profile run with an empty pov.diff and zero regressions executed.",
+    "overall": {
+      "mean": 2.12,
+      "score": 42,
+      "band": "bad",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "CssValidator.java"
+      ],
+      "official_only": [
+        "AntiSamyDOMScanner.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+      ],
+      "commits": [
+        "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+      ]
+    }
+  }
+}

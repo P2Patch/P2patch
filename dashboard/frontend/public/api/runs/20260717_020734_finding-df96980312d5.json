@@ -1,0 +1,283 @@
+{
+  "run_id": "20260717_020734_finding-df96980312d5",
+  "finding_id": "finding-df96980312d5",
+  "timestamp": "2026-07-17T02:07:34",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_020734_finding-df96980312d5",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-df96980312d5",
+    "cve_id": "CVE-2020-35460",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "joniles__mpxj_CVE-2020-35460_8.3.4",
+    "alert_file": "JONILES_MPXJ_CVE_2020_35460.json",
+    "github_url": "https://github.com/joniles/mpxj",
+    "repo": "joniles/mpxj",
+    "github_tag": "8.3.4",
+    "advisory_id": "GHSA-p9j6-4pjr-gp48",
+    "buggy_commit_id": "87ea0ba33e901b87c95a18e3703ac51b59e2ee04",
+    "fix_commit_ids": [
+      "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d",
+        "file": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java",
+        "class": "InputStreamHelper",
+        "class_start": "37.0",
+        "class_end": "115.0",
+        "method": "processZipStream",
+        "method_start": "115.0",
+        "method_end": "146.0",
+        "signature": "void processZipStream(File,InputStream)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2020-35460",
+      "advisory": "https://github.com/advisories/GHSA-p9j6-4pjr-gp48",
+      "repo": "https://github.com/joniles/mpxj",
+      "buggy_commit": "https://github.com/joniles/mpxj/commit/87ea0ba33e901b87c95a18e3703ac51b59e2ee04"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 126,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 126,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 129,
+              "message": "file : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 95,
+              "message": "file : File",
+              "uri": "src/main/java/net/sf/mpxj/common/FileHelper.java"
+            },
+            {
+              "line": 99,
+              "message": "file",
+              "uri": "src/main/java/net/sf/mpxj/common/FileHelper.java"
+            }
+          ],
+          [
+            {
+              "line": 126,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 126,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 133,
+              "message": "file : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 133,
+              "message": "getParentFile(...) : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 136,
+              "message": "parent : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 95,
+              "message": "file : File",
+              "uri": "src/main/java/net/sf/mpxj/common/FileHelper.java"
+            },
+            {
+              "line": 99,
+              "message": "file",
+              "uri": "src/main/java/net/sf/mpxj/common/FileHelper.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 126,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 126,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 133,
+              "message": "file : File",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            },
+            {
+              "line": 139,
+              "message": "file",
+              "uri": "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-df96980312d5",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_020734_finding-df96980312d5/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-df96980312d5:1613738e8944",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/joniles__mpxj_[redacted]_8.3.4/16/Dockerfile",
+        "-t",
+        "simpleautosec-finding-df96980312d5:1613738e8944",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/joniles__mpxj_[redacted]_8.3.4/16"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 143711,
+        "duration_api_ms": 122245,
+        "num_turns": 24,
+        "cost_usd": 0.6803840999999999,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 42,
+          "output": 10387,
+          "cache_read": 884137,
+          "cache_creation": 43202
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/net/sf/mpxj/common/InputStreamHelper.java",
+          "src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java"
+        ],
+        "patch_notes": "Introduced a private helper `validateZipEntryPath(File dir, String entryName)` in InputStreamHelper that: (1) resolves `new File(dir, entryName)`, (2) computes canonical paths for both the extraction directory and the resolved file, and (3) throws an IOException if the resolved canonical path is not equal to, or contained within, the canonical extraction directory. `processZipStream` now calls this helper instead of constructing the File directly, so the single validated `File` instance flows into both the directory-creation branch (isDirectory / parent mkdirs) and the file-write branch (FileOutputStream), closing all three sink traces reported in the alert with one root-cause fix. Also added `InputStreamHelperTest` with regression tests: (a) a \"../\" relative traversal entry is rejected and no file is written outside the temp dir, (b) a deep \"../../.../<absolute-path>\" traversal entry is also rejected, and (c) a normal nested-subdirectory zip entry still extracts correctly, to guard against regressing legitimate zip extraction.",
+        "regression_commands": [
+          "mvn -B test -Dtest=InputStreamHelperTest -DfailIfNoTests=false"
+        ],
+        "risk_notes": "Low risk: the change only tightens validation at the extraction sink and does not alter behavior for well-formed zip entries (entries whose names resolve inside the target directory continue to work exactly as before, confirmed by the added \"normal extraction\" test and by the full `mvn test` run showing no new failures). A crafted zip with a traversal entry now causes an IOException to propagate out of `writeZipStreamToTempDir` (it is not a `ZipException`, so it is not swallowed by the existing zero-byte-entry tolerance logic) — this is an intentional behavior change: callers that previously silently got a partially-extracted or escaped write will now see extraction abort with an exception, which is the correct fail-closed behavior for a path-traversal attempt. Ran the full existing test suite via the Docker wrapper; the only failures observed (BST/UTC timezone string mismatches in MppFilterTest/MppAutoFilterTest and \"Failed to load JDBC driver\" errors in several Mpd*/JDBC-backed tests) are pre-existing environment issues in this container (timezone and missing JDBC driver) unrelated to this change — none touch InputStreamHelper or zip extraction paths.",
+        "status": "patched",
+        "summary": "Fixed a Zip Slip / path traversal vulnerability (CWE-22) in InputStreamHelper.processZipStream(). Zip entry names from an untrusted input stream were used directly to build extraction target paths via `new File(dir, entry.getName())`, so entries containing \"../\" sequences (or absolute-looking paths that, when combined with relative segments, resolve outside the target) could cause files to be written outside the intended temporary extraction directory. Added a canonical-path containment check (validateZipEntryPath) that resolves each entry against the extraction directory and throws IOException if the resulting canonical path escapes that directory, before any mkdir or file write happens — this covers both the directory-creation sink (line 129/136) and the file-write sink (line 139) since both now consume the validated File."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.6804,
+    "num_turns": 24,
+    "agent_duration_ms": 143711
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

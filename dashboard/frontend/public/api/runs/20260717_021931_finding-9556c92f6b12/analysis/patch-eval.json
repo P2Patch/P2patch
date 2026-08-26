@@ -1,0 +1,112 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:13.559116+00:00",
+    "finished_at": "2026-07-17T15:41:48.382220+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalizes both dir and target then rejects any entry resolving outside — closes the whole zip-slip class, not just the observed payload.",
+        "evidence": "Expand.java extractFile: canonicalDestPath.startsWith(canonicalDirPath) guard with getCanonicalPath()",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the single sink (extractFile, right after resolveFile) through which every taint trace passes, before any write.",
+        "evidence": "Check inserted immediately after `File f = FileUtils.resolveFile(dir, entryName)`, gating lines 156/169/178",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "All four traces funnel through extractFile; guarding it covers every path and, via canonicalization, encoding/`..` bypass variants.",
+        "evidence": "taint traces all end at Expand.java:153 resolveFile → extractFile write sink",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy and location as official (startsWith containment check in extractFile), with stronger primitive.",
+        "evidence": "Official: f.getAbsolutePath().startsWith(dir.getAbsolutePath()); ours: getCanonicalPath()+File.separator",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Normal nested entries still extract; added test asserts safe/inner.txt is written. IOException from getCanonicalPath handled by existing try.",
+        "evidence": "testExpandAllowsNormalZipEntry passes; pov_after_still_reproduces=false",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses canonicalization (resolves symlinks) plus trailing separator, avoiding the sibling-prefix false-accept present in the official absolute-path version; no ReDoS/injection introduced.",
+        "evidence": "canonicalDirPath = dir.getCanonicalPath() + File.separator",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized 10-line production guard at the correct method; remainder is an added test only.",
+        "evidence": "Single hunk in Expand.java extractFile",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-to-real-path then verify inside base dir — the CWE-022 defense-of-record, stronger than the official getAbsolutePath check which neither resolves symlinks nor `..`.",
+        "evidence": "getCanonicalPath() containment check with File.separator boundary",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Pipeline reports regressions_ran=0 and pov_before_reproduced=false, so the fix's efficacy and regression-safety were not empirically confirmed by execution; judgment rests on code analysis. Logic is sound but unverified by the harness."
+      }
+    ],
+    "root_cause": "extractFile writes a zip entry to a path built from attacker-controlled entry names without verifying the resolved file stays within the destination directory, allowing `../` traversal (Zip Slip) outside the target.",
+    "summary": "Our patch places a containment guard at the exact sink (extractFile) that every taint trace flows through, canonicalizing both the destination dir and the resolved file and rejecting any entry that escapes. It is semantically equivalent to the official fix but strictly stronger: getCanonicalPath resolves symlinks and `..`, and appending File.separator prevents the sibling-prefix bypass (e.g. /out vs /out-evil) that the official getAbsolutePath().startsWith() check would miss. Normal extraction is preserved. The only caveat is that the pipeline did not empirically run the POV-before or regressions, so efficacy is established by code analysis rather than execution.",
+    "overall": {
+      "mean": 5.0,
+      "score": 100,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Expand.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/Expand.java"
+      ],
+      "commits": [
+        "33a2853df8185b4519b1b8bfae284f03392618ef"
+      ]
+    }
+  }
+}

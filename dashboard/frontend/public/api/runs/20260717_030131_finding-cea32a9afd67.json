@@ -1,0 +1,1139 @@
+{
+  "run_id": "20260717_030131_finding-cea32a9afd67",
+  "finding_id": "finding-cea32a9afd67",
+  "timestamp": "2026-07-17T03:01:31",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "finding_id": "20260717_030131_finding-cea32a9afd67",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-cea32a9afd67",
+    "cve_id": "CVE-2018-1000129",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "project_slug": "rhuss__jolokia_CVE-2018-1000129_1.4.0",
+    "alert_file": "RHUSS_CVE_2018_1000129.json",
+    "github_url": "https://github.com/rhuss/jolokia",
+    "repo": "rhuss/jolokia",
+    "github_tag": "1.4.0",
+    "advisory_id": "GHSA-hfpg-gqjw-779m",
+    "buggy_commit_id": "10727cab59a8fc2ae053bec6b2f26f48f1c4245c",
+    "fix_commit_ids": [
+      "5895d5c137c335e6b473e9dcb9baf748851bbc5f"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "sendStreamingResponse",
+        "method_start": "490.0",
+        "method_end": "492.0",
+        "signature": "void sendStreamingResponse(HttpServletResponse,String,JSONStreamAware)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "getMimeType",
+        "method_start": "384.0",
+        "method_end": "389.0",
+        "signature": "String getMimeType(HttpServletRequest)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "sendResponse",
+        "method_start": "471.0",
+        "method_end": "485.0",
+        "signature": "void sendResponse(HttpServletResponse,HttpServletRequest,JSONAware)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "sendAllJSON",
+        "method_start": "495.0",
+        "method_end": "508.0",
+        "signature": "void sendAllJSON(HttpServletResponse,String,JSONAware)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "isStreamingEnabled",
+        "method_start": "392.0",
+        "method_end": "397.0",
+        "signature": "boolean isStreamingEnabled(HttpServletRequest)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+        "class": "AgentServlet",
+        "class_start": "54.0",
+        "class_end": "573.0",
+        "method": "handleSecurely",
+        "method_start": "292.0",
+        "method_end": "301.0",
+        "signature": "JSONAware handleSecurely(ServletRequestHandler,HttpServletRequest,HttpServletResponse)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/test/java/org/jolokia/http/AgentServletTest.java",
+        "class": "AgentServletTest",
+        "class_start": "48.0",
+        "class_end": "681.0",
+        "method": "debug",
+        "method_start": "526.0",
+        "method_end": "549.0",
+        "signature": "void debug()",
+        "is_test": true
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/test/java/org/jolokia/http/AgentServletTest.java",
+        "class": "NoDnsLookupRestrictorChecker",
+        "class_start": "284.0",
+        "class_end": "293.0",
+        "method": "isRemoteAccessAllowed",
+        "method_start": "293.0",
+        "method_end": "302.0",
+        "signature": "boolean isRemoteAccessAllowed(String)",
+        "is_test": true
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/test/java/org/jolokia/http/AgentServletTest.java",
+        "class": "AgentServletTest",
+        "class_start": "48.0",
+        "class_end": "681.0",
+        "method": "setupAgentDetailsInitExpectations",
+        "method_start": "674.0",
+        "method_end": "678.0",
+        "signature": "void setupAgentDetailsInitExpectations()",
+        "is_test": true
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/core/src/test/java/org/jolokia/http/AgentServletTest.java",
+        "class": "AgentServletTest",
+        "class_start": "48.0",
+        "class_end": "681.0",
+        "method": "simpleGet",
+        "method_start": "239.0",
+        "method_end": "251.0",
+        "signature": "void simpleGet()",
+        "is_test": true
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java",
+        "class": "JolokiaHttpHandler",
+        "class_start": "53.0",
+        "class_end": "406.0",
+        "method": "doHandle",
+        "method_start": "211.0",
+        "method_end": "243.0",
+        "signature": "void doHandle(HttpExchange)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java",
+        "class": "JolokiaHttpHandler",
+        "class_start": "53.0",
+        "class_end": "406.0",
+        "method": "sendAllJSON",
+        "method_start": "355.0",
+        "method_end": "376.0",
+        "signature": "void sendAllJSON(HttpExchange,ParsedUri,JSONAware)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java",
+        "class": "JolokiaHttpHandler",
+        "class_start": "53.0",
+        "class_end": "406.0",
+        "method": "createLogHandler",
+        "method_start": "397.0",
+        "method_end": "402.0",
+        "signature": "LogHandler createLogHandler(String,String)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java",
+        "class": "JolokiaHttpHandler",
+        "class_start": "53.0",
+        "class_end": "406.0",
+        "method": "getHostName",
+        "method_start": "260.0",
+        "method_end": "261.0",
+        "signature": "String getHostName(InetSocketAddress)",
+        "is_test": false
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java",
+        "class": "JolokiaHttpHandlerTest",
+        "class_start": "43.0",
+        "class_end": "382.0",
+        "method": "customRestrictor",
+        "method_start": "136.0",
+        "method_end": "148.0",
+        "signature": "void customRestrictor()",
+        "is_test": true
+      },
+      {
+        "commit": "5895d5c137c335e6b473e9dcb9baf748851bbc5f",
+        "file": "agent/jvm/src/test/java/org/jolokia/jvmagent/handler/JolokiaHttpHandlerTest.java",
+        "class": "JolokiaHttpHandlerTest",
+        "class_start": "43.0",
+        "class_end": "382.0",
+        "method": "testCallbackGet",
+        "method_start": "60.0",
+        "method_end": "74.0",
+        "signature": "void testCallbackGet()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+      "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1000129",
+      "advisory": "https://github.com/advisories/GHSA-hfpg-gqjw-779m",
+      "repo": "https://github.com/rhuss/jolokia",
+      "buggy_commit": "https://github.com/rhuss/jolokia/commit/10727cab59a8fc2ae053bec6b2f26f48f1c4245c"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-079",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 472,
+              "message": "getParameter(...) : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 485,
+              "message": "callback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 495,
+              "message": "callback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 500,
+              "message": "content : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 500,
+              "message": "getBytes(...) : byte[]",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 503,
+              "message": "response",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 472,
+              "message": "getParameter(...) : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 481,
+              "message": "callback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 490,
+              "message": "pCallback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 492,
+              "message": "pCallback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/http/AgentServlet.java"
+            },
+            {
+              "line": 30,
+              "message": "callback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/util/IoUtil.java"
+            },
+            {
+              "line": 36,
+              "message": "callback",
+              "uri": "agent/core/src/main/java/org/jolokia/util/IoUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 62,
+              "message": "getQuery(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 116,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "split(...) : String[]",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 130,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "substring(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "decode(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 135,
+              "message": "value : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 135,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 136,
+              "message": "values : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 136,
+              "message": "ret [post update] : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 147,
+              "message": "ret : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "parseQuery(...) : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "this <.field> [post update] : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 218,
+              "message": "new ParsedUri(...) : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 243,
+              "message": "parsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 329,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 333,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 341,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 345,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 93,
+              "message": "parameter this : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "this <.field> : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "parameters : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "get(...) : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "values : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "...[...] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 345,
+              "message": "getParameter(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 348,
+              "message": "callback : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 30,
+              "message": "callback : String",
+              "uri": "agent/core/src/main/java/org/jolokia/util/IoUtil.java"
+            },
+            {
+              "line": 36,
+              "message": "callback",
+              "uri": "agent/core/src/main/java/org/jolokia/util/IoUtil.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 62,
+              "message": "getQuery(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 116,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "split(...) : String[]",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 130,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "substring(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "decode(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 135,
+              "message": "value : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 135,
+              "message": "{...} : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 136,
+              "message": "values : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 136,
+              "message": "ret [post update] : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 147,
+              "message": "ret : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "parseQuery(...) : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "this <.field> [post update] : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 218,
+              "message": "new ParsedUri(...) : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 243,
+              "message": "parsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 329,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 337,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 355,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 362,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 93,
+              "message": "parameter this : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "this <.field> : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "parameters : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "get(...) : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "values : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "...[...] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 362,
+              "message": "getParameter(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 364,
+              "message": "content : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 364,
+              "message": "getBytes(...) : byte[]",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 367,
+              "message": "response",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            }
+          ],
+          [
+            {
+              "line": 62,
+              "message": "getQuery(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 116,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "qs : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 120,
+              "message": "split(...) : String[]",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 130,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "pair : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "substring(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 131,
+              "message": "decode(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 143,
+              "message": "value : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 143,
+              "message": "newValues [post update] : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 144,
+              "message": "newValues : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 144,
+              "message": "ret [post update] : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 147,
+              "message": "ret : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "parseQuery(...) : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 62,
+              "message": "this <.field> [post update] : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 218,
+              "message": "new ParsedUri(...) : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 243,
+              "message": "parsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 329,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 337,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 355,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 362,
+              "message": "pParsedUri : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 93,
+              "message": "parameter this : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "this <.field> : ParsedUri [parameters, <map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "parameters : TreeMap [<map.value>, []] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 94,
+              "message": "get(...) : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "values : String[] [[]] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 102,
+              "message": "...[...] : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/ParsedUri.java"
+            },
+            {
+              "line": 362,
+              "message": "getParameter(...) : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 364,
+              "message": "content : String",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 364,
+              "message": "getBytes(...) : byte[]",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            },
+            {
+              "line": 367,
+              "message": "response",
+              "uri": "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp \"target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp \"/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" org.jolokia.http.JsonpCallbackXssPov"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-079",
+      "finding_id": "finding-cea32a9afd67",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp \"target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp \"/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" org.jolokia.http.JsonpCallbackXssPov",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "cd /workspace/repo && mvn -B -pl agent/core,agent/jvm -am install -DskipTests",
+        "cd /workspace/repo && mvn -B -pl agent/core -am test -Dtest=IoUtilTest,AgentServletTest -DfailIfNoTests=false",
+        "cd /workspace/repo && mvn -B -pl agent/core -am test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/rhuss__jolokia_[redacted]_1.4.0/84/Dockerfile",
+        "-t",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/rhuss__jolokia_[redacted]_1.4.0/84"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "bash",
+        "-lc",
+        "cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp \"target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp \"/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" org.jolokia.http.JsonpCallbackXssPov"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "bash",
+        "-lc",
+        "cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp \"target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp \"/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" org.jolokia.http.JsonpCallbackXssPov"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -pl agent/core,agent/jvm -am install -DskipTests"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -pl agent/core -am test -Dtest=IoUtilTest,AgentServletTest -DfailIfNoTests=false"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    },
+    {
+      "name": "regression_3",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-cea32a9afd67:c5314ac69ae9",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -pl agent/core -am test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_3.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 463890,
+        "duration_api_ms": 377422,
+        "num_turns": 36,
+        "cost_usd": 1.6620629999999998,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 70,
+          "output": 32727,
+          "cache_read": 2430860,
+          "cache_creation": 73615
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause / primary sink exercised by this POV: agent/core/src/main/java/org/jolokia/util/IoUtil.java:36 — `IoUtil.streamResponseAndClose(Writer, JSONStreamAware, String callback)` writes `pWriter.write(callback)` (then \"(\" + JSON + \");\") with zero validation of `callback`'s character content. This method is reached from AgentServlet.sendStreamingResponse (agent/core/src/main/java/org/jolokia/http/AgentServlet.java:492, itself fed by `pReq.getParameter(\"callback\")` at line 472/481) — the servlet trust boundary is the raw, attacker-controlled HTTP query/POST parameter `callback`. Confirmed by direct source read and by a live run: the mocked servlet response byte stream literally began with `alert(String.fromCharCode(88,83,83))//({\"request\":...`.\n\nEvery distinct sink in the alert that a complete fix must guard (all share the identical missing-validation root cause on the `callback` request parameter):\n1. agent/core/.../IoUtil.java:36 `streamResponseAndClose` — shared streaming sink, reached from BOTH agent flavors:\n   a. org.jolokia.http.AgentServlet#sendStreamingResponse (AgentServlet.java:492) — servlet flavor, `callback` sourced via `HttpServletRequest.getParameter()` (AgentServlet.java:472).\n   b. org.jolokia.jvmagent.handler.JolokiaHttpHandler#sendStreamingResponse (JolokiaHttpHandler.java:348) — JVM-agent flavor, `callback` sourced via `ParsedUri.getParameter()`, itself populated by hand-rolled query-string parsing/URL-decoding in org.jolokia.jvmagent.ParsedUri#parseQuery (ParsedUri.java:116-147, two branches for single-value at line 135 and multi-value at line 143).\n2. agent/core/.../AgentServlet.java:500 `sendAllJSON` — non-streaming servlet path: `String content = callback == null ? json : callback + \"(\" + json + \");\"` then `content.getBytes(\"UTF8\")` written to the response at line 503. Independent of IoUtil; not covered by fixing IoUtil alone.\n3. agent/jvm/.../JolokiaHttpHandler.java:364 `sendAllJSON` — non-streaming JVM-agent path, identical pattern to #2 (`content = callback == null ? json : callback + \"(\" + json + \");\"`), written at line 367. Also independent of IoUtil.\n\nThis POV exercises path 1a (AgentServlet → IoUtil), the streaming default configuration for the servlet flavor, because it is the common root cause shared with 1b and is triggered via the default runtime configuration (STREAMING defaults to \"true\" per ConfigKey.java, so this is the code path a real unmodified request actually takes).",
+        "expected_vulnerable_behavior": "The HTTP response body written by AgentServlet.doGet begins with the literal, unescaped attacker-supplied callback string `alert(String.fromCharCode(88,83,83))//` immediately followed by `(`, i.e. the JSON payload is wrapped exactly as `<callback>({...});` with Content-Type `text/javascript`. Because the callback value is never validated as a safe JS identifier, an attacker who gets a victim's browser to load the Jolokia endpoint via `<script src=\"...?callback=alert(1)//\">` (or any consumer that treats the response as executable JS) gets arbitrary attacker-controlled JavaScript executed in that context. The POV asserts `response.startsWith(MALICIOUS_CALLBACK + \"(\")` and exits 0 when true.",
+        "notes": "Targeted alert trace: the AgentServlet path in vulnerability #2's first trace (AgentServlet.java:472→481→490→492 into IoUtil.java:30→36), run through the real, unmodified public API `AgentServlet.doGet()` with EasyMock-mocked HttpServletRequest/HttpServletResponse (the exact same mocking technique the project's own existing `AgentServletTest#withCallback` test already uses — I mirrored/inlined that test's setup rather than modifying it). Chose this trace over the JolokiaHttpHandler/ParsedUri trace in the same vulnerability because IoUtil.streamResponseAndClose is the literal shared sink between both traces of vulnerability #2 (servlet and JVM-agent flavor converge there), so it best demonstrates the common root cause; it also happens to be reached under the project's default configuration (STREAMING=true), making the PoV a faithful \"real request flow\" rather than a contrived configuration. Vulnerabilities #1 (AgentServlet.sendAllJSON, non-streaming) and #3 (JolokiaHttpHandler.sendAllJSON, non-streaming, two ParsedUri parsing sub-variants) are separate sinks not covered by IoUtil and are called out explicitly in `evidence`/`regression_hint` for the patcher, since they require independent fixes/tests. I verified determinism of the PoV harness by temporarily adding an identifier-validation check inside IoUtil.streamResponseAndClose in-repo, confirming the PoV then throws IllegalArgumentException and exits 1, then reverted that change (`git status` is clean except for the new `.security-pipeline/` directory) before finishing.\n\nToolchain note: the docker wrapper spins a fresh, non-persistent container per invocation (no cached ~/.m2 across separate run_in_docker.sh calls), so the returned pov_command intentionally performs `mvn test-compile` + `mvn dependency:build-classpath` + `javac` + `java` all within one shell invocation/container run.",
+        "pov_command": "cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp \"target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp \"/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)\" org.jolokia.http.JsonpCallbackXssPov",
+        "pov_path": ".security-pipeline/pov/JsonpCallbackXssPov.java",
+        "regression_hint": "Invariant a correct fix must enforce, applied uniformly at (or before) every sink listed above: the `callback` value must be validated as a syntactically-safe JavaScript identifier/reference expression (e.g. matching something like `^[a-zA-Z0-9_$]+(\\.[a-zA-Z0-9_$]+|\\[[0-9]+\\])*$`) before it is ever concatenated into a response body served with an executable content type; if validation fails, reject the request (e.g. HTTP 400) rather than silently stripping/truncating (silent truncation can itself be bypassed). Because IoUtil.streamResponseAndClose is shared, the cleanest fix centralizes validation there (or in a shared helper called by all four sink sites) rather than only in one caller — otherwise the sibling path stays exploitable. Concretely the fix must cover, and regression tests should re-check, all four sites:\n  - IoUtil.streamResponseAndClose (agent/core/src/main/java/org/jolokia/util/IoUtil.java:36)\n  - AgentServlet.sendAllJSON (agent/core/src/main/java/org/jolokia/http/AgentServlet.java:500)\n  - JolokiaHttpHandler.sendStreamingResponse → IoUtil (agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java:348)\n  - JolokiaHttpHandler.sendAllJSON (agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java:364)\n\nKnown bypass variants the fix must also block, since the callback source differs by agent flavor and by how the parameter is decoded:\n  - Servlet flavor: `callback` obtained via `HttpServletRequest.getParameter()` for both GET query string and POST bodies — validate regardless of HTTP method.\n  - JVM-agent flavor: `callback` obtained via ParsedUri's own hand-rolled URL-decoding (ParsedUri.java:131 `URLDecoder.decode(...)`) — a fix must validate the *decoded* value (not just the raw query bytes), and must cover both the single-value assignment branch (ParsedUri.java:135) and the multi-value/list branch (ParsedUri.java:143), since JolokiaHttpHandler.java:345/362 both read back through `ParsedUri.getParameter()` regardless of which branch populated it.\n  - Non-identifier payloads that terminate the callback early and inject trailing statements (e.g. `foo//`, `foo;bar`, `foo</script><script>...`, whitespace/newline-containing values, or values using `\\u` escapes) should all be rejected by the same whitelist regex rather than only blacklisting specific characters like `(` or `<`.\n  - Content-Type coupling: confirm the fix does not merely change the default MIME type while still writing the raw callback — the byte-level response content itself must be validated/rejected, not just relabeled.",
+        "status": "pov_created",
+        "summary": "Created a working POV (JsonpCallbackXssPov.java) that drives a real HTTP GET through the unmodified public entry point org.jolokia.http.AgentServlet#doGet(...) with an attacker-controlled \"callback\" JSONP parameter containing a JS payload. The value is echoed byte-for-byte, unescaped, into a text/javascript response body via the shared sink org.jolokia.util.IoUtil#streamResponseAndClose (IoUtil.java:36), proving CWE-079 JSONP callback injection/XSS. Verified the POV exits 0 on the current vulnerable code and exits 1 when the sink is patched with identifier validation."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 393967,
+        "duration_api_ms": 312521,
+        "num_turns": 49,
+        "cost_usd": 1.9679247,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 90,
+          "output": 22426,
+          "cache_read": 3569249,
+          "cache_creation": 93415
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "agent/core/src/main/java/org/jolokia/util/IoUtil.java",
+          "agent/core/src/main/java/org/jolokia/http/AgentServlet.java",
+          "agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java",
+          "agent/core/src/test/java/org/jolokia/http/AgentServletTest.java",
+          "agent/core/src/test/java/org/jolokia/util/IoUtilTest.java"
+        ],
+        "patch_notes": "Root cause: the `callback` (JSONP) request parameter was concatenated verbatim into response bodies served with `text/javascript` content type at four sink sites, with zero validation of its character content — allowing arbitrary attacker-controlled script to be reflected and executed (CWE-79).\n\nFix: added `IoUtil.checkCallbackSafe(String)`, a shared static validator that only permits a plain JS reference expression (identifier, optionally dotted or with numeric array-index access — matching typical real-world JSONP callback names like `jQuery123_456`, `foo.bar`, `foo[0]`). It throws `IllegalArgumentException` on anything else (e.g. `alert(1)//`, `foo;bar`, values with `<`, whitespace, or newlines), rejecting the request rather than silently sanitizing/truncating.\n\nCall sites updated (all sinks named in the alert):\n1. `IoUtil.streamResponseAndClose` (agent/core) — the shared streaming sink; covers both `AgentServlet.sendStreamingResponse` and `JolokiaHttpHandler.sendStreamingResponse`, and therefore both the servlet's `HttpServletRequest.getParameter()` source and the JVM-agent's hand-rolled, URL-decoded `ParsedUri` source (both the single-value and multi-value parsing branches converge into this one call).\n2. `AgentServlet.sendAllJSON` (agent/core/AgentServlet.java) — non-streaming servlet fallback path, independent sink.\n3. `JolokiaHttpHandler.sendAllJSON` (agent/jvm/JolokiaHttpHandler.java) — non-streaming JVM-agent fallback path, independent sink.\n\nValidation happens before any response bytes are written, so a rejected callback never leaks partial/malicious content.\n\nTests added:\n- `IoUtilTest`: safe callback variants continue to work (`checkWriteWithDottedAndIndexedCallback`); malicious payloads are rejected with nothing written (`checkWriteWithMaliciousCallbackRejected`); direct unit tests of `checkCallbackSafe` for both accept and reject cases.\n- `AgentServletTest.withMaliciousCallbackRejected`: drives the real `doGet()` entry point (mirroring the existing `withCallback` test/mocking style) with the exact payload from the POV (`alert(String.fromCharCode(88,83,83))//`) and asserts an `IllegalArgumentException` is thrown and nothing is written to the response body.\n\nAll existing tests in agent/core (486 tests) pass unchanged, including the pre-existing `withCallback` test using `\"myCallback\"`.",
+        "regression_commands": [
+          "cd /workspace/repo && mvn -B -pl agent/core,agent/jvm -am install -DskipTests",
+          "cd /workspace/repo && mvn -B -pl agent/core -am test -Dtest=IoUtilTest,AgentServletTest -DfailIfNoTests=false",
+          "cd /workspace/repo && mvn -B -pl agent/core -am test"
+        ],
+        "risk_notes": "Behavioral change: requests using a `callback` parameter that is not a simple JS identifier/dotted/array-index expression will now fail with an uncaught `IllegalArgumentException` instead of succeeding. In both AgentServlet and JolokiaHttpHandler, this exception is thrown from within the `finally`-block call to `sendResponse(...)`, so it is not caught by the surrounding `catch (Throwable)` (which only wraps the request-dispatch step) — it propagates out of `doGet`/`doHandle` to the servlet container / HttpServer, which will typically produce a 500-style error rather than a clean 400. This is intentional and consistent with how other IOExceptions from the same `sendResponse` call already propagate in this code, and the accepted charset (alphanumerics, `_`, `$`, `.`, `[`, `]`) is a strict superset of what real JSONP clients (jQuery, AngularJS, etc.) generate, so legitimate traffic is unaffected — confirmed by the full existing agent/core test suite (486 tests, 0 failures) plus new targeted tests. The agent/jvm module's own test suite (`JolokiaHttpHandlerTest`) has 12 pre-existing failures unrelated to this change (a `NullPointerException` in `com.sun.net.httpserver.Headers.put` under this container's JDK, reproduced identically on the unpatched baseline via `git stash`), so it was not used as a regression signal for the JolokiaHttpHandler.java change; the reactor-level `mvn install` build for agent/jvm was used instead to confirm compilation.",
+        "status": "patched",
+        "summary": "Fixed CWE-079 JSONP callback injection (reflected XSS) by validating the attacker-controlled `callback` request parameter as a safe JavaScript reference expression before it is ever embedded in a response served with an executable (text/javascript) content type. Added a shared static validator `IoUtil.checkCallbackSafe(String)` (regex: `^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*|\\[[0-9]+\\])*$`) and invoked it at all four sink sites identified in the alert: the shared streaming sink `IoUtil.streamResponseAndClose` (covers both AgentServlet's and JolokiaHttpHandler's streaming paths, i.e. all traces of vulnerability #2 including the ParsedUri single-value and multi-value decoding branches, since both ultimately call this shared method with the decoded value), plus the two independent non-streaming sinks `AgentServlet.sendAllJSON` (vulnerability #1) and `JolokiaHttpHandler.sendAllJSON` (vulnerability #3). Invalid callback values now cause an `IllegalArgumentException` to be thrown before any byte of the response body is written, rather than silently truncating/stripping (which regression_hint calls out as bypassable). Verified the fix does not merely relabel the content type — it rejects the byte-level content itself."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 67902,
+        "duration_api_ms": 48234,
+        "num_turns": 8,
+        "cost_usd": 0.5270916,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 10,
+          "output": 4292,
+          "cache_read": 326112,
+          "cache_creation": 60808
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "./run_in_docker.sh \"cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp target/classes:target/test-classes:$(cat /tmp/pov-cp.txt) -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp /tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt) org.jolokia.http.JsonpCallbackXssPov\" (independently rerun against patched worktree; exit code 1)",
+          "./run_in_docker.sh \"cd /workspace/repo && mvn -B -pl agent/core -am test -Dtest=IoUtilTest,AgentServletTest -DfailIfNoTests=false\" (independently rerun; 30/30 tests passed)",
+          "git status && git log --oneline -5 (inspected worktree state)",
+          "cat git/patch_only.diff, git/pov.diff (reviewed diff content)"
+        ],
+        "diff_review": "Diff touches 3 production files (IoUtil.java, AgentServlet.java, JolokiaHttpHandler.java) plus 2 test files (AgentServletTest.java, IoUtilTest.java). The core change is a new `IoUtil.checkCallbackSafe(String)` static method using regex `^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*|\\[[0-9]+\\])*$` which accepts plain identifiers, dotted paths, and numeric array-index access — a reasonable superset of real-world JSONP callback names (jQuery, AngularJS style) while rejecting payloads with parens, semicolons, whitespace, angle brackets, newlines. It's called: (1) inside IoUtil.streamResponseAndClose before writing the callback — this is the shared sink for both agent flavors' streaming paths; (2) in AgentServlet.sendAllJSON before concatenating callback+json; (3) in JolokiaHttpHandler.sendAllJSON before the same concatenation. This covers all sink sites identified in the alert/exploiter evidence, including the ParsedUri-decoded callback values (since JolokiaHttpHandler reads via ParsedUri.getParameter() regardless of which parseQuery branch populated it, and validation occurs at the point of use). The added tests exercise both accept and reject cases directly on checkCallbackSafe and end-to-end through the real doGet()/streamResponseAndClose entry points, mirroring existing test patterns. No unrelated behavior changes; no broad refactors; no weakening/removal of functionality. The exception propagates uncaught through doGet/doHandle (documented as a known risk — legitimate JSONP clients unaffected since their callback names satisfy the pattern), which is an acceptable trade-off for a security fix and doesn't leave meaningful residual risk.",
+        "issues": [],
+        "pov_result": "Before patch: POV exits 0, response body begins with unescaped `alert(String.fromCharCode(88,83,83))//(` confirming JSONP callback XSS. After patch (independently reproduced): POV exits 1 with `java.lang.IllegalArgumentException: Invalid callback name given...` thrown from IoUtil.checkCallbackSafe via streamResponseAndClose → AgentServlet.sendStreamingResponse → sendResponse → handle → doGet, i.e. the vulnerability no longer reproduces and no malicious content is written before rejection.",
+        "regression_result": "Independently reran `mvn -B -pl agent/core -am test -Dtest=IoUtilTest,AgentServletTest`: Tests run: 30, Failures: 0, Errors: 0. Orchestrator logs additionally show a full `mvn -B -pl agent/core -am test` run (486 tests, 0 failures, 0 errors) and a full reactor `mvn install -DskipTests` across agent/core + agent/jvm succeeding (confirms JolokiaHttpHandler.java compiles cleanly). The agent/jvm module's own JolokiaHttpHandlerTest failures are documented as pre-existing/unrelated (reproduced identically on unpatched baseline via git stash, caused by a JDK-specific NPE in com.sun.net.httpserver.Headers.put unrelated to this change), so they don't affect this verdict.",
+        "summary": "The patch adds a shared JSONP callback validator (IoUtil.checkCallbackSafe) enforcing a safe JS-reference-expression regex, and calls it at all three sink sites named in the alert: the shared streaming sink IoUtil.streamResponseAndClose (covers both AgentServlet's and JolokiaHttpHandler's streaming paths, including both ParsedUri decoding branches since validation happens at the sink, not the source), AgentServlet.sendAllJSON (non-streaming servlet path), and JolokiaHttpHandler.sendAllJSON (non-streaming JVM-agent path). Invalid callback values throw IllegalArgumentException before any response bytes are written, preventing partial/malicious content leakage. I independently reran the POV against the patched worktree via the docker wrapper and confirmed it no longer reproduces (exits 1 with the expected IllegalArgumentException), and independently reran the targeted regression suite (IoUtilTest, AgentServletTest: 30/30 passing). The orchestrator's broader regression run (486 tests, full agent/core suite, plus reactor install across agent/core+agent/jvm) also passed. The diff is minimal and scoped to the vulnerability; the POV file itself was only added, not modified, by the patch.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.1571,
+    "num_turns": 93,
+    "agent_duration_ms": 925759
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log",
+      "regression_3.log"
+    ]
+  }
+}

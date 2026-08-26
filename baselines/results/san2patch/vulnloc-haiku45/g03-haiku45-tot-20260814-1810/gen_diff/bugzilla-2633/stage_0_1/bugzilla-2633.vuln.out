@@ -1,0 +1,103 @@
+TIFFReadDirectoryCheckOrder: Warning, Invalid TIFF directory; tags are not sorted in ascending order.
+TIFFFetchNormalTag: Warning, IO error during reading of "YResolution"; tag ignored.
+TIFFFetchNormalTag: Warning, IO error during reading of "Software"; tag ignored.
+=================================================================
+==2375190==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x6020000001b2 at pc 0x7f1202c8077a bp 0x7fff85aef200 sp 0x7fff85aee9a8
+WRITE of size 4 at 0x6020000001b2 thread T0
+    #0 0x7f1202c80779  (/usr/lib/x86_64-linux-gnu/libasan.so.4+0x79779)
+    #1 0x56527be89417 in _TIFFmemcpy /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/libtiff/tif_unix.c:340
+    #2 0x56527be9b609 in DumpModeDecode /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/libtiff/tif_dumpmode.c:103
+    #3 0x56527be78c34 in TIFFReadScanline /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/libtiff/tif_read.c:304
+    #4 0x56527be2cedf in PSDataColorContig /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:2452
+    #5 0x56527be2c969 in PSpage /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:2347
+    #6 0x56527be28d51 in TIFF2PS /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:1606
+    #7 0x56527be231b7 in main /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:473
+    #8 0x7f1202014c86 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x21c86)
+    #9 0x56527be22569 in _start (/experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps+0x22569)
+
+0x6020000001b2 is located 0 bytes to the right of 2-byte region [0x6020000001b0,0x6020000001b2)
+allocated by thread T0 here:
+    #0 0x7f1202ce5b40 in __interceptor_malloc (/usr/lib/x86_64-linux-gnu/libasan.so.4+0xdeb40)
+    #1 0x56527be8937f in _TIFFmalloc /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/libtiff/tif_unix.c:316
+    #2 0x56527be2ce76 in PSDataColorContig /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:2445
+    #3 0x56527be2c969 in PSpage /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:2347
+    #4 0x56527be28d51 in TIFF2PS /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:1606
+    #5 0x56527be231b7 in main /experiment/san2patch-benchmark/libtiff/bugzilla-2633/src/tools/tiff2ps.c:473
+    #6 0x7f1202014c86 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x21c86)
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/usr/lib/x86_64-linux-gnu/libasan.so.4+0x79779) 
+Shadow bytes around the buggy address:
+  0x0c047fff7fe0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff7ff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c047fff8000: fa fa 00 00 fa fa fd fa fa fa 02 fa fa fa fd fa
+  0x0c047fff8010: fa fa fd fd fa fa 00 07 fa fa fd fa fa fa 00 fa
+  0x0c047fff8020: fa fa fd fa fa fa 00 fa fa fa fd fa fa fa fd fa
+=>0x0c047fff8030: fa fa 00 07 fa fa[02]fa fa fa fa fa fa fa fa fa
+  0x0c047fff8040: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8050: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8060: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8070: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c047fff8080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+%!PS-Adobe-3.0 EPSF-3.0
+%%Creator: tiff2ps
+%%Title: /san2patch-benchmark/libtiff/bugzilla-2633/tests/1.tif
+%%CreationDate: Fri Aug 14 18:18:51 2026
+%%DocumentData: Clean7Bit
+%%Origin: 0 0
+%%BoundingBox: 0 0 5 1
+%%LanguageLevel: 1
+%%Pages: 1 1
+%%EndComments
+%%Page: 1 1
+gsave
+100 dict begin
+4.000912 0.393701 scale
+/bwproc {
+    rgbproc
+    dup length 3 idiv string 0 3 0
+    5 -1 roll {
+	add 2 1 roll 1 sub dup 0 eq {
+	    pop 3 idiv
+	    3 -1 roll
+	    dup 4 -1 roll
+	    dup 3 1 roll
+	    5 -1 roll put
+	    1 add 3 0
+	} { 2 1 roll } ifelse
+    } forall
+    pop pop pop
+} def
+/colorimage where {pop} {
+    /colorimage {pop pop /rgbproc exch def {bwproc} image} bind def
+} ifelse
+%ImageData: 4 1 8 3 0 1 2 "false 3 colorimage"
+/line 12 string def
+4 1 8
+[4 0 0 -1 0 1]
+{currentfile line readhexstring pop} bind
+false 3 colorimage
+
+end
+grestore
+showpage
+%%Trailer
+%%EOF

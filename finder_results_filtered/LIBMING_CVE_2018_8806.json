@@ -1,0 +1,45 @@
+{
+  "cwe_id": "cwe-416",
+  "cve_id": "CVE-2018-8806",
+  "note": "AUTHORED, NOT YET CODEQL-VALIDATED. getString()'s PUSH_CONSTANT/PUSH_CONSTANT16 cases index pool[] (set by decompileCONSTANTPOOL from sact->ConstantPool, an attacker-controlled SWF ConstantPool action) using act->p.Constant8 / act->p.Constant16 -- operand fields parsed directly from the untrusted SWF ACTIONPUSH bytecode -- with no check against how many entries the current pool actually holds. pool is reassigned wholesale on every ConstantPool action without freeing/tracking the previous action's allocation lifetime, so an index beyond the current pool's populated range can read a stale pointer left over from an earlier, already-freed pool entry -- a use-after-free (CWE-416): pool[act->p.Constant8/Constant16] dereferences memory that may already have been freed and reused when a prior, smaller ConstantPool action's allocation was replaced.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "decompileCONSTANTPOOL: pool = sact->ConstantPool -- reassigned on every ConstantPool action from the untrusted SWF action record, no size bookkeeping kept alongside it pre-fix",
+            "uri": "util/decompile.c",
+            "line": 767
+          },
+          {
+            "message": "act->p.Constant8 -- PUSH_CONSTANT operand parsed directly from the untrusted SWF ACTIONPUSH bytecode",
+            "uri": "util/decompile.c",
+            "line": 348
+          },
+          {
+            "message": "pool[act->p.Constant8] read via strlenext()/strcatext() with no bounds check against the pool's actual populated size -- reads past the live pool into a stale/freed prior entry",
+            "uri": "util/decompile.c",
+            "line": 349
+          }
+        ],
+        [
+          {
+            "message": "decompileCONSTANTPOOL: pool = sact->ConstantPool -- reassigned on every ConstantPool action from the untrusted SWF action record, no size bookkeeping kept alongside it pre-fix",
+            "uri": "util/decompile.c",
+            "line": 767
+          },
+          {
+            "message": "act->p.Constant16 -- PUSH_CONSTANT16 operand parsed directly from the untrusted SWF ACTIONPUSH bytecode",
+            "uri": "util/decompile.c",
+            "line": 354
+          },
+          {
+            "message": "pool[act->p.Constant16] read via strlenext()/strcatext() with no bounds check against the pool's actual populated size -- reads past the live pool into a stale/freed prior entry",
+            "uri": "util/decompile.c",
+            "line": 355
+          }
+        ]
+      ]
+    }
+  ]
+}

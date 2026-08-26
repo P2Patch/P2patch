@@ -1,0 +1,117 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:40.701336+00:00",
+    "finished_at": "2026-07-17T08:50:26.172461+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "The CVE payload class is closed at the prefix computation, not just the one observed string: any UNC host component that is not a valid reg-name/IPv4/IPv6 (including \"..\", empty labels, mixed separators) yields NOT_FOUND, so normalize returns null.",
+        "evidence": "FilenameUtils.java getPrefixLength: `final int pos = Math.min(posUnix, posWin) + 1; final String hostnamePart = filename.substring(2, pos - 1); return isValidHostName(hostnamePart) ? pos : NOT_FOUND;`. Verified by execution: testNormalize_CVE_2021_29425_pathTraversal passes ('//../foo', '\\\\..\\foo', '//..\\foo', '//foo/../../bar' -> null; getPrefixLength -> -1), confirmed present in target/surefire-reports/TEST-...FilenameUtilsTestCase.xml (38/38, 0 failures).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the flaw exactly where the traversal sequence was silently absorbed — the prefix parser — rather than guarding a caller or the reported entry point.",
+        "evidence": "Change is inside FilenameUtils.getPrefixLength's `isSeparator(ch0) && isSeparator(ch1)` UNC branch (line ~694-705), the same location as upstream rel/commons-io-2.7 lines 679-689. No caller-side or FileSystemUtils band-aid.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "getPrefixLength is the single choke point for every affected API, so one fix covers all tainted paths; both separator flavors and mixed forms are handled by the existing dual indexOf.",
+        "evidence": "getPrefixLength callers in FilenameUtils.java: lines 380 (doNormalize -> normalize/normalizeNoEndSeparator), 507 (concat), 897 (getPrefix), 976 (getPath*), 1060 (getFullPath). posUnix/posWin both scanned from index 2, so '//..\\foo' and '\\\\..\\foo' are covered (asserted and passing).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Not merely the same intent — it is the official mechanism at the official location, reproduced essentially verbatim.",
+        "evidence": "Normalized AST/text comparison vs upstream https://raw.githubusercontent.com/apache/commons-io/rel/commons-io-2.7/.../FilenameUtils.java: isValidHostName IDENTICAL, isIPv4Address IDENTICAL, isRFC3986HostName IDENTICAL, isIPv6Address differs only by `int octetInt;` vs `int octetInt = 0;`. Same constants (IPV4_PATTERN, IPV4_MAX_OCTET_VALUE, IPV6_MAX_HEX_GROUPS, MAX_UNSIGNED_SHORT, BASE_16, REG_NAME_PART_PATTERN, EMPTY_STRING_ARRAY).",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "No regressions attributable to the patch; the only failures are proven pre-existing environment artifacts of running as root in the container.",
+        "evidence": "Full suite in project container: 'Tests run: 1321, Failures: 4'. Re-ran the same two classes with the patch stashed (baseline): identical 4 failures (FileFilterTestCase.testCanRead/testCanWrite, FileUtilsCleanDirectoryTestCase.testThrowsOnNullList/testThrowsOnCannotDeleteFile); container `id -u` = 0. Existing UNC tests still green (getPrefixLength('//server/')==9, normalize('//server/a/b/../c'), etc.).",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Both added regexes are anchored and linear (no nested quantifiers -> no ReDoS); numeric parsing is bounded and exception-guarded; no TOCTOU or new sink introduced.",
+        "evidence": "IPV4_PATTERN `^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$` and REG_NAME_PART_PATTERN `^[a-zA-Z0-9][a-zA-Z0-9-]*$` are linear; `Integer.parseInt(ipSegment)` bounded by \\d{1,3} (<=999, no overflow); `Integer.parseInt(octet, BASE_16)` wrapped in try/catch NumberFormatException -> return false. Patch is pure-static-string logic; compiles clean (tests ran).",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "One production file, one method changed plus the private helpers that change strictly requires; no unrelated edits, and the added test encodes the CVE payloads.",
+        "evidence": "patch_only.diff touches only src/main/java/org/apache/commons/io/FilenameUtils.java (getPrefixLength UNC branch + 4 private helpers + constants + 5 imports) and the matching test class. Helper volume is inherent to the upstream approach (ported from commons-validator), not padding.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Uses an allowlist (RFC 3986 reg-name / IPv4 / IPv6) on the untrusted host component at the parser's trust boundary — the structural defense-of-record for this library-contract flaw — not a '../' blocklist or metacharacter escaping.",
+        "evidence": "isValidHostName = isIPv6Address(name) || isRFC3986HostName(name); isRFC3986HostName rejects empty labels ('..' -> parts ['','',''] -> `return i == parts.length - 1` false) and any label failing `^[a-zA-Z0-9][a-zA-Z0-9-]*$`. The rubric's canonicalize-then-contain anchor does not apply literally (no filesystem sink here); rejecting the malformed prefix restores the '..'-collapsing logic that returns null on root escape.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Behavior change (inherited from upstream, not a divergence): REG_NAME_PART_PATTERN rejects underscores and other non-reg-name characters, so legitimate Windows UNC hosts such as '//my_server/share' now yield getPrefixLength == -1 and normalize == null. This is exactly the official Apache 2.7 behavior and no existing test covers it, but callers relying on such hostnames will see nulls after the fix."
+      },
+      {
+        "severity": "low",
+        "description": "Pipeline evidence was absent, not positive: profile is 'baseline' (stages = worktree, docker_build, patcher), so no POV was ever generated (pov_before_reproduced=false is a no-POV artifact, not a passing gate) and regressions_ran=0. I independently supplied the missing evidence by running the suite in the project container; the verdict rests on that, not on the pipeline's execution results."
+      },
+      {
+        "severity": "low",
+        "description": "The SAST trace's nominal sink (FileSystemUtils.java path -> cmdAttribs -> exec, lines 209-573) is untouched by the patch. This is correct — the alert note itself says the finding is not command injection, FileSystemUtils.freeSpace* never routes through normalize/getPrefixLength, and the official 2.7 fix likewise touches only FilenameUtils — but it means the reported trace endpoint is unaddressed by design and should not be read as an uncovered path."
+      }
+    ],
+    "root_cause": "FilenameUtils.getPrefixLength blindly treated whatever sat between the leading double separator and the next separator as a UNC hostname, so a traversal sequence like the \"..\" in \"//../foo\" was absorbed into the untouchable path prefix and skipped by doNormalize's \"..\"-collapsing logic, letting normalize return a path that escapes its root instead of null.",
+    "summary": "This is an excellent fix — it is the official Apache fix. Diffing our patched FilenameUtils.java against upstream rel/commons-io-2.7 shows the getPrefixLength UNC branch and all four helpers (isValidHostName/isIPv4Address/isIPv6Address/isRFC3986HostName) plus their constants are reproduced essentially verbatim; the sole textual difference is `int octetInt;` vs `int octetInt = 0;`, which is semantically identical. The reported jaccard of 0.0 is a missing-reference artifact (no official diff was loaded, official_only is empty), not a real mismatch — both fixes touch the same file and method. I supplied the execution evidence the baseline-profile pipeline lacked: FilenameUtilsTestCase is 38/38 green including the new CVE regression test (confirmed executed via the surefire XML), and the full suite's 1321 tests yield only 4 failures that I proved pre-exist on the stashed unpatched tree (root/uid-0 permission artifacts in FileFilterTestCase and FileUtilsCleanDirectoryTestCase).",
+    "overall": {
+      "mean": 5.0,
+      "score": 100,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "FilenameUtils.java"
+      ],
+      "official_only": [],
+      "jaccard": 0.0
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [],
+      "commits": [
+        "fe7543eee5cd4b2f9e78aa44c31031b68eba204d"
+      ]
+    }
+  }
+}

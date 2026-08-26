@@ -1,0 +1,888 @@
+{
+  "run_id": "20260717_051421_finding-ad699ef8eada",
+  "finding_id": "finding-ad699ef8eada",
+  "timestamp": "2026-07-17T05:14:21",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "finding_id": "20260717_051421_finding-ad699ef8eada",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-ad699ef8eada",
+    "cve_id": "CVE-2022-42889",
+    "cwe_id": "CWE-094",
+    "cwe_name": "Improper Control of Generation of Code ('Code Injection')",
+    "project_slug": "asf__commons-text_CVE-2022-42889_1.9",
+    "alert_file": "ASF_COMMONS_TEXT_CVE_2022_42889.json",
+    "github_url": "https://github.com/apache/commons-text",
+    "repo": "apache/commons-text",
+    "github_tag": "1.9",
+    "advisory_id": "GHSA-599f-7c49-w659",
+    "buggy_commit_id": "cb85bed468e99d34b88d0c81fe20eb3b1615660e",
+    "fix_commit_ids": [
+      "b9b40b903e2d1f9935039803c9852439576780ea"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+        "class": "StringSubstitutor",
+        "class_start": "",
+        "class_end": "",
+        "method": "",
+        "method_start": "",
+        "method_end": "",
+        "signature": "",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "InterpolatorStringLookup",
+        "method_start": "70.0",
+        "method_end": "78.0",
+        "signature": "InterpolatorStringLookup(Map,StringLookup,boolean)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "lookup",
+        "method_start": "123.0",
+        "method_end": "146.0",
+        "signature": "String lookup(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+        "class": "InterpolatorStringLookup",
+        "class_start": "31.0",
+        "class_end": "150.0",
+        "method": "toKey",
+        "method_start": "43.0",
+        "method_end": "44.0",
+        "signature": "String toKey(String)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "addDefaultStringLookups",
+        "method_start": "445.0",
+        "method_end": "449.0",
+        "signature": "void addDefaultStringLookups(Map)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "interpolatorStringLookup",
+        "method_start": "742.0",
+        "method_end": "743.0",
+        "signature": "StringLookup interpolatorStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "toMap",
+        "method_start": "428.0",
+        "method_end": "429.0",
+        "signature": "Map toMap(Map)",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "xmlStringLookup",
+        "method_start": "1170.0",
+        "method_end": "1171.0",
+        "signature": "StringLookup xmlStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+        "class": "StringLookupFactory",
+        "class_start": "185.0",
+        "class_end": "1170.0",
+        "method": "environmentVariableStringLookup",
+        "method_start": "673.0",
+        "method_end": "674.0",
+        "signature": "StringLookup environmentVariableStringLookup()",
+        "is_test": false
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDefaultValueForMissingKeyInResourceBundle",
+        "method_start": "127.0",
+        "method_end": "133.0",
+        "signature": "void testDefaultValueForMissingKeyInResourceBundle()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testLocalHostLookup_Name",
+        "method_start": "205.0",
+        "method_end": "207.0",
+        "signature": "void testLocalHostLookup_Name()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDefaultInterpolator",
+        "method_start": "90.0",
+        "method_end": "123.0",
+        "signature": "void testDefaultInterpolator()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java",
+        "class": "StringSubstitutorWithInterpolatorStringLookupTest",
+        "class_start": "32.0",
+        "class_end": "231.0",
+        "method": "testDnsLookupCanonicalName",
+        "method_start": "152.0",
+        "method_end": "157.0",
+        "signature": "void testDnsLookupCanonicalName()",
+        "is_test": true
+      },
+      {
+        "commit": "b9b40b903e2d1f9935039803c9852439576780ea",
+        "file": "src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java",
+        "class": "StringLookupFactoryTest",
+        "class_start": "30.0",
+        "class_end": "69.0",
+        "method": "testSingletons",
+        "method_start": "69.0",
+        "method_end": "91.0",
+        "signature": "void testSingletons()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/apache/commons/text/StringSubstitutor.java",
+      "src/main/java/org/apache/commons/text/lookup/InterpolatorStringLookup.java",
+      "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-42889",
+      "advisory": "https://github.com/advisories/GHSA-599f-7c49-w659",
+      "repo": "https://github.com/apache/commons-text",
+      "buggy_commit": "https://github.com/apache/commons-text/commit/cb85bed468e99d34b88d0c81fe20eb3b1615660e"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-094",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 1036,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1040,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 1015,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1019,
+              "message": "source : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 995,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "append(...) : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1000,
+              "message": "buf : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ],
+          [
+            {
+              "line": 974,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 978,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 995,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "source : StringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 999,
+              "message": "append(...) : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1000,
+              "message": "buf : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1307,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1308,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1323,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1325,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "builder : TextStringBuilder",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1388,
+              "message": "midString(...) : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1433,
+              "message": "varName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1061,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 1067,
+              "message": "variableName : String",
+              "uri": "src/main/java/org/apache/commons/text/StringSubstitutor.java"
+            },
+            {
+              "line": 69,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "key : String",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 73,
+              "message": "split(...) : String[]",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            },
+            {
+              "line": 86,
+              "message": "script",
+              "uri": "src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=\"target/classes:$(cat /tmp/cp.txt)\" && mkdir -p /tmp/pov-classes && javac -cp \"$CP\" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp \"/tmp/pov-classes:$CP\" Text4ShellPov"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-094",
+      "finding_id": "finding-ad699ef8eada",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=\"target/classes:$(cat /tmp/cp.txt)\" && mkdir -p /tmp/pov-classes && javac -cp \"$CP\" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp \"/tmp/pov-classes:$CP\" Text4ShellPov",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "cd /workspace/repo && mvn -B -q -Drat.skip=true test -Dtest=StringLookupFactoryTest,DefaultStringLookupTest,StringSubstitutorWithInterpolatorStringLookupTest,ScriptStringLookupTest,DnsStringLookupTest,UrlStringLookupTest,InterpolatorStringLookupTest",
+        "cd /workspace/repo && mvn -B -Drat.skip=true test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-text_[redacted]_1.9/111/Dockerfile",
+        "-t",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__commons-text_[redacted]_1.9/111"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=\"target/classes:$(cat /tmp/cp.txt)\" && mkdir -p /tmp/pov-classes && javac -cp \"$CP\" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp \"/tmp/pov-classes:$CP\" Text4ShellPov"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=\"target/classes:$(cat /tmp/cp.txt)\" && mkdir -p /tmp/pov-classes && javac -cp \"$CP\" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp \"/tmp/pov-classes:$CP\" Text4ShellPov"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -q -Drat.skip=true test -Dtest=StringLookupFactoryTest,DefaultStringLookupTest,StringSubstitutorWithInterpolatorStringLookupTest,ScriptStringLookupTest,DnsStringLookupTest,UrlStringLookupTest,InterpolatorStringLookupTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-ad699ef8eada:394949b5ce09",
+        "bash",
+        "-lc",
+        "cd /workspace/repo && mvn -B -Drat.skip=true test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 267425,
+        "duration_api_ms": 219143,
+        "num_turns": 31,
+        "cost_usd": 0.9233082,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 58,
+          "output": 17492,
+          "cache_read": 1436354,
+          "cache_creation": 38308
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause / sink: ScriptStringLookup.lookup(String key) at src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java:69, specifically scriptEngine.eval(script) at line 86. Trust boundary crossed: any string passed to StringSubstitutor.replace()/StringSubstitutor.createInterpolator() — e.g. log messages, HTTP headers, config templates, user-supplied text — is treated as a trusted template and its \"${script:EngineName:script-body}\" tokens are evaluated with a live javax.script.ScriptEngine (Nashorn), giving full Java interop (Runtime.exec, reflection, file I/O). Verified in this checkout: StringLookupFactory.addDefaultStringLookups() (StringLookupFactory.java:407-416) unconditionally registers every DefaultStringLookup enum value — including SCRIPT (KEY_SCRIPT=\"script\"), DNS (KEY_DNS=\"dns\") and URL (KEY_URL=\"url\") — into the map used by the singleton InterpolatorStringLookup.INSTANCE returned by StringLookupFactory.INSTANCE.interpolatorStringLookup() (line 706-708), which is exactly what StringSubstitutor.createInterpolator() (StringSubstitutor.java:303-304) uses as its default lookup. I confirmed by temporarily excluding SCRIPT/DNS/URL from that loop that the PoV's marker-file side effect disappears (exit 1), then reverted the change. Every alert trace (all 4 provided) funnels through the same StringSubstitutor.substitute()/resolveVariable() internals (lines ~974-1433) into this one sink — they differ only in which StringSubstitutor entry point/overload was used to build the source TextStringBuilder/StringBuilder (replace(String), replace(StringBuilder), replace(CharSequence,...) etc.), not in root cause. A complete fix must guard every path that can reach ScriptStringLookup.lookup(), which in this codebase means: (1) the \"script\" key registered by StringLookupFactory.addDefaultStringLookups()/DefaultStringLookup.SCRIPT and reachable via StringLookupFactory.INSTANCE.interpolatorStringLookup() / StringSubstitutor.createInterpolator(); (2) the \"dns\" key (DefaultStringLookup.DNS -> dnsStringLookup(), can trigger SSRF/DNS-based side effects) registered the same way; (3) the \"url\" key (DefaultStringLookup.URL -> urlStringLookup(), can trigger SSRF) registered the same way; (4) direct programmatic use of StringLookupFactory.INSTANCE.scriptStringLookup() or ScriptStringLookup.INSTANCE.lookup(key) bypassing the interpolator map entirely — a fix that only changes the default map (defense at the interpolator layer) does not stop code that explicitly requests scriptStringLookup(), so any policy/gating should also be enforced at ScriptStringLookup.lookup() itself or documented as an intentionally-explicit, non-default API.",
+        "expected_vulnerable_behavior": "On unpatched code, StringSubstitutor.createInterpolator().replace() resolves the \"${script:javascript:...}\" token in the attacker-controlled input, invokes ScriptEngine.eval() (Nashorn), which runs `java.lang.Runtime.getRuntime().exec(['/bin/sh','-c','touch /tmp/text4shell_pov_marker.txt']).waitFor()`. The OS process actually runs and creates /tmp/text4shell_pov_marker.txt, proving real code/command execution (not just string interpolation). The PoV detects the marker file, prints \"VULNERABLE: ...\", deletes the marker, and exits 0. After a correct fix (script/dns/url lookups removed from the default/opt-out interpolator, or ScriptStringLookup disabled/gated), the \"${script:...}\" token is either left unresolved, throws, or errors — the marker file is never created, the PoV prints \"NOT VULNERABLE: ...\" and exits 1.",
+        "notes": "Targeted alert traces 1 and 2 (StringSubstitutor.replace(String) at lines 1036/1040 and 1015/1019, flowing through substitute()/resolveVariable() at 1307-1433 into ScriptStringLookup.lookup()/scriptEngine.eval() at ScriptStringLookup.java:69-86) because that is the most direct, most commonly-used public entry point (StringSubstitutor.createInterpolator().replace(String)) and cleanly demonstrates the shared root cause. Traces 3 and 4 (StringBuilder/TextStringBuilder-based replace(StringBuilder)/replace(CharSequence,...) overloads at lines 974-1000) converge on the exact same substitute()/resolveVariable()->ScriptStringLookup.lookup() code path (lines 1307 onward are identical in all four traces), so they share the identical root cause and the same fix location; they are not separately exercised by this PoV but are covered by the same guard described in regression_hint. I verified the PoV is a true positive/negative discriminator by temporarily patching StringLookupFactory.addDefaultStringLookups() in this worktree to skip SCRIPT/DNS/URL (simulating the real upstream fix), confirming the PoV then exits 1 with \"NOT VULNERABLE\", and immediately reverting that change (git status shows only the untracked .security-pipeline/ directory remains — no product code diff).",
+        "pov_command": "cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=\"target/classes:$(cat /tmp/cp.txt)\" && mkdir -p /tmp/pov-classes && javac -cp \"$CP\" -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp \"/tmp/pov-classes:$CP\" Text4ShellPov",
+        "pov_path": ".security-pipeline/pov/Text4ShellPov.java",
+        "regression_hint": "Invariant a correct fix must enforce: StringSubstitutor.createInterpolator() / StringLookupFactory.INSTANCE.interpolatorStringLookup() (the \"default\", no-argument, opt-out entry points) must NOT resolve \"script\", \"dns\", or \"url\" lookup prefixes against attacker-influenced template text unless the caller has explicitly opted in (e.g. via interpolatorStringLookup(Set<DefaultStringLookup>) or an explicit allow-list/EnumSet parameter naming those lookups). Concretely: after the fix, `StringSubstitutor.createInterpolator().replace(\"${script:javascript:...}\")` should leave the token unresolved/return it unchanged (or throw a well-defined exception) rather than invoking ScriptEngine.eval(); likewise for `${dns:...}` and `${url:...}`. Known bypass variants the fix must also block / that a patch review should re-check: (1) case/whitespace variants of the prefix — InterpolatorStringLookup.toKey() lower-cases keys, so \"Script:\", \"SCRIPT:\", \" script :\" must still be blocked, not just exact-case \"script\"; (2) the split-on-first-colon parsing in ScriptStringLookup.lookup() (key.split(SPLIT_STR, 2)) — engine names other than \"javascript\"/\"JavaScript\" (e.g. \"nashorn\", \"js\", \"graal.js\" if present on the classpath) must be equally blocked, since the guard should be at the lookup-registration/dispatch level, not by engine name; (3) nested/recursive interpolation — a value pulled from another enabled lookup (e.g. \"sys\", \"env\", \"properties\") that itself contains \"${script:...}\" and gets re-substituted must not re-enable script execution; (4) programmatic bypass — code that calls StringLookupFactory.INSTANCE.scriptStringLookup() or the package-private ScriptStringLookup.INSTANCE directly, or builds a custom StringLookup map still containing \"script\"/\"dns\"/\"url\" via addDefaultStringLookups(), must be covered by documentation/deprecation or a runtime guard, since it circumvents an interpolator-only fix; (5) the sibling \"dns\" and \"url\" lookups (dnsStringLookup(), urlStringLookup()) must be removed from the default map in the same fix — a patch that only touches ScriptStringLookup/the \"script\" key but leaves \"dns\"/\"url\" defaulted-on is incomplete (SSRF-class risk). Regression test should assert both: unpatched-style default interpolator no longer executes ${script:...}, AND explicit opt-in (if the fix adds one) still allows ${script:...} to work when a caller deliberately requests it.",
+        "status": "pov_created",
+        "summary": "Created a standalone Java PoV proving Text4Shell-style code injection (CWE-094 / CVE-2022-42889-class) in Apache Commons Text: StringSubstitutor.createInterpolator().replace(untrustedInput) resolves the default \"script\" interpolator, which reaches ScriptStringLookup.lookup() -> ScriptEngine.eval(script) with attacker-controlled script text, achieving arbitrary OS command execution."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 290051,
+        "duration_api_ms": 252288,
+        "num_turns": 33,
+        "cost_usd": 1.6922544000000002,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 64,
+          "output": 24452,
+          "cache_read": 2546008,
+          "cache_creation": 93580
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/apache/commons/text/lookup/StringLookupFactory.java",
+          "src/test/java/org/apache/commons/text/lookup/StringLookupFactoryTest.java",
+          "src/test/java/org/apache/commons/text/StringSubstitutorWithInterpolatorStringLookupTest.java"
+        ],
+        "patch_notes": "Root cause fix: StringLookupFactory.addDefaultStringLookups(Map<String, StringLookup>) is the sole method that populates the lookup map used by every opt-out/default interpolator entry point (interpolatorStringLookup(), StringSubstitutor.createInterpolator(), and InterpolatorStringLookup(stringLookupMap, defaultStringLookup, addDefaultLookups=true)). Added a private EnumSet<DefaultStringLookup> UNSAFE_DEFAULT_LOOKUPS = {SCRIPT, DNS, URL} and skip those entries in the values() loop unless the new public constant DEFAULT_STRING_LOOKUPS_PROPERTY system property is set to \"true\" (checked via Boolean.getBoolean at call time, so it is re-evaluated on every non-singleton call). The \"base64\" alias line and all other ~13 safe default lookups (base64Decoder/Encoder, const, date, env, file, java, localhost, properties, resourceBundle, sys, urlDecoder, urlEncoder, xml) are unaffected. StringLookupFactory.scriptStringLookup()/dnsStringLookup()/urlStringLookup() and the underlying singletons (ScriptStringLookup.INSTANCE etc.) are untouched — direct, explicit use remains possible and documented as an intentional opt-in, per the alert's own guidance (bypass item 4). Updated three existing tests that asserted the old (vulnerable) default behavior: StringLookupFactoryTest (added assertUnsafeKeysExcludedByDefault + a new opt-in test using the system property), and StringSubstitutorWithInterpolatorStringLookupTest (testJavaScript/testDnsLookup* now assert the ${script:...}/${dns:...} tokens are left unresolved by the default interpolator, plus new explicit-opt-in tests calling the lookups directly). Full existing suite (1219 tests) still passes; the provided PoV now prints \"NOT VULNERABLE\" and exits 1 after the fix (was \"VULNERABLE\"/exit 0 before).",
+        "regression_commands": [
+          "cd /workspace/repo && mvn -B -q -Drat.skip=true test -Dtest=StringLookupFactoryTest,DefaultStringLookupTest,StringSubstitutorWithInterpolatorStringLookupTest,ScriptStringLookupTest,DnsStringLookupTest,UrlStringLookupTest,InterpolatorStringLookupTest",
+          "cd /workspace/repo && mvn -B -Drat.skip=true test"
+        ],
+        "risk_notes": "This is a documented, intentional behavior change to a public API default (matches the real-world upstream commons-text CVE-2022-42889 fix pattern): StringLookupFactory.INSTANCE.interpolatorStringLookup(), StringSubstitutor.createInterpolator(), and any caller passing addDefaultLookups=true will no longer resolve ${script:...}, ${dns:...}, or ${url:...} tokens by default — those tokens are now left as literal unresolved placeholders (or trigger the configured undefined-variable behavior) instead of executing. Applications that legitimately depended on the old default-on behavior can restore it globally via the new -Dorg.apache.commons.text.StringSubstitutor.enableInterpolationLookup=true system property, or per-call by adding StringLookupFactory.INSTANCE.scriptStringLookup()/dnsStringLookup()/urlStringLookup() to a custom lookup map — both paths are covered by tests. No other lookups, no ScriptStringLookup/DnsStringLookup/UrlStringLookup internal logic, and no StringSubstitutor core substitution logic were touched, keeping the change narrowly scoped to the trust boundary (the default lookup registration).",
+        "status": "patched",
+        "summary": "Fixed CWE-094 (Text4Shell / CVE-2022-42889-class) code injection: StringLookupFactory.addDefaultStringLookups(Map) — the single shared method that populates every \"default\"/opt-out interpolator entry point (StringLookupFactory.INSTANCE.interpolatorStringLookup(), StringSubstitutor.createInterpolator(), and any InterpolatorStringLookup constructed with addDefaultLookups=true) — no longer registers the \"script\", \"dns\", or \"url\" lookups by default. These three lookups are the ones capable of arbitrary code execution (ScriptStringLookup -> ScriptEngine.eval, reaching Runtime.exec via Java interop) or SSRF/DoS (DnsStringLookup, UrlStringLookup) when resolved against attacker-influenced template text — exactly the sink all four alert traces converge on. A new opt-in system property, StringLookupFactory.DEFAULT_STRING_LOOKUPS_PROPERTY (\"org.apache.commons.text.StringSubstitutor.enableInterpolationLookup\"), restores the old default-inclusive behavior for callers who deliberately want it; explicit, intentional use remains available unconditionally via StringLookupFactory.INSTANCE.scriptStringLookup()/dnsStringLookup()/urlStringLookup() and via ScriptStringLookup.INSTANCE directly (documented, non-default APIs, matching upstream's own guidance that direct/explicit use is an intentional opt-in, not a defaultable trust boundary). Because the guard sits at the single map-population choke point (addDefaultStringLookups), it uniformly blocks all 4 alert traces (they all differ only in which StringSubstitutor.replace(...) overload builds the source buffer before funneling into the same substitute()/resolveVariable() -> InterpolatorStringLookup.lookup() -> ScriptStringLookup.lookup() path), and also blocks same-class bypass variants: case/whitespace variants of the prefix (InterpolatorStringLookup.toKey() lower-cases before the map lookup, and the key is simply absent now), any script-engine name behind the \"script:\" prefix, nested/recursive interpolation that tries to re-introduce \"${script:...}\" via another enabled lookup (env/sys/properties), and the sibling \"dns\"/\"url\" SSRF-class lookups (fixed in the same change, not left for a follow-up)."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 79215,
+        "duration_api_ms": 45077,
+        "num_turns": 9,
+        "cost_usd": 0.44008289999999994,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 12,
+          "output": 4088,
+          "cache_read": 336323,
+          "cache_creation": 46305
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/run_in_docker.sh \"cd /workspace/repo && mvn -B -q -DskipTests -Drat.skip=true package && mvn -B -q -Drat.skip=true dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && CP=target/classes:$(cat /tmp/cp.txt) && mkdir -p /tmp/pov-classes && javac -cp $CP -d /tmp/pov-classes .security-pipeline/pov/Text4ShellPov.java && java -cp /tmp/pov-classes:$CP Text4ShellPov\"",
+          "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/run_in_docker.sh \"cd /workspace/repo && mvn -B -q -Drat.skip=true test -Dtest=StringLookupFactoryTest,DefaultStringLookupTest,StringSubstitutorWithInterpolatorStringLookupTest,ScriptStringLookupTest,DnsStringLookupTest,UrlStringLookupTest,InterpolatorStringLookupTest\"",
+          "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/run_in_docker.sh \"cd /workspace/repo && mvn -B -q -Drat.skip=true test\"",
+          "git -C /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree status",
+          "git -C /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_051421_finding-ad699ef8eada/worktree log --oneline -5"
+        ],
+        "diff_review": "patch_only.diff touches exactly 3 files: StringLookupFactory.java (production fix) and two test files updated to reflect the new, secure default behavior. The fix is minimal and root-cause: it adds an EnumSet of \"unsafe\" DefaultStringLookup values (SCRIPT, DNS, URL) and skips registering them in addDefaultStringLookups() unless a new opt-in system property (DEFAULT_STRING_LOOKUPS_PROPERTY) is set to \"true\". This matches the real-world upstream commons-text CVE-2022-42889 fix pattern (removing dangerous lookups from the default set while keeping them available for explicit, intentional use). No vulnerable functionality is silently removed — it's gated behind an explicit opt-in (system property) or direct/explicit lookup calls (scriptStringLookup(), dnsStringLookup(), urlStringLookup()), which is a reasonable and industry-standard remediation, not a functionality deletion without justification. The two test file changes are appropriate: they update assertions that previously encoded the vulnerable default behavior (e.g., testJavaScript asserting script execution via the default interpolator) to instead assert the token is left unresolved by default, plus new tests for the opt-in property and explicit direct-lookup use. Test changes are proportionate to and consistent with the production code change, not merely masking the vulnerability. pov.diff shows the PoV file (.security-pipeline/pov/Text4ShellPov.java) is untouched by the patch — it lives outside src/ and is not part of patch_only.diff, confirming the patch did not modify or disable the PoV itself. The PoV correctly exercises the real sink chain (StringSubstitutor.createInterpolator().replace() -> resolveVariable -> InterpolatorStringLookup -> ScriptStringLookup.lookup() -> ScriptEngine.eval() -> Runtime.exec), and the fix directly closes that path by excluding \"script\" from the default lookup map used by createInterpolator(). No unrelated or overly broad changes were introduced.",
+        "issues": [],
+        "pov_result": "Reran the exact orchestrator PoV command against the patched worktree via the Docker wrapper (image simpleautosec-finding-ad699ef8eada:394949b5ce09). Output: \"NOT VULNERABLE: injected script did not execute (marker file absent).\" with the ${script:...} token left unresolved in the replace() result, and exit code 1 — matching the orchestrator's reported pov_after_patch result and confirming the PoV no longer reproduces the vulnerability after the fix.",
+        "regression_result": "Independently reran both the targeted regression test subset (StringLookupFactoryTest, DefaultStringLookupTest, StringSubstitutorWithInterpolatorStringLookupTest, ScriptStringLookupTest, DnsStringLookupTest, UrlStringLookupTest, InterpolatorStringLookupTest) and the full project test suite (`mvn -B -Drat.skip=true test`) via the Docker wrapper. Both completed with exit code 0 / BUILD SUCCESS, consistent with the orchestrator's reported regression logs (1219 tests, 0 failures, 0 errors, 2 skipped — pre-existing skips unrelated to this change).",
+        "summary": "The patch fixes CWE-094 (Text4Shell / CVE-2022-42889-class) by removing the \"script\", \"dns\", and \"url\" lookups from StringLookupFactory.addDefaultStringLookups(Map), the single choke point populating every default/opt-out interpolator entry point (interpolatorStringLookup(), StringSubstitutor.createInterpolator()). This blocks ScriptStringLookup.lookup()->ScriptEngine.eval() (the sink in all 4 alert traces) from being reachable via untrusted template text by default, while preserving explicit opt-in via scriptStringLookup()/dnsStringLookup()/urlStringLookup() or a new system property. Independently reran the PoV and full regression suite via the Docker wrapper; both confirm the fix works and nothing else breaks.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 3.0556,
+    "num_turns": 73,
+    "agent_duration_ms": 636691
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log"
+    ]
+  }
+}

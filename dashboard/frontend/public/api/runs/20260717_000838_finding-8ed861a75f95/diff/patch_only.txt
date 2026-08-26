@@ -1,0 +1,146 @@
+diff --git a/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java b/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
+index a5b7306..434a53d 100644
+--- a/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
++++ b/core/src/main/java/io/undertow/server/handlers/resource/FileResourceManager.java
+@@ -85,6 +85,15 @@ public class FileResourceManager implements ResourceManager {
+         } else {
+             path = p;
+         }
++        //this resource path is always '/' separated, so a literal backslash can only be an
++        //attempt to smuggle a platform specific path separator/traversal sequence past the
++        //'/'-based canonicalization performed upstream (e.g. CanonicalPathUtils, DefaultServlet).
++        //java.io.File treats '\' as a name separator on Windows, which would otherwise allow
++        //escaping the resource base directory, so reject any path containing one regardless of
++        //the platform the server actually runs on.
++        if (path.indexOf('\\') != -1) {
++            return null;
++        }
+         try {
+             File file = new File(base, path);
+             if (file.exists()) {
+diff --git a/core/src/test/java/io/undertow/server/handlers/resource/FileResourceManagerTest.java b/core/src/test/java/io/undertow/server/handlers/resource/FileResourceManagerTest.java
+new file mode 100644
+index 0000000..da57b32
+--- /dev/null
++++ b/core/src/test/java/io/undertow/server/handlers/resource/FileResourceManagerTest.java
+@@ -0,0 +1,120 @@
++/*
++ * JBoss, Home of Professional Open Source.
++ * Copyright 2014 Red Hat, Inc., and individual contributors
++ * as indicated by the @author tags.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package io.undertow.server.handlers.resource;
++
++import org.junit.After;
++import org.junit.Assert;
++import org.junit.Before;
++import org.junit.Test;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++
++/**
++ * Regression test for CWE-022 path traversal: a request path containing a backslash must never
++ * be resolved by {@link FileResourceManager}, since on platforms where {@code java.io.File}
++ * treats '\' as a name separator (e.g. Windows) it could otherwise be used to escape the
++ * configured resource base directory even though upstream callers only canonicalize '/'.
++ *
++ * @author Stuart Douglas
++ */
++public class FileResourceManagerTest {
++
++    private File rootDir;
++    private File servedDir;
++    private File secretFile;
++
++    @Before
++    public void setup() throws IOException {
++        rootDir = new File(System.getProperty("java.io.tmpdir"), "undertow-frm-test-" + System.nanoTime());
++        servedDir = new File(rootDir, "served");
++        servedDir.mkdirs();
++
++        secretFile = new File(rootDir, "secret.txt");
++        writeFile(secretFile, "top secret");
++
++        writeFile(new File(servedDir, "hello.txt"), "hello world");
++    }
++
++    @After
++    public void cleanup() {
++        deleteRecursively(rootDir);
++    }
++
++    @Test
++    public void testNormalResourceIsServed() throws IOException {
++        FileResourceManager manager = new FileResourceManager(servedDir, 1024);
++        Resource resource = manager.getResource("hello.txt");
++        Assert.assertNotNull(resource);
++        Assert.assertEquals(servedDir.getCanonicalFile(), resource.getFile().getParentFile().getCanonicalFile());
++    }
++
++    @Test
++    public void testBackslashTraversalIsBlocked() throws IOException {
++        FileResourceManager manager = new FileResourceManager(servedDir, 1024);
++        Assert.assertNull(manager.getResource("..\\secret.txt"));
++        Assert.assertNull(manager.getResource("\\..\\secret.txt"));
++        Assert.assertNull(manager.getResource("..\\..\\secret.txt"));
++        Assert.assertNull(manager.getResource("subdir\\..\\..\\secret.txt"));
++    }
++
++    /**
++     * On java.io.File implementations where '\' is a name separator (e.g. WinNTFileSystem on
++     * Windows), a path like "..\\secret.txt" is resolved as a traversal sequence that escapes
++     * the resource base directory - the exact CWE-022 behaviour reported for
++     * FileResourceManager#getResource. That OS-specific separator handling can't be exercised
++     * on a Linux test runner, so this test proves the guard is unconditional (not gated on the
++     * current platform's separator) by using a request path that, if the backslash were instead
++     * treated as a literal filename character (as it is on Linux), would successfully resolve to
++     * a real file. A correct fix must reject it regardless, since it can never legitimately be a
++     * two-segment resource path.
++     */
++    @Test
++    public void testPathContainingBackslashIsNeverResolvedEvenIfLiterallyPresentOnDisk() throws IOException {
++        File fileWithBackslashInName = new File(servedDir, "evil\\name.txt");
++        writeFile(fileWithBackslashInName, "should never be served");
++        Assert.assertTrue(fileWithBackslashInName.isFile());
++
++        FileResourceManager manager = new FileResourceManager(servedDir, 1024);
++        Assert.assertNull(manager.getResource("evil\\name.txt"));
++    }
++
++    private static void writeFile(final File f, final String contents) throws IOException {
++        FileOutputStream out = new FileOutputStream(f);
++        try {
++            out.write(contents.getBytes("UTF-8"));
++        } finally {
++            out.close();
++        }
++    }
++
++    private static void deleteRecursively(final File file) {
++        if (file == null || !file.exists()) {
++            return;
++        }
++        File[] children = file.listFiles();
++        if (children != null) {
++            for (File child : children) {
++                deleteRecursively(child);
++            }
++        }
++        file.delete();
++    }
++}

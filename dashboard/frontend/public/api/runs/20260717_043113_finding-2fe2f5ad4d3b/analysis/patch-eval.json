@@ -1,0 +1,131 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:54:28.991033+00:00",
+    "finished_at": "2026-07-17T08:57:20.437650+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 1,
+        "rationale": "CVE-2022-28367 (only the first child node of a <style> element is CSS-scanned; all sibling children are emitted un-sanitized) is completely untouched — content in non-first children never reaches CssHandler/CssValidator, so the added escaping cannot affect it.",
+        "evidence": "Our diff touches only CssHandler.java:481/559 and CssValidator.java (new lexicalValueToOutputString/escapeSelectorForOutput). Vulnerable AntiSamyDOMScanner.processStyleTag (lines 403-446: `Node firstChild = ele.getFirstChild(); ... String toScan = firstChild.getNodeValue();`) is unchanged; official fix rewrites exactly that loop to concatenate every child and remove extras.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 1,
+        "rationale": "Fixes a different, self-declared issue (raw quotes inside a DOM Attr node value) rather than the actual flaw: sanitization coverage of the <style> element's child nodes.",
+        "evidence": "POV file .security-pipeline/pov/StyleAttributeCssSmugglingPoV.java asserts `rawAttr1.indexOf('\"') != -1` on getCleanXMLDocumentFragment(); official fix at AntiSamyDOMScanner.processStyleTag concatenates ele.getChildNodes() and removes children 1..n.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 1,
+        "rationale": "The real path to the sink (unscanned sibling text/CDATA children of <style> serialized verbatim) plus the mXSS class it enables is entirely unaddressed; only the CSS-scanner output path is touched.",
+        "evidence": "No change to AntiSamyDOMScanner.java (official_only file); overlap_files: [], jaccard 0.0, covers_all_official: false.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 1,
+        "rationale": "Neither the location nor the defensive strategy of the official fix is reproduced; the official intent (scan ALL style-tag children, collapse to one node) is nowhere in our diff.",
+        "evidence": "official_only: AntiSamyDOMScanner.java; ours_only: CssHandler.java, CssValidator.java.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 2,
+        "rationale": "The 2 regression suites passed and the POV flipped, but HTML-entity-encoding CSS token values corrupts legitimate CSS: entities are not decoded inside <style> raw text, and in attribute context the serializer re-escapes '&', double-encoding it.",
+        "evidence": "CssValidator.htmlEscapeSensitiveChars encodes '&' -> \"&amp;\"; SAC_URI branch returns `url(\" + htmlEscapeSensitiveChars(...) + \")\"`, so a legitimate `url(a.png?x=1&y=2)` becomes `url(a.png?x=1&amp;y=2)` in the Attr value, which HTMLEntityEncoder.java:47 / the AS serializer escapes again to `&amp;amp;`. Also the SAC_STRING_VALUE branch drops the surrounding quotes whenever escaping occurs (`return escaped;`), altering CSS token structure.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 2,
+        "rationale": "No new injection or crash, but it injects HTML entities into a CSS grammar context where they are meaningless, silently mangling valid stylesheets and quote-stripping string tokens.",
+        "evidence": "CssValidator.lexicalValueToOutputString SAC_STRING_VALUE/SAC_IDENT branch returns unquoted escaped text; SAC_URI branch entity-encodes '&' inside url().",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 2,
+        "rationale": "~140 lines of new production code plus a new public API method and three new tests, all in the wrong subsystem, while the one-method fix in processStyleTag is missing.",
+        "evidence": "CssValidator.java +143 lines (lexicalValueToOutputString, htmlEscapeSensitiveChars, escapeSelectorForOutput); AntiSamyDOMScanner.processStyleTag untouched.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "CWE-079's defense-of-record is context-aware encoding at the actual output sink; this applies an HTML five-character encoder at the CSS-generation layer (wrong context — CSS does not decode entities) while the raw sink that emits unscanned <style> children is left unguarded. It is a fixed-character blocklist, not sink-correct encoding.",
+        "evidence": "htmlEscapeSensitiveChars switch covers only '\"', '\\'', '<', '>', '&'; escapeSelectorForOutput deliberately escapes only '<' (\"only '<' is neutralized here\"), leaving other selector text raw.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_wrong",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "CVE-2022-28367 is not fixed. The vulnerability is that AntiSamyDOMScanner.processStyleTag scans and rewrites only ele.getFirstChild(), leaving every other child node of a <style> element un-sanitized in the output DOM (mXSS bypass). Our patch does not touch AntiSamyDOMScanner at all; unscanned sibling nodes never pass through CssHandler/CssValidator, so the new escaping is unreachable for the attack path. A multi-child <style> payload still round-trips unsanitized after the patch."
+      },
+      {
+        "severity": "high",
+        "description": "The POV that 'passes' is not the CVE. .security-pipeline/pov/StyleAttributeCssSmugglingPoV.java asserts only that a raw '\"' (check 1) or a literal <script> under a hand-written permissive policy (check 2) appears in the DOM Attr node value returned by getCleanXMLDocumentFragment(). A decoded character inside a DOM Attr value is not XSS — correct serialization escapes it, and check 2 requires an attacker-uncontrollable custom policy (font-family regex widened to '.*'). The green POV result therefore provides no evidence the real vulnerability class is closed."
+      },
+      {
+        "severity": "medium",
+        "description": "Output corruption of legitimate CSS. htmlEscapeSensitiveChars encodes '&' as '&amp;' inside url() values (CssValidator SAC_URI branch). Inside a <style> element's raw-text content HTML entities are never decoded, so 'url(a.png?x=1&amp;y=2)' reaches the CSS parser literally; in the style-attribute path the serializer escapes the '&' again ('&amp;amp;'). Either way common query-string URLs break. Existing tests do not cover this, so the passing regression runs do not clear it."
+      },
+      {
+        "severity": "medium",
+        "description": "CSS token structure is altered: in lexicalValueToOutputString, when a SAC_STRING_VALUE contains an escaped character the surrounding quotes are intentionally dropped ('return escaped;'), converting a quoted CSS string into a bare, possibly invalid, identifier sequence."
+      },
+      {
+        "severity": "low",
+        "description": "escapeSelectorForOutput neutralizes only '<', by design. Combined with the '&' handling elsewhere this is an ad-hoc, per-character policy rather than a single context-correct encoder, and is easy to drift out of sync with the sinks it is meant to protect."
+      }
+    ],
+    "root_cause": "AntiSamyDOMScanner.processStyleTag sanitizes only the first child node of a <style> element (`Node firstChild = ele.getFirstChild(); String toScan = firstChild.getNodeValue();`), so any additional child node bypasses the CSS scanner entirely and is serialized verbatim into the output — a correct fix must make every child of the style element pass through CssScanner and collapse the element to the single cleaned node.",
+    "summary": "Our patch does not fix CVE-2022-28367. The real flaw is that AntiSamyDOMScanner.processStyleTag scans only the <style> element's first child node and emits all remaining children un-sanitized; the official fix concatenates every child, scans the whole thing, and removes the extras. Our patch never touches AntiSamyDOMScanner — it adds HTML-entity escaping to CssHandler/CssValidator output, a layer that unscanned sibling nodes never reach, so the vulnerability class survives intact. The POV flipped only because the exploiter authored a different, dubious 'vulnerability' (a decoded '\\\"' inside a DOM Attr value reachable via getCleanXMLDocumentFragment(), plus a check requiring a hand-written permissive policy), which the escaping happens to neutralize; meanwhile the escaping injects HTML entities into a CSS grammar context that does not decode them, plausibly corrupting legitimate url() and quoted string values.",
+    "overall": {
+      "mean": 1.5,
+      "score": 30,
+      "band": "bad",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "CssHandler.java",
+        "CssValidator.java"
+      ],
+      "official_only": [
+        "AntiSamyDOMScanner.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+      ],
+      "commits": [
+        "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+      ]
+    }
+  }
+}

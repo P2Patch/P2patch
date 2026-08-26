@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_045330_finding-eddcaf11665d/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-eddcaf11665d:088b42050eb9 bash -lc cd spring-boot-admin-server && mvn -B -o -q -DskipTests compile >/dev/null 2>&1; CP="target/classes:$(find /root/.m2/repository -name '*.jar' | tr '\n' ':')"; mkdir -p /tmp/povout && javac -proc:none -cp "$CP" -d /tmp/povout /workspace/repo/.security-pipeline/pov/SpelInjectionPov.java && java -cp "/tmp/povout:$CP" de.codecentric.boot.admin.server.notify.SpelInjectionPov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+[pov] getText threw (payload rejected): org.springframework.expression.spel.SpelEvaluationException: EL1002E: Constructor call: No suitable constructor found on type java.io.File for arguments (java.lang.String)
+[pov] payload template : #{new java.io.File('/tmp/sba_spel_pov_marker_2979527461147').createNewFile()}
+[pov] rendered value   : null
+[pov] marker created   : false (/tmp/sba_spel_pov_marker_2979527461147)
+[pov] NOT VULNERABLE: SpEL code injection was blocked.
+
+--- stderr ---
+

@@ -1,0 +1,131 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:33.605354+00:00",
+    "finished_at": "2026-07-17T15:46:12.024125+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch implements the CWE-022 defense-of-record: it canonicalizes both the extraction root and the entry-derived output path (symlink-aware via getCanonicalPath) and verifies the target equals the root or is a descendant (startsWith root + File.separator). It applies this guard at the central choke point (UnzipEngine.getOutputFileNameWithPath, through which every file-entry write flows) plus both mkdir paths in Unzip.java, making it a strict superset of the official fix, which only guards Unzip.initExtractFile. POV no longer reproduces and all 4 regressions pass; the only blemishes are committed build artifacts and a non-executing main()-style test.",
+    "root_cause": "Zip-entry names containing \"..\" (or absolute paths) were concatenated onto the output directory and passed unvalidated to File/mkdirs/FileOutputStream sinks, letting extraction write outside the destination directory.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical containment check at the sink neutralizes the whole traversal class, not just the observed payload.",
+        "evidence": "Zip4jUtil.checkPathIsContainedInRoot compares getCanonicalPath of target vs root; called from UnzipEngine.getOutputFileNameWithPath and both Unzip.java sinks.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the path-derivation choke point every write flows through, not at a caller/symptom.",
+        "evidence": "UnzipEngine.getOutputFileNameWithPath now validates completePath before returning it.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers the central file-entry path plus the directory-entry mkdirs and checkOutputDirectoryStructure branches in Unzip.java.",
+        "evidence": "Guards added at Unzip.java:146 (dir branch), Unzip.java:199 (checkOutputDirectoryStructure), and UnzipEngine.getOutputFileNameWithPath.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same canonicalize-then-contain strategy as the official fix, applied at the official location and more, so a strict superset.",
+        "evidence": "Official adds getCanonicalPath().startsWith in Unzip.initExtractFile; ours covers Unzip.java plus UnzipEngine.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "All 4 regressions pass and normal nested extraction is preserved; separator boundary avoids over-restriction.",
+        "evidence": "regressions_passed:true; startsWith(rootCanonicalPath + File.separator) plus equality check.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe canonicalization primitives; the '+ File.separator' boundary even avoids the sibling-prefix false-match the official fix has.",
+        "evidence": "checkPathIsContainedInRoot: equals(root) || startsWith(root + File.separator).",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Core code change is tight, but the diff also commits target/ build artifacts (createdFiles.lst, pom.properties, surefire reports) and a non-standard test.",
+        "evidence": "target/maven-status/*, target/maven-archiver/pom.properties, target/surefire-reports/* added.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize to real absolute path (symlink-aware) then verify containment in base dir — the CWE-022 defense of record, not a ../ blocklist.",
+        "evidence": "new File(rootPath).getCanonicalPath() vs new File(entryOutputPath).getCanonicalPath() containment check.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Diff commits generated build artifacts under target/ (createdFiles.lst, inputFiles.lst, pom.properties, surefire reports), which are noise and should not be in a production patch."
+      },
+      {
+        "severity": "low",
+        "description": "The added ZipSlipRegressionTest uses a main()/System.exit design rather than a JUnit test; surefire reports 'Tests run: 0', so it does not execute as part of the test suite."
+      }
+    ],
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "Unzip.java"
+      ],
+      "ours_only": [
+        "TEST-net.lingala.zip4j.ZipSlipRegressionTest.xml",
+        "UnzipEngine.java",
+        "Zip4jUtil.java",
+        "createdFiles.lst",
+        "inputFiles.lst",
+        "net.lingala.zip4j.ZipSlipRegressionTest.txt",
+        "pom.properties"
+      ],
+      "official_only": [
+        "InflaterInputStream.java",
+        "MANIFEST.MF",
+        "pom.xml"
+      ],
+      "jaccard": 0.091,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 4,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/META-INF/MANIFEST.MF",
+        "src/main/java/net/lingala/zip4j/io/InflaterInputStream.java",
+        "src/main/java/net/lingala/zip4j/unzip/Unzip.java"
+      ],
+      "commits": [
+        "59aeea594ff885e06c25751dc6334dfea1bed8c6"
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+index 7e45661..14d5fa4 100644
+--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
++++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java
+@@ -135,13 +135,18 @@ public class StaticHandlerImpl implements StaticHandler {
+       if (log.isTraceEnabled()) log.trace("Not GET or HEAD so ignoring request");
+       context.next();
+     } else {
+-      String path = Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false));
++      // decode the URL path
++      String uriDecodedPath = Utils.urlDecode(context.normalisedPath(), false);
+       // if the normalized path is null it cannot be resolved
+-      if (path == null) {
++      if (uriDecodedPath == null) {
+         log.warn("Invalid path: " + context.request().path());
+         context.next();
+         return;
+       }
++      // will normalize and handle all paths as UNIX paths, this avoids
++      // exposing the file system to path traversal attacks on systems
++      // (e.g.: Windows) where '\' is also treated as a path separator
++      String path = Utils.removeDots(uriDecodedPath.replace('\\', '/'));
+ 
+       // only root is known for sure to be a directory. all other directories must be identified as such.
+       if (!directoryListing && "/".equals(path)) {
+diff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+index cbd8abc..d50fbf0 100644
+--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
++++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java
+@@ -69,6 +69,15 @@ public class StaticHandlerTest extends WebTestBase {
+     testRequest(HttpMethod.GET, "/somedir/", 200, "OK", "<html><body>Subdirectory index page</body></html>");
+   }
+ 
++  @Test
++  public void testEscapeWindows() throws Exception {
++    // encoded backslashes must be treated as path separators (as they are on Windows)
++    // and dot-segments removed, not left as literal backslashes that could later be
++    // interpreted by the underlying filesystem as ".." traversal outside the webroot
++    // /\..\index.html -> /index.html
++    testRequest(HttpMethod.GET, "/%5c..%5cindex.html", 200, "OK");
++  }
++
+   @Test
+   public void testGetOtherIndex() throws Exception {
+     stat.setIndexPage("otherpage.html");

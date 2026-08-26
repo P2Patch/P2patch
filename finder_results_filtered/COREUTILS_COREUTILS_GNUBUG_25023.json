@@ -1,0 +1,33 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "gnubug-25023",
+  "note": "`pr` (src/pr.c) tracks its column separator as a (pointer, length) pair: `col_sep_string`/`col_sep_length`. `-S<str>` sets both together in separator_string() (line 852-853): `col_sep_length = len; col_sep_string = optarg_S;` -- so `pr -S$'\\t\\t\\t' a -m a` leaves col_sep_length == 3, col_sep_string pointing at the 3-byte user string. init_parameters() then special-cases a literal-tab separator (line 1236-1237): `else if (!join_lines && *col_sep_string == '\\t') col_sep_string = column_separator;` -- this repoints col_sep_string at the global `column_separator` (a 1-byte \" \" string literal, line 693) but never resets col_sep_length to match (unlike the sibling `if` branch two lines above, which sets col_sep_length = 1 alongside its own default-separator assignment). The pair is now desynchronized: length 3, but the buffer it names is 1 byte. print_sep_string() (line 2224-2225: `s = col_sep_string; l = col_sep_length;`) then walks `l` (3) bytes of `s`, dereferencing `*s` at line 2241 -- reading 2 bytes past the 1-byte `column_separator` global. This produces an AddressSanitizer global-buffer-overflow (READ of size 1 in print_sep_string, ../src/pr.c:2241).",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "col_sep_length = len; col_sep_string = optarg_S; : -S's separator string and its true length are set together (len == 3 for \\t\\t\\t)",
+            "uri": "src/pr.c",
+            "line": 852
+          },
+          {
+            "message": "col_sep_string = column_separator; : repoints col_sep_string at the 1-byte \" \" global WITHOUT resetting col_sep_length (still 3) -- the (pointer,length) pair is now desynchronized",
+            "uri": "src/pr.c",
+            "line": 1237
+          },
+          {
+            "message": "int l = col_sep_length; : l is seeded from the stale length (3), not the 1-byte buffer col_sep_string (s) now actually points at",
+            "uri": "src/pr.c",
+            "line": 2225
+          },
+          {
+            "message": "if (*s == ' ') : dereferences s for l==3 iterations of the while(l--) loop -- reads 2 bytes past the 1-byte column_separator allocation on the 2nd/3rd iteration",
+            "uri": "src/pr.c",
+            "line": 2241
+          }
+        ]
+      ]
+    }
+  ]
+}

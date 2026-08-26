@@ -1,0 +1,148 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/Expand.java b/src/main/java/org/codehaus/plexus/util/Expand.java
+index 7f2534d..ddb62bb 100644
+--- a/src/main/java/org/codehaus/plexus/util/Expand.java
++++ b/src/main/java/org/codehaus/plexus/util/Expand.java
+@@ -151,6 +151,18 @@ protected void extractFile( File srcF,
+         throws Exception
+     {
+         File f = FileUtils.resolveFile( dir, entryName );
++
++        // Guard against "Zip Slip": ensure the resolved file stays within the
++        // destination directory so that entry names containing path traversal
++        // sequences (e.g. "../evil.txt") cannot write outside of it.
++        String canonicalDestDir = dir.getCanonicalPath() + File.separator;
++        String canonicalDest = f.getCanonicalPath();
++        if ( !canonicalDest.startsWith( canonicalDestDir )
++            && !canonicalDest.equals( dir.getCanonicalPath() ) )
++        {
++            throw new Exception( "Entry is outside of the target directory: " + entryName );
++        }
++
+         try
+         {
+             if ( !overwrite && f.exists()
+diff --git a/src/test/java/org/codehaus/plexus/util/ExpandTest.java b/src/test/java/org/codehaus/plexus/util/ExpandTest.java
+new file mode 100644
+index 0000000..7925783
+--- /dev/null
++++ b/src/test/java/org/codehaus/plexus/util/ExpandTest.java
+@@ -0,0 +1,119 @@
++package org.codehaus.plexus.util;
++
++/*
++ * Copyright The Codehaus Foundation.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import junit.framework.TestCase;
++
++/**
++ * Tests for {@link Expand}, in particular the "Zip Slip" path traversal
++ * protection (CWE-022).
++ */
++public class ExpandTest
++    extends TestCase
++{
++    /**
++     * A zip entry whose name contains a path traversal sequence must not be
++     * written outside of the destination directory.
++     */
++    public void testZipSlipEntryIsRejected()
++        throws Exception
++    {
++        File base = File.createTempFile( "zipslip-test", "" );
++        base.delete();
++        base.mkdirs();
++
++        File dest = new File( base, "dest" );
++        dest.mkdirs();
++
++        File zip = new File( base, "malicious.zip" );
++        ZipOutputStream zos = new ZipOutputStream( new FileOutputStream( zip ) );
++        try
++        {
++            zos.putNextEntry( new ZipEntry( "../escaped.txt" ) );
++            zos.write( "owned".getBytes( "UTF-8" ) );
++            zos.closeEntry();
++        }
++        finally
++        {
++            zos.close();
++        }
++
++        Expand expand = new Expand();
++        expand.setSrc( zip );
++        expand.setDest( dest );
++
++        try
++        {
++            expand.execute();
++        }
++        catch ( Exception expected )
++        {
++            // Extraction is allowed to fail loudly for a malicious entry.
++        }
++
++        File escaped = new File( base, "escaped.txt" );
++        assertFalse( "Zip Slip: entry was written outside the destination directory",
++                     escaped.exists() );
++
++        FileUtils.deleteDirectory( base );
++        zip.delete();
++    }
++
++    /**
++     * A normal entry must still be extracted into the destination directory.
++     */
++    public void testNormalEntryIsExtracted()
++        throws Exception
++    {
++        File base = File.createTempFile( "zipok-test", "" );
++        base.delete();
++        base.mkdirs();
++
++        File dest = new File( base, "dest" );
++        dest.mkdirs();
++
++        File zip = new File( base, "ok.zip" );
++        ZipOutputStream zos = new ZipOutputStream( new FileOutputStream( zip ) );
++        try
++        {
++            zos.putNextEntry( new ZipEntry( "sub/good.txt" ) );
++            zos.write( "hello".getBytes( "UTF-8" ) );
++            zos.closeEntry();
++        }
++        finally
++        {
++            zos.close();
++        }
++
++        Expand expand = new Expand();
++        expand.setSrc( zip );
++        expand.setDest( dest );
++        expand.execute();
++
++        File extracted = new File( dest, "sub/good.txt" );
++        assertTrue( "Normal entry should be extracted into the destination directory",
++                    extracted.exists() );
++
++        FileUtils.deleteDirectory( base );
++        zip.delete();
++    }
++}

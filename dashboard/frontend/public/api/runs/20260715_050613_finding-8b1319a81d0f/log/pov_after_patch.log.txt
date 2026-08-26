@@ -1,0 +1,15 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-8b1319a81d0f:020d2af46e6b bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=2
+timed_out=false
+
+--- stdout ---
+[POV] Compiling project main classes ...
+[POV] Resolving dependency classpath ...
+[POV] Compiling POV ...
+[POV] Running POV ...
+[POV] Extraction rejected the escaping symlink: org.codehaus.plexus.archiver.ArchiverException: Entry symlink destination is outside of the target directory (evil)
+[POV] NOT VULNERABLE (patched behaviour).
+
+--- stderr ---
+[main] INFO org.codehaus.plexus.archiver.tar.TarUnArchiver - Expanding: /workspace/repo/target/pov-work/evil.tar into /workspace/repo/target/pov-work/dest
+

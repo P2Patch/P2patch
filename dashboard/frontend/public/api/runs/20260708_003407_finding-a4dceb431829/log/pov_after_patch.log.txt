@@ -1,0 +1,17 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260708_003407_finding-a4dceb431829/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-a4dceb431829:211b726dc24d bash -lc cd /workspace/repo && mvn -q -B -pl util -am -DskipTests install && mvn -q -B -pl util dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt && mkdir -p /tmp/povout && CP="util/target/classes:$(cat /tmp/cp.txt)" && javac -cp "$CP" -d /tmp/povout .security-pipeline/pov/CopyPathTraversalPov.java && java -cp "/tmp/povout:$CP" CopyPathTraversalPov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+copyDirectoryFromPod threw: java.io.IOException: Archive entry outside of destination directory: ../pwned.txt
+NOT VULNERABLE: no file was written outside the destination directory.
+
+--- stderr ---
+warning: No SupportedSourceVersion annotation found on io.sundr.builder.internal.processor.BuildableProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.builder.internal.processor.BuildableProcessor' less than -source '1.8'
+warning: No SupportedSourceVersion annotation found on io.sundr.builder.internal.processor.ExternalBuildableProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.builder.internal.processor.ExternalBuildableProcessor' less than -source '1.8'
+warning: No SupportedSourceVersion annotation found on io.sundr.resourcecify.internal.processor.ResourcecifyProcessor, returning RELEASE_6.
+warning: Supported source version 'RELEASE_6' from annotation processor 'io.sundr.resourcecify.internal.processor.ResourcecifyProcessor' less than -source '1.8'
+6 warnings
+

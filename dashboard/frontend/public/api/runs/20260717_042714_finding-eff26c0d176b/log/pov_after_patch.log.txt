@@ -1,0 +1,13 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_042714_finding-eff26c0d176b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-eff26c0d176b:2be5285b1e2a bash -lc cd /workspace/repo && mvn -q -B -pl one-java-agent-plugin -am -DskipTests compile && mkdir -p /tmp/pov-out && javac -cp one-java-agent-plugin/target/classes -d /tmp/pov-out .security-pipeline/pov/ZipSlipPoV.java && java -cp one-java-agent-plugin/target/classes:/tmp/pov-out ZipSlipPoV
+exit_code=1
+timed_out=false
+
+--- stdout ---
+unzip() threw (traversal rejected): java.io.IOException: Zip entry is outside of the target dir: ../pov_zipslip_proof.txt
+extractDir=/tmp/zipslip-pov6944323419839237605/extract
+outsideMarker=/tmp/zipslip-pov6944323419839237605/pov_zipslip_proof.txt
+escaped=false
+SAFE: zip entry did not escape destination directory
+
+--- stderr ---
+

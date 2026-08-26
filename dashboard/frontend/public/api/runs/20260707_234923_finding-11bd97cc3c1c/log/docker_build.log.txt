@@ -1,0 +1,851 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12/Dockerfile -t simpleautosec-finding-11bd97cc3c1c:6479321ee913 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__tapestry-5_[redacted]_5.4.4/12
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.53kB done
+#1 DONE 0.0s
+
+#2 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/eclipse-temurin:8-jdk
+#3 DONE 0.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 1/5] FROM docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6
+#5 resolve docker.io/library/eclipse-temurin:8-jdk@sha256:6050f1d09b98724df5ce8e14f525ffdbdb0a8ebc9252e3d8fed38e31ae9ea9f6 done
+#5 DONE 0.0s
+
+#6 [builder 2/5] WORKDIR /workspace
+#6 CACHED
+
+#7 [builder 3/5] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#7 CACHED
+
+#8 [builder 4/5] RUN set -eux;     git clone "https://github.com/apache/tapestry-5" repo;     cd repo;     if [ -n "[redacted]" ]; then git checkout "[redacted]"; elif [ -n "5.4.4" ]; then git checkout "5.4.4"; fi
+#8 0.093 + git clone https://github.com/apache/tapestry-5 repo
+#8 0.095 Cloning into 'repo'...
+#8 6.511 + cd repo
+#8 6.511 + [ -n [redacted] ]
+#8 6.511 + git checkout [redacted]
+#8 6.698 Note: switching to '[redacted]'.
+#8 6.698 
+#8 6.698 You are in 'detached HEAD' state. You can look around, make experimental
+#8 6.698 changes and commit them, and you can discard any commits you make in this
+#8 6.698 state without impacting any branches by switching back to a branch.
+#8 6.698 
+#8 6.698 If you want to create a new branch to retain commits you create, you may
+#8 6.698 do so (now or later) by using -c with the switch command. Example:
+#8 6.698 
+#8 6.698   git switch -c <new-branch-name>
+#8 6.698 
+#8 6.698 Or undo this operation with:
+#8 6.698 
+#8 6.698   git switch -
+#8 6.698 
+#8 6.698 Turn off this advice by setting config variable advice.detachedHead to false
+#8 6.698 
+#8 6.698 HEAD is now at d29cc6778 TAP5-2603: Create HTML5-based date form field component
+#8 DONE 6.8s
+
+#9 [builder 5/5] RUN set -eux; cd /workspace/repo; chmod +x gradlew || true; ./gradlew --no-daemon clean build -x test
+#9 0.111 + cd /workspace/repo
+#9 0.111 + chmod +x gradlew
+#9 0.113 + ./gradlew --no-daemon clean build -x test
+#9 0.165 Downloading https://services.gradle.org/distributions/gradle-2.14.1-bin.zip
+#9 0.849 ...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#9 2.905 Unzipping /root/.gradle/wrapper/dists/gradle-2.14.1-bin/2r579t5wehc7ew5kc8vfqezww/gradle-2.14.1-bin.zip to /root/.gradle/wrapper/dists/gradle-2.14.1-bin/2r579t5wehc7ew5kc8vfqezww
+#9 3.092 Set executable permissions for: /root/.gradle/wrapper/dists/gradle-2.14.1-bin/2r579t5wehc7ew5kc8vfqezww/gradle-2.14.1/bin/gradle
+#9 3.866 Generating JAR file 'gradle-api-2.14.1.jar'
+#9 7.381 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/wro4j-extensions/1.7.7/wro4j-extensions-1.7.7.pom
+#9 7.515 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/wro4j-parent/1.7.7/wro4j-parent-1.7.7.pom
+#9 7.560 Download https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom
+#9 7.644 Download https://repo1.maven.org/maven2/org/webjars/coffee-script/1.10.0/coffee-script-1.10.0.pom
+#9 7.713 Download https://repo1.maven.org/maven2/org/webjars/coffee-script-parent/1.10.0/coffee-script-parent-1.10.0.pom
+#9 7.763 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/wro4j-core/1.7.7/wro4j-core-1.7.7.pom
+#9 7.847 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/rhino/1.7R5-20130223-1/rhino-1.7R5-20130223-1.pom
+#9 7.900 Download https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.1/commons-lang3-3.1.pom
+#9 7.971 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/22/commons-parent-22.pom
+#9 8.013 Download https://repo1.maven.org/maven2/org/apache/apache/9/apache-9.pom
+#9 8.062 Download https://repo1.maven.org/maven2/org/apache/commons/commons-exec/1.1/commons-exec-1.1.pom
+#9 8.097 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/17/commons-parent-17.pom
+#9 8.134 Download https://repo1.maven.org/maven2/org/apache/apache/7/apache-7.pom
+#9 8.180 Download https://repo1.maven.org/maven2/commons-io/commons-io/2.4/commons-io-2.4.pom
+#9 8.215 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/25/commons-parent-25.pom
+#9 8.259 Download https://repo1.maven.org/maven2/commons-pool/commons-pool/1.6/commons-pool-1.6.pom
+#9 8.302 Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.2.4/gson-2.2.4.pom
+#9 8.349 Download https://repo1.maven.org/maven2/com/github/lltyk/dojo-shrinksafe/1.7.2/dojo-shrinksafe-1.7.2.pom
+#9 8.406 Download https://repo1.maven.org/maven2/org/dojotoolkit/dojo-maven/1.7.2/dojo-maven-1.7.2.pom
+#9 8.460 Download https://repo1.maven.org/maven2/me/n4u/sass/sass-gems/3.2.1/sass-gems-3.2.1.pom
+#9 8.510 Download https://repo1.maven.org/maven2/nz/co/edmi/bourbon-gem-jar/2.1.0/bourbon-gem-jar-2.1.0.pom
+#9 8.560 Download https://repo1.maven.org/maven2/org/webjars/webjars-locator/0.19/webjars-locator-0.19.pom
+#9 8.599 Download https://repo1.maven.org/maven2/org/webjars/jshint/2.4.3/jshint-2.4.3.pom
+#9 8.640 Download https://repo1.maven.org/maven2/org/webjars/jshint-parent/2.4.3/jshint-parent-2.4.3.pom
+#9 8.689 Download https://repo1.maven.org/maven2/org/webjars/less/1.3.3/less-1.3.3.pom
+#9 8.765 Download https://repo1.maven.org/maven2/org/webjars/emberjs/1.5.0/emberjs-1.5.0.pom
+#9 8.829 Download https://repo1.maven.org/maven2/org/webjars/handlebars/1.3.0/handlebars-1.3.0.pom
+#9 8.889 Download https://repo1.maven.org/maven2/org/webjars/jslint/c657984cd7/jslint-c657984cd7.pom
+#9 8.929 Download https://repo1.maven.org/maven2/org/webjars/json2/20110223/json2-20110223.pom
+#9 8.966 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.pom
+#9 9.001 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-parent/1.7.7/slf4j-parent-1.7.7.pom
+#9 9.244 Download https://repo1.maven.org/maven2/me/n4u/sass/sass-gems/3.1.19/sass-gems-3.1.19.pom
+#9 9.282 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.3.3/jackson-databind-2.3.3.pom
+#9 9.324 Download https://repo1.maven.org/maven2/com/fasterxml/oss-parent/12/oss-parent-12.pom
+#9 9.367 Download https://repo1.maven.org/maven2/org/webjars/jquery/1.10.2-1/jquery-1.10.2-1.pom
+#9 9.404 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.3.0/jackson-annotations-2.3.0.pom
+#9 9.437 Download https://repo1.maven.org/maven2/com/fasterxml/oss-parent/11/oss-parent-11.pom
+#9 9.472 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.3.3/jackson-core-2.3.3.pom
+#9 9.527 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/wro4j-extensions/1.7.7/wro4j-extensions-1.7.7.jar
+#9 9.633 Download https://repo1.maven.org/maven2/org/webjars/coffee-script/1.10.0/coffee-script-1.10.0.jar
+#9 9.666 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/wro4j-core/1.7.7/wro4j-core-1.7.7.jar
+#9 9.743 Download https://repo1.maven.org/maven2/ro/isdc/wro4j/rhino/1.7R5-20130223-1/rhino-1.7R5-20130223-1.jar
+#9 9.820 Download https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.1/commons-lang3-3.1.jar
+#9 9.872 Download https://repo1.maven.org/maven2/org/apache/commons/commons-exec/1.1/commons-exec-1.1.jar
+#9 9.916 Download https://repo1.maven.org/maven2/commons-io/commons-io/2.4/commons-io-2.4.jar
+#9 9.961 Download https://repo1.maven.org/maven2/commons-pool/commons-pool/1.6/commons-pool-1.6.jar
+#9 10.000 Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.2.4/gson-2.2.4.jar
+#9 10.05 Download https://repo1.maven.org/maven2/com/github/lltyk/dojo-shrinksafe/1.7.2/dojo-shrinksafe-1.7.2.jar
+#9 10.14 Download https://repo1.maven.org/maven2/me/n4u/sass/sass-gems/3.2.1/sass-gems-3.2.1.jar
+#9 10.23 Download https://repo1.maven.org/maven2/nz/co/edmi/bourbon-gem-jar/2.1.0/bourbon-gem-jar-2.1.0.jar
+#9 10.27 Download https://repo1.maven.org/maven2/org/webjars/webjars-locator/0.19/webjars-locator-0.19.jar
+#9 10.32 Download https://repo1.maven.org/maven2/org/webjars/jshint/2.4.3/jshint-2.4.3.jar
+#9 10.41 Download https://repo1.maven.org/maven2/org/webjars/less/1.3.3/less-1.3.3.jar
+#9 10.61 Download https://repo1.maven.org/maven2/org/webjars/emberjs/1.5.0/emberjs-1.5.0.jar
+#9 10.70 Download https://repo1.maven.org/maven2/org/webjars/handlebars/1.3.0/handlebars-1.3.0.jar
+#9 10.75 Download https://repo1.maven.org/maven2/org/webjars/jslint/c657984cd7/jslint-c657984cd7.jar
+#9 10.79 Download https://repo1.maven.org/maven2/org/webjars/json2/20110223/json2-20110223.jar
+#9 10.82 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.7/slf4j-api-1.7.7.jar
+#9 10.86 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.3.3/jackson-databind-2.3.3.jar
+#9 10.93 Download https://repo1.maven.org/maven2/org/webjars/jquery/1.10.2-1/jquery-1.10.2-1.jar
+#9 10.97 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.3.0/jackson-annotations-2.3.0.jar
+#9 11.01 Download https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-core/2.3.3/jackson-core-2.3.3.jar
+#9 11.07 :buildSrc:clean UP-TO-DATE
+#9 11.07 :buildSrc:compileJava UP-TO-DATE
+#9 11.07 :buildSrc:compileGroovy
+#9 11.85 :buildSrc:processResources UP-TO-DATE
+#9 11.86 :buildSrc:classes
+#9 11.86 :buildSrc:jar
+#9 11.87 :buildSrc:assemble
+#9 11.87 :buildSrc:compileTestJava UP-TO-DATE
+#9 11.87 :buildSrc:compileTestGroovy UP-TO-DATE
+#9 11.87 :buildSrc:processTestResources UP-TO-DATE
+#9 11.87 :buildSrc:testClasses UP-TO-DATE
+#9 11.87 :buildSrc:test UP-TO-DATE
+#9 11.87 :buildSrc:check UP-TO-DATE
+#9 11.87 :buildSrc:build
+#9 12.37 The 'sonar' plugin has been deprecated and is scheduled to be removed in Gradle 3.0. please use the official plugin from SonarQube (http://docs.sonarqube.org/display/SONAR/Analyzing+with+Gradle).
+#9 13.50 Download https://repo1.maven.org/maven2/commons-lang/commons-lang/2.6/commons-lang-2.6.pom
+#9 13.54 Download https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom
+#9 13.58 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom
+#9 13.62 Download https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom
+#9 13.66 Download https://repo1.maven.org/maven2/javax/inject/javax.inject/1/javax.inject-1.pom
+#9 13.69 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.19/slf4j-api-1.7.19.pom
+#9 13.73 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-parent/1.7.19/slf4j-parent-1.7.19.pom
+#9 13.77 Download https://repo1.maven.org/maven2/org/antlr/antlr/3.5.2/antlr-3.5.2.pom
+#9 13.81 Download https://repo1.maven.org/maven2/org/antlr/antlr-master/3.5.2/antlr-master-3.5.2.pom
+#9 13.84 Download https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom
+#9 13.89 Download https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.pom
+#9 13.93 Download https://repo1.maven.org/maven2/org/antlr/ST4/4.0.8/ST4-4.0.8.pom
+#9 13.97 Download https://repo1.maven.org/maven2/commons-lang/commons-lang/2.6/commons-lang-2.6.jar
+#9 14.04 Download https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar
+#9 14.08 Download https://repo1.maven.org/maven2/javax/inject/javax.inject/1/javax.inject-1.jar
+#9 14.11 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.19/slf4j-api-1.7.19.jar
+#9 14.14 Download https://repo1.maven.org/maven2/org/antlr/antlr/3.5.2/antlr-3.5.2.jar
+#9 14.22 Download https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar
+#9 14.26 Download https://repo1.maven.org/maven2/org/antlr/ST4/4.0.8/ST4-4.0.8.jar
+#9 14.37 :clean UP-TO-DATE
+#9 14.37 :beanmodel:clean UP-TO-DATE
+#9 14.37 :commons:clean UP-TO-DATE
+#9 14.37 :plastic:clean
+#9 14.37 :quickstart:clean
+#9 14.37 :tapestry-beanvalidator:clean
+#9 14.37 :tapestry-clojure:clean
+#9 14.37 :tapestry-core:clean
+#9 14.38 :tapestry-func:clean
+#9 14.38 :tapestry-hibernate:clean
+#9 14.38 :tapestry-hibernate-core:clean
+#9 14.38 :tapestry-internal-test:clean
+#9 14.38 :tapestry-ioc:clean
+#9 14.38 :tapestry-ioc-jcache:clean
+#9 14.38 :tapestry-ioc-junit:clean
+#9 14.38 :tapestry-javadoc:clean
+#9 14.38 :tapestry-jmx:clean
+#9 14.38 :tapestry-jpa:clean
+#9 14.38 :tapestry-json:clean
+#9 14.38 :tapestry-kaptcha:clean
+#9 14.38 :tapestry-mongodb:clean
+#9 14.38 :tapestry-runner:clean
+#9 14.38 :tapestry-spring:clean
+#9 14.38 :tapestry-test:clean
+#9 14.38 :tapestry-test-constants:clean
+#9 14.38 :tapestry-test-data:clean
+#9 14.38 :tapestry-upload:clean
+#9 14.38 :tapestry-webresources:clean
+#9 14.38 :tapestry5-annotations:clean
+#9 14.38 :assemble UP-TO-DATE
+#9 14.38 :check UP-TO-DATE
+#9 14.38 :build UP-TO-DATE
+#9 14.38 :beanmodel:generateGrammarSource
+#9 14.74 :plastic:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 15.49 Note: Some input files use or override a deprecated API.
+#9 15.49 Note: Recompile with -Xlint:deprecation for details.
+#9 15.49 Note: Some input files use unchecked or unsafe operations.
+#9 15.49 Note: Recompile with -Xlint:unchecked for details.
+#9 15.49 1 warning
+#9 15.51 
+#9 15.51 :plastic:compileGroovy UP-TO-DATE
+#9 15.51 :plastic:processResources UP-TO-DATE
+#9 15.51 :plastic:classes
+#9 15.51 :plastic:jar
+#9 15.56 :tapestry-func:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 15.62 1 warning
+#9 15.62 
+#9 15.62 :tapestry-func:compileGroovy UP-TO-DATE
+#9 15.62 :tapestry-func:processResources UP-TO-DATE
+#9 15.62 :tapestry-func:classes
+#9 15.62 :tapestry-func:jar
+#9 15.63 :tapestry5-annotations:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 15.64 1 warning
+#9 15.64 
+#9 15.64 :tapestry5-annotations:compileGroovy UP-TO-DATE
+#9 15.64 :tapestry5-annotations:processResources UP-TO-DATE
+#9 15.64 :tapestry5-annotations:classes
+#9 15.64 :tapestry5-annotations:jar
+#9 15.65 :commons:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 15.71 Note: /workspace/repo/commons/src/main/java/org/apache/tapestry5/internal/services/DefaultDataTypeAnalyzer.java uses or overrides a deprecated API.
+#9 15.71 Note: Recompile with -Xlint:deprecation for details.
+#9 15.71 Note: Some input files use unchecked or unsafe operations.
+#9 15.71 Note: Recompile with -Xlint:unchecked for details.
+#9 15.71 1 warning
+#9 15.71 
+#9 15.71 :commons:compileGroovy UP-TO-DATE
+#9 15.71 :commons:processResources UP-TO-DATE
+#9 15.71 :commons:classes
+#9 15.71 :commons:jar
+#9 15.73 :beanmodel:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 16.24 Note: /workspace/repo/beanmodel/src/main/java/org/apache/tapestry5/internal/services/BeanModelSourceImpl.java uses or overrides a deprecated API.
+#9 16.24 Note: Recompile with -Xlint:deprecation for details.
+#9 16.24 Note: Some input files use unchecked or unsafe operations.
+#9 16.24 Note: Recompile with -Xlint:unchecked for details.
+#9 16.24 1 warning
+#9 16.25 
+#9 16.25 :beanmodel:compileGroovy UP-TO-DATE
+#9 16.25 :beanmodel:processResources UP-TO-DATE
+#9 16.25 :beanmodel:classes
+#9 16.25 :beanmodel:jar
+#9 16.27 :beanmodel:sourcesJar
+#9 16.27 :beanmodel:assemble
+#9 16.27 :beanmodel:check
+#9 16.27 :beanmodel:build
+#9 16.27 :commons:sourcesJar
+#9 16.28 :commons:assemble
+#9 16.28 :commons:check
+#9 16.28 :commons:build
+#9 16.28 :plastic:sourcesJar
+#9 16.33 :plastic:assemble
+#9 16.33 :plastic:check
+#9 16.33 :plastic:build
+#9 16.33 :quickstart:compileJava UP-TO-DATE
+#9 16.33 :quickstart:compileGroovy UP-TO-DATE
+#9 16.33 :quickstart:processFiltered
+#9 16.35 :quickstart:processResources
+#9 16.36 :quickstart:classes
+#9 16.36 :quickstart:jar
+#9 16.37 :quickstart:sourcesJar
+#9 16.39 :quickstart:assemble
+#9 16.39 :quickstart:check
+#9 16.39 :quickstart:build
+#9 16.39 :tapestry-beanvalidator:compileCoffeeScript
+#9 16.67 :tapestry-core:compileCoffeeScript
+#9 18.38 :tapestry-test-constants:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 18.38 1 warning
+#9 18.38 
+#9 18.38 :tapestry-test-constants:compileGroovy UP-TO-DATE
+#9 18.38 :tapestry-test-constants:processResources UP-TO-DATE
+#9 18.38 :tapestry-test-constants:classes
+#9 18.38 :tapestry-test-constants:jar
+#9 18.39 :tapestry-runner:compileJava
+#9 18.47 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-server/7.6.11.v20130520/jetty-server-7.6.11.v20130520.pom
+#9 18.51 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-project/7.6.11.v20130520/jetty-project-7.6.11.v20130520.pom
+#9 18.55 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-parent/20/jetty-parent-20.pom
+#9 18.60 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-jndi/7.6.11.v20130520/jetty-jndi-7.6.11.v20130520.pom
+#9 18.64 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-plus/7.6.11.v20130520/jetty-plus-7.6.11.v20130520.pom
+#9 18.67 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-webapp/7.6.11.v20130520/jetty-webapp-7.6.11.v20130520.pom
+#9 18.73 Download https://repo1.maven.org/maven2/org/apache/tomcat/catalina/6.0.30/catalina-6.0.30.pom
+#9 18.77 Download https://repo1.maven.org/maven2/org/apache/tomcat/coyote/6.0.30/coyote-6.0.30.pom
+#9 18.96 Download https://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.32/dbcp-6.0.32.pom
+#9 19.01 Download https://repo1.maven.org/maven2/commons-cli/commons-cli/1.2/commons-cli-1.2.pom
+#9 19.05 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/11/commons-parent-11.pom
+#9 19.09 Download https://repo1.maven.org/maven2/org/apache/apache/4/apache-4.pom
+#9 19.13 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.servlet/2.5.0.v201103041518/javax.servlet-2.5.0.v201103041518.pom
+#9 19.17 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/jetty-orbit/1/jetty-orbit-1.pom
+#9 19.21 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-parent/18/jetty-parent-18.pom
+#9 19.26 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-continuation/7.6.11.v20130520/jetty-continuation-7.6.11.v20130520.pom
+#9 19.30 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-http/7.6.11.v20130520/jetty-http-7.6.11.v20130520.pom
+#9 19.34 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.mail.glassfish/1.4.1.v201005082020/javax.mail.glassfish-1.4.1.v201005082020.pom
+#9 19.37 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.transaction/1.1.1.v201105210645/javax.transaction-1.1.1.v201105210645.pom
+#9 19.41 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-xml/7.6.11.v20130520/jetty-xml-7.6.11.v20130520.pom
+#9 19.45 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-servlet/7.6.11.v20130520/jetty-servlet-7.6.11.v20130520.pom
+#9 19.49 Download https://repo1.maven.org/maven2/org/mortbay/jetty/servlet-api-2.5/6.1.11/servlet-api-2.5-6.1.11.pom
+#9 19.54 Download https://repo1.maven.org/maven2/org/mortbay/jetty/project/6.1.11/project-6.1.11.pom
+#9 19.58 Download https://repo1.maven.org/maven2/org/apache/tomcat/juli/6.0.30/juli-6.0.30.pom
+#9 19.62 Download https://repo1.maven.org/maven2/org/apache/tomcat/annotations-api/6.0.30/annotations-api-6.0.30.pom
+#9 19.66 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-io/7.6.11.v20130520/jetty-io-7.6.11.v20130520.pom
+#9 19.70 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.activation/1.1.0.v201105071233/javax.activation-1.1.0.v201105071233.pom
+#9 19.74 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/7.6.11.v20130520/jetty-util-7.6.11.v20130520.pom
+#9 19.79 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-security/7.6.11.v20130520/jetty-security-7.6.11.v20130520.pom
+#9 21.30 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-server/7.6.11.v20130520/jetty-server-7.6.11.v20130520.jar
+#9 21.39 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-jndi/7.6.11.v20130520/jetty-jndi-7.6.11.v20130520.jar
+#9 21.44 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-plus/7.6.11.v20130520/jetty-plus-7.6.11.v20130520.jar
+#9 21.50 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-webapp/7.6.11.v20130520/jetty-webapp-7.6.11.v20130520.jar
+#9 21.56 Download https://repo1.maven.org/maven2/org/apache/tomcat/catalina/6.0.30/catalina-6.0.30.jar
+#9 21.69 Download https://repo1.maven.org/maven2/org/apache/tomcat/coyote/6.0.30/coyote-6.0.30.jar
+#9 22.06 Download https://repo1.maven.org/maven2/org/apache/tomcat/dbcp/6.0.32/dbcp-6.0.32.jar
+#9 22.13 Download https://repo1.maven.org/maven2/commons-cli/commons-cli/1.2/commons-cli-1.2.jar
+#9 22.17 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.servlet/2.5.0.v201103041518/javax.servlet-2.5.0.v201103041518.jar
+#9 22.23 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-continuation/7.6.11.v20130520/jetty-continuation-7.6.11.v20130520.jar
+#9 22.27 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-http/7.6.11.v20130520/jetty-http-7.6.11.v20130520.jar
+#9 22.31 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.mail.glassfish/1.4.1.v201005082020/javax.mail.glassfish-1.4.1.v201005082020.jar
+#9 22.37 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.transaction/1.1.1.v201105210645/javax.transaction-1.1.1.v201105210645.jar
+#9 22.43 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-xml/7.6.11.v20130520/jetty-xml-7.6.11.v20130520.jar
+#9 22.49 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-servlet/7.6.11.v20130520/jetty-servlet-7.6.11.v20130520.jar
+#9 22.69 Download https://repo1.maven.org/maven2/org/mortbay/jetty/servlet-api-2.5/6.1.11/servlet-api-2.5-6.1.11.jar
+#9 22.76 Download https://repo1.maven.org/maven2/org/apache/tomcat/juli/6.0.30/juli-6.0.30.jar
+#9 22.80 Download https://repo1.maven.org/maven2/org/apache/tomcat/annotations-api/6.0.30/annotations-api-6.0.30.jar
+#9 22.86 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-io/7.6.11.v20130520/jetty-io-7.6.11.v20130520.jar
+#9 22.91 Download https://repo1.maven.org/maven2/org/eclipse/jetty/orbit/javax.activation/1.1.0.v201105071233/javax.activation-1.1.0.v201105071233.jar
+#9 22.96 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-util/7.6.11.v20130520/jetty-util-7.6.11.v20130520.jar
+#9 23.03 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-security/7.6.11.v20130520/jetty-security-7.6.11.v20130520.jar
+#9 23.06 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 23.08 Note: /workspace/repo/tapestry-runner/src/main/java/org/apache/tapestry5/test/Jetty7Runner.java uses or overrides a deprecated API.
+#9 23.08 Note: Recompile with -Xlint:deprecation for details.
+#9 23.08 1 warning
+#9 23.08 :tapestry-runner:compileGroovy UP-TO-DATE
+#9 23.08 :tapestry-runner:processResources UP-TO-DATE
+#9 23.08 :tapestry-runner:classes
+#9 23.08 :tapestry-runner:jar
+#9 23.08 :tapestry-test-data:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 23.09 1 warning
+#9 23.09 
+#9 23.09 :tapestry-test-data:compileGroovy UP-TO-DATE
+#9 23.09 :tapestry-test-data:processResources
+#9 23.10 :tapestry-test-data:classes
+#9 23.10 :tapestry-test-data:jar
+#9 23.15 :tapestry-test:compileJava
+#9 23.23 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/2.46.0/selenium-java-2.46.0.pom
+#9 23.27 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-parent/2.46.0/selenium-parent-2.46.0.pom
+#9 23.30 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-server/2.46.0/selenium-server-2.46.0.pom
+#9 23.34 Download https://repo1.maven.org/maven2/org/testng/testng/6.8.21/testng-6.8.21.pom
+#9 23.38 Download https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/3/oss-parent-3.pom
+#9 23.42 Download https://repo1.maven.org/maven2/org/easymock/easymock/3.3.1/easymock-3.3.1.pom
+#9 23.46 Download https://repo1.maven.org/maven2/org/easymock/easymock-parent/3.3.1/easymock-parent-3.3.1.pom
+#9 23.50 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/2.46.0/selenium-chrome-driver-2.46.0.pom
+#9 23.53 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-htmlunit-driver/2.46.0/selenium-htmlunit-driver-2.46.0.pom
+#9 23.57 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-firefox-driver/2.46.0/selenium-firefox-driver-2.46.0.pom
+#9 23.60 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-ie-driver/2.46.0/selenium-ie-driver-2.46.0.pom
+#9 23.64 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-safari-driver/2.46.0/selenium-safari-driver-2.46.0.pom
+#9 23.67 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/2.46.0/selenium-support-2.46.0.pom
+#9 23.70 Download https://repo1.maven.org/maven2/org/webbitserver/webbit/0.4.14/webbit-0.4.14.pom
+#9 23.73 Download https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/6/oss-parent-6.pom
+#9 23.78 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-leg-rc/2.46.0/selenium-leg-rc-2.46.0.pom
+#9 23.82 Download https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.48/bcprov-jdk15on-1.48.pom
+#9 23.85 Download https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-jdk15on/1.48/bcpkix-jdk15on-1.48.pom
+#9 23.89 Download https://repo1.maven.org/maven2/mx4j/mx4j-tools/3.0.1/mx4j-tools-3.0.1.pom
+#9 23.93 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/jetty-repacked/7.6.1/jetty-repacked-7.6.1.pom
+#9 23.96 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/jetty-rc-repacked/5/jetty-rc-repacked-5.pom
+#9 24.00 Download https://repo1.maven.org/maven2/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.pom
+#9 24.03 Download https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.8/snakeyaml-1.8.pom
+#9 24.07 Download https://repo1.maven.org/maven2/org/beanshell/bsh/2.0b4/bsh-2.0b4.pom
+#9 24.10 Download https://repo1.maven.org/maven2/org/beanshell/beanshell/2.0b4/beanshell-2.0b4.pom
+#9 24.14 Download https://repo1.maven.org/maven2/com/beust/jcommander/1.27/jcommander-1.27.pom
+#9 24.17 Download https://repo1.maven.org/maven2/cglib/cglib/3.1/cglib-3.1.pom
+#9 24.21 Download https://repo1.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3.pom
+#9 24.24 Download https://repo1.maven.org/maven2/org/ow2/asm/asm-parent/5.0.3/asm-parent-5.0.3.pom
+#9 24.27 Download https://repo1.maven.org/maven2/org/ow2/ow2/1.3/ow2-1.3.pom
+#9 24.31 Download https://repo1.maven.org/maven2/org/objenesis/objenesis/2.1/objenesis-2.1.pom
+#9 24.35 Download https://repo1.maven.org/maven2/org/objenesis/objenesis-parent/2.1/objenesis-parent-2.1.pom
+#9 24.39 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-remote-driver/2.46.0/selenium-remote-driver-2.46.0.pom
+#9 24.43 Download https://repo1.maven.org/maven2/net/sourceforge/htmlunit/htmlunit/2.17/htmlunit-2.17.pom
+#9 24.47 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.4.1/httpclient-4.4.1.pom
+#9 24.51 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcomponents-client/4.4.1/httpcomponents-client-4.4.1.pom
+#9 24.54 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/project/7/project-7.pom
+#9 24.58 Download https://repo1.maven.org/maven2/org/apache/apache/13/apache-13.pom
+#9 24.62 Download https://repo1.maven.org/maven2/org/apache/commons/commons-exec/1.3/commons-exec-1.3.pom
+#9 24.66 Download https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.1.0/jna-4.1.0.pom
+#9 24.69 Download https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.pom
+#9 24.73 Download https://repo1.maven.org/maven2/io/netty/netty/3.5.2.Final/netty-3.5.2.Final.pom
+#9 24.77 Download https://repo1.maven.org/maven2/cglib/cglib-nodep/2.2/cglib-nodep-2.2.pom
+#9 24.81 Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.3.1/gson-2.3.1.pom
+#9 24.84 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-api/2.46.0/selenium-api-2.46.0.pom
+#9 24.87 Download https://repo1.maven.org/maven2/com/google/guava/guava/18.0/guava-18.0.pom
+#9 24.91 Download https://repo1.maven.org/maven2/com/google/guava/guava-parent/18.0/guava-parent-18.0.pom
+#9 24.95 Download https://repo1.maven.org/maven2/xalan/xalan/2.7.2/xalan-2.7.2.pom
+#9 24.99 Download https://repo1.maven.org/maven2/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.pom
+#9 25.03 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/9/commons-parent-9.pom
+#9 25.07 Download https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.4/commons-lang3-3.4.pom
+#9 25.11 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/37/commons-parent-37.pom
+#9 25.14 Download https://repo1.maven.org/maven2/org/apache/apache/16/apache-16.pom
+#9 25.18 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpmime/4.4.1/httpmime-4.4.1.pom
+#9 25.22 Download https://repo1.maven.org/maven2/net/sourceforge/htmlunit/htmlunit-core-js/2.17/htmlunit-core-js-2.17.pom
+#9 25.25 Download https://repo1.maven.org/maven2/xerces/xercesImpl/2.11.0/xercesImpl-2.11.0.pom
+#9 25.28 Download https://repo1.maven.org/maven2/net/sourceforge/nekohtml/nekohtml/1.9.22/nekohtml-1.9.22.pom
+#9 25.32 Download https://repo1.maven.org/maven2/net/sourceforge/cssparser/cssparser/0.9.16/cssparser-0.9.16.pom
+#9 25.36 Download https://repo1.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.pom
+#9 25.39 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/28/commons-parent-28.pom
+#9 25.43 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-client/9.2.11.v20150529/websocket-client-9.2.11.v20150529.pom
+#9 25.47 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-parent/9.2.11.v20150529/websocket-parent-9.2.11.v20150529.pom
+#9 25.51 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-project/9.2.11.v20150529/jetty-project-9.2.11.v20150529.pom
+#9 25.54 Download https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-parent/23/jetty-parent-23.pom
+#9 25.59 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.1/httpcore-4.4.1.pom
+#9 25.63 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcomponents-core/4.4.1/httpcomponents-core-4.4.1.pom
+#9 25.67 Download https://repo1.maven.org/maven2/xalan/serializer/2.7.2/serializer-2.7.2.pom
+#9 25.70 Download https://repo1.maven.org/maven2/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.pom
+#9 25.74 Download https://repo1.maven.org/maven2/org/w3c/css/sac/1.3/sac-1.3.pom
+#9 25.79 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-common/9.2.11.v20150529/websocket-common-9.2.11.v20150529.pom
+#9 25.84 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-api/9.2.11.v20150529/websocket-api-9.2.11.v20150529.pom
+#9 26.05 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/2.46.0/selenium-java-2.46.0.jar
+#9 26.10 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-server/2.46.0/selenium-server-2.46.0.jar
+#9 26.27 Download https://repo1.maven.org/maven2/org/testng/testng/6.8.21/testng-6.8.21.jar
+#9 26.33 Download https://repo1.maven.org/maven2/org/easymock/easymock/3.3.1/easymock-3.3.1.jar
+#9 26.38 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/2.46.0/selenium-chrome-driver-2.46.0.jar
+#9 26.43 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-htmlunit-driver/2.46.0/selenium-htmlunit-driver-2.46.0.jar
+#9 26.48 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-firefox-driver/2.46.0/selenium-firefox-driver-2.46.0.jar
+#9 26.75 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-ie-driver/2.46.0/selenium-ie-driver-2.46.0.jar
+#9 26.80 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-safari-driver/2.46.0/selenium-safari-driver-2.46.0.jar
+#9 26.99 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/2.46.0/selenium-support-2.46.0.jar
+#9 27.03 Download https://repo1.maven.org/maven2/org/webbitserver/webbit/0.4.14/webbit-0.4.14.jar
+#9 27.08 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-leg-rc/2.46.0/selenium-leg-rc-2.46.0.jar
+#9 27.13 Download https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.48/bcprov-jdk15on-1.48.jar
+#9 27.28 Download https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-jdk15on/1.48/bcpkix-jdk15on-1.48.jar
+#9 27.34 Download https://repo1.maven.org/maven2/mx4j/mx4j-tools/3.0.1/mx4j-tools-3.0.1.jar
+#9 27.39 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/jetty-repacked/7.6.1/jetty-repacked-7.6.1.jar
+#9 27.47 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/jetty-rc-repacked/5/jetty-rc-repacked-5.jar
+#9 27.53 Download https://repo1.maven.org/maven2/net/jcip/jcip-annotations/1.0/jcip-annotations-1.0.jar
+#9 27.57 Download https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.8/snakeyaml-1.8.jar
+#9 27.62 Download https://repo1.maven.org/maven2/org/beanshell/bsh/2.0b4/bsh-2.0b4.jar
+#9 27.67 Download https://repo1.maven.org/maven2/com/beust/jcommander/1.27/jcommander-1.27.jar
+#9 27.71 Download https://repo1.maven.org/maven2/cglib/cglib/3.1/cglib-3.1.jar
+#9 27.76 Download https://repo1.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3.jar
+#9 27.80 Download https://repo1.maven.org/maven2/org/objenesis/objenesis/2.1/objenesis-2.1.jar
+#9 28.01 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-remote-driver/2.46.0/selenium-remote-driver-2.46.0.jar
+#9 28.08 Download https://repo1.maven.org/maven2/net/sourceforge/htmlunit/htmlunit/2.17/htmlunit-2.17.jar
+#9 28.19 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpclient/4.4.1/httpclient-4.4.1.jar
+#9 28.24 Download https://repo1.maven.org/maven2/org/apache/commons/commons-exec/1.3/commons-exec-1.3.jar
+#9 28.27 Download https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar
+#9 28.34 Download https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/4.1.0/jna-platform-4.1.0.jar
+#9 28.44 Download https://repo1.maven.org/maven2/io/netty/netty/3.5.2.Final/netty-3.5.2.Final.jar
+#9 28.52 Download https://repo1.maven.org/maven2/cglib/cglib-nodep/2.2/cglib-nodep-2.2.jar
+#9 28.57 Download https://repo1.maven.org/maven2/com/google/code/gson/gson/2.3.1/gson-2.3.1.jar
+#9 28.63 Download https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-api/2.46.0/selenium-api-2.46.0.jar
+#9 28.67 Download https://repo1.maven.org/maven2/com/google/guava/guava/18.0/guava-18.0.jar
+#9 28.79 Download https://repo1.maven.org/maven2/xalan/xalan/2.7.2/xalan-2.7.2.jar
+#9 28.97 Download https://repo1.maven.org/maven2/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar
+#9 29.02 Download https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.4/commons-lang3-3.4.jar
+#9 29.08 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpmime/4.4.1/httpmime-4.4.1.jar
+#9 29.11 Download https://repo1.maven.org/maven2/net/sourceforge/htmlunit/htmlunit-core-js/2.17/htmlunit-core-js-2.17.jar
+#9 29.19 Download https://repo1.maven.org/maven2/xerces/xercesImpl/2.11.0/xercesImpl-2.11.0.jar
+#9 29.28 Download https://repo1.maven.org/maven2/net/sourceforge/nekohtml/nekohtml/1.9.22/nekohtml-1.9.22.jar
+#9 29.32 Download https://repo1.maven.org/maven2/net/sourceforge/cssparser/cssparser/0.9.16/cssparser-0.9.16.jar
+#9 29.37 Download https://repo1.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar
+#9 29.41 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-client/9.2.11.v20150529/websocket-client-9.2.11.v20150529.jar
+#9 29.44 Download https://repo1.maven.org/maven2/org/apache/httpcomponents/httpcore/4.4.1/httpcore-4.4.1.jar
+#9 29.48 Download https://repo1.maven.org/maven2/xalan/serializer/2.7.2/serializer-2.7.2.jar
+#9 29.54 Download https://repo1.maven.org/maven2/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.jar
+#9 29.58 Download https://repo1.maven.org/maven2/org/w3c/css/sac/1.3/sac-1.3.jar
+#9 29.63 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-common/9.2.11.v20150529/websocket-common-9.2.11.v20150529.jar
+#9 29.67 Download https://repo1.maven.org/maven2/org/eclipse/jetty/websocket/websocket-api/9.2.11.v20150529/websocket-api-9.2.11.v20150529.jar
+#9 29.77 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 29.82 Note: Some input files use or override a deprecated API.
+#9 29.82 Note: Recompile with -Xlint:deprecation for details.
+#9 29.82 1 warning
+#9 29.82 :tapestry-test:compileGroovy UP-TO-DATE
+#9 29.82 :tapestry-test:processResources UP-TO-DATE
+#9 29.82 :tapestry-test:classes
+#9 29.82 :tapestry-test:jar
+#9 29.82 :tapestry-ioc:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 30.05 Note: Some input files use or override a deprecated API.
+#9 30.05 Note: Recompile with -Xlint:deprecation for details.
+#9 30.05 Note: Some input files use unchecked or unsafe operations.
+#9 30.05 Note: Recompile with -Xlint:unchecked for details.
+#9 30.05 1 warning
+#9 30.06 
+#9 30.06 :tapestry-ioc:compileGroovy UP-TO-DATE
+#9 30.06 :tapestry-ioc:processResources
+#9 30.07 :tapestry-ioc:classes
+#9 30.07 :tapestry-ioc:jar
+#9 30.10 :tapestry-json:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 30.13 1 warning
+#9 30.13 
+#9 30.13 :tapestry-json:compileGroovy UP-TO-DATE
+#9 30.13 :tapestry-json:processResources UP-TO-DATE
+#9 30.13 :tapestry-json:classes
+#9 30.13 :tapestry-json:jar
+#9 30.13 :tapestry-core:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 30.62 Note: Some input files use or override a deprecated API.
+#9 30.62 Note: Recompile with -Xlint:deprecation for details.
+#9 30.62 Note: Some input files use unchecked or unsafe operations.
+#9 30.62 Note: Recompile with -Xlint:unchecked for details.
+#9 30.62 1 warning
+#9 30.67 
+#9 30.67 :tapestry-core:compileGroovy UP-TO-DATE
+#9 30.67 :tapestry-core:preprocessCoffeeScript
+#9 30.69 :tapestry-core:compileProcessedCoffeescript
+#9 31.37 :tapestry-core:processResources
+#9 31.40 :tapestry-core:classes
+#9 31.40 :tapestry-core:jar
+#9 31.55 :tapestry-beanvalidator:compileJava
+#9 32.89 Download https://repo1.maven.org/maven2/javax/validation/validation-api/1.0.0.GA/validation-api-1.0.0.GA.pom
+#9 32.94 Download https://repo1.maven.org/maven2/org/hibernate/hibernate-validator/4.0.0.GA/hibernate-validator-4.0.0.GA.pom
+#9 33.01 Download https://repo1.maven.org/maven2/org/hibernate/hibernate-validator-parent/4.0.0.GA/hibernate-validator-parent-4.0.0.GA.pom
+#9 33.06 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.5.6/slf4j-api-1.5.6.pom
+#9 33.10 Download https://repo1.maven.org/maven2/org/slf4j/slf4j-parent/1.5.6/slf4j-parent-1.5.6.pom
+#9 33.16 Download https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.1/jaxb-api-2.1.pom
+#9 33.39 Download https://repo1.maven.org/maven2/com/sun/xml/bind/jaxb-impl/2.1.3/jaxb-impl-2.1.3.pom
+#9 33.43 Download https://repo1.maven.org/maven2/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.pom
+#9 33.52 Download https://repo1.maven.org/maven2/javax/activation/activation/1.1/activation-1.1.pom
+#9 33.58 Download https://repo1.maven.org/maven2/javax/validation/validation-api/1.0.0.GA/validation-api-1.0.0.GA.jar
+#9 33.64 Download https://repo1.maven.org/maven2/org/hibernate/hibernate-validator/4.0.0.GA/hibernate-validator-4.0.0.GA.jar
+#9 33.73 Download https://repo1.maven.org/maven2/javax/xml/bind/jaxb-api/2.1/jaxb-api-2.1.jar
+#9 33.79 Download https://repo1.maven.org/maven2/com/sun/xml/bind/jaxb-impl/2.1.3/jaxb-impl-2.1.3.jar
+#9 33.90 Download https://repo1.maven.org/maven2/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar
+#9 33.96 Download https://repo1.maven.org/maven2/javax/activation/activation/1.1/activation-1.1.jar
+#9 33.98 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 34.00 1 warning
+#9 34.00 :tapestry-beanvalidator:compileGroovy UP-TO-DATE
+#9 34.00 :tapestry-beanvalidator:processResources UP-TO-DATE
+#9 34.00 :tapestry-beanvalidator:classes
+#9 34.00 :tapestry-beanvalidator:jar
+#9 34.00 :tapestry-beanvalidator:sourcesJar
+#9 34.01 :tapestry-beanvalidator:assemble
+#9 34.01 :tapestry-beanvalidator:check
+#9 34.01 :tapestry-beanvalidator:build
+#9 34.01 :tapestry-clojure:compileJava
+#9 34.11 Download https://repo1.maven.org/maven2/org/clojure/clojure/1.6.0/clojure-1.6.0.pom
+#9 34.15 Download https://repo1.maven.org/maven2/org/clojure/clojure/1.6.0/clojure-1.6.0.jar
+#9 34.47 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 34.51 1 warning
+#9 34.51 :tapestry-clojure:compileGroovy UP-TO-DATE
+#9 34.51 :tapestry-clojure:processResources UP-TO-DATE
+#9 34.51 :tapestry-clojure:classes
+#9 34.51 :tapestry-clojure:jar
+#9 34.51 :tapestry-clojure:sourcesJar
+#9 34.51 :tapestry-clojure:assemble
+#9 34.51 :tapestry-clojure:check
+#9 34.51 :tapestry-clojure:build
+#9 34.51 :tapestry-core:sourcesJar
+#9 34.66 :tapestry-core:assemble
+#9 34.66 :tapestry-core:check
+#9 34.66 :tapestry-core:build
+#9 34.66 :tapestry-func:sourcesJar
+#9 34.67 :tapestry-func:assemble
+#9 34.67 :tapestry-func:check
+#9 34.67 :tapestry-func:build
+#9 34.67 :tapestry-hibernate-core:compileJava
+#9 34.78 Download https://repo1.maven.org/maven2/org/hibernate/hibernate-core/4.3.6.Final/hibernate-core-4.3.6.Final.pom
+#9 34.83 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging/3.1.3.GA/jboss-logging-3.1.3.GA.pom
+#9 34.88 Download https://repo1.maven.org/maven2/org/jboss/jboss-parent/9/jboss-parent-9.pom
+#9 34.93 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging-annotations/1.2.0.Beta1/jboss-logging-annotations-1.2.0.Beta1.pom
+#9 34.98 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging-tools-parent/1.2.0.Beta1/jboss-logging-tools-parent-1.2.0.Beta1.pom
+#9 35.03 Download https://repo1.maven.org/maven2/org/jboss/jboss-parent/10/jboss-parent-10.pom
+#9 35.12 Download https://repo1.maven.org/maven2/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.0.0.Final/jboss-transaction-api_1.2_spec-1.0.0.Final.pom
+#9 35.20 Download https://repo1.maven.org/maven2/dom4j/dom4j/1.6.1/dom4j-1.6.1.pom
+#9 35.25 Download https://repo1.maven.org/maven2/org/hibernate/common/hibernate-commons-annotations/4.0.5.Final/hibernate-commons-annotations-4.0.5.Final.pom
+#9 35.29 Download https://repo1.maven.org/maven2/org/hibernate/javax/persistence/hibernate-jpa-2.1-api/1.0.0.Final/hibernate-jpa-2.1-api-1.0.0.Final.pom
+#9 35.43 Download https://repo1.maven.org/maven2/org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.pom
+#9 35.48 Download https://repo1.maven.org/maven2/antlr/antlr/2.7.7/antlr-2.7.7.pom
+#9 35.55 Download https://repo1.maven.org/maven2/org/jboss/jandex/1.1.0.Final/jandex-1.1.0.Final.pom
+#9 35.61 Download https://repo1.maven.org/maven2/org/jboss/jboss-parent/5/jboss-parent-5.pom
+#9 35.68 Download https://repo1.maven.org/maven2/org/hibernate/hibernate-core/4.3.6.Final/hibernate-core-4.3.6.Final.jar
+#9 37.09 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging/3.1.3.GA/jboss-logging-3.1.3.GA.jar
+#9 37.13 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging-annotations/1.2.0.Beta1/jboss-logging-annotations-1.2.0.Beta1.jar
+#9 37.19 Download https://repo1.maven.org/maven2/org/jboss/spec/javax/transaction/jboss-transaction-api_1.2_spec/1.0.0.Final/jboss-transaction-api_1.2_spec-1.0.0.Final.jar
+#9 37.25 Download https://repo1.maven.org/maven2/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar
+#9 37.31 Download https://repo1.maven.org/maven2/org/hibernate/common/hibernate-commons-annotations/4.0.5.Final/hibernate-commons-annotations-4.0.5.Final.jar
+#9 37.36 Download https://repo1.maven.org/maven2/org/hibernate/javax/persistence/hibernate-jpa-2.1-api/1.0.0.Final/hibernate-jpa-2.1-api-1.0.0.Final.jar
+#9 37.41 Download https://repo1.maven.org/maven2/org/javassist/javassist/3.18.1-GA/javassist-3.18.1-GA.jar
+#9 37.50 Download https://repo1.maven.org/maven2/antlr/antlr/2.7.7/antlr-2.7.7.jar
+#9 37.57 Download https://repo1.maven.org/maven2/org/jboss/jandex/1.1.0.Final/jandex-1.1.0.Final.jar
+#9 37.60 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 37.61 Note: Some input files use or override a deprecated API.
+#9 37.61 Note: Recompile with -Xlint:deprecation for details.
+#9 37.61 1 warning
+#9 37.61 :tapestry-hibernate-core:compileGroovy UP-TO-DATE
+#9 37.61 :tapestry-hibernate-core:processResources UP-TO-DATE
+#9 37.62 :tapestry-hibernate-core:classes
+#9 37.62 :tapestry-hibernate-core:jar
+#9 37.62 :tapestry-hibernate:compileJava
+#9 37.72 Download https://repo1.maven.org/maven2/org/jboss/logging/jboss-logging/3.1.0.GA/jboss-logging-3.1.0.GA.pom
+#9 37.76 Download https://repo1.maven.org/maven2/org/jboss/jboss-parent/7/jboss-parent-7.pom
+#9 37.79 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 37.80 1 warning
+#9 37.80 :tapestry-hibernate:compileGroovy UP-TO-DATE
+#9 37.80 :tapestry-hibernate:processResources
+#9 37.81 :tapestry-hibernate:classes
+#9 37.81 :tapestry-hibernate:jar
+#9 37.81 :tapestry-hibernate:sourcesJar
+#9 37.81 :tapestry-hibernate:assemble
+#9 37.81 :tapestry-hibernate:check
+#9 37.81 :tapestry-hibernate:build
+#9 37.81 :tapestry-hibernate-core:sourcesJar
+#9 37.82 :tapestry-hibernate-core:assemble
+#9 37.82 :tapestry-hibernate-core:check
+#9 37.82 :tapestry-hibernate-core:build
+#9 37.82 :tapestry-internal-test:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 37.83 1 warning
+#9 37.83 
+#9 37.83 :tapestry-internal-test:compileGroovy UP-TO-DATE
+#9 37.83 :tapestry-internal-test:processResources
+#9 37.83 :tapestry-internal-test:classes
+#9 37.83 :tapestry-internal-test:jar
+#9 37.83 :tapestry-internal-test:sourcesJar
+#9 37.83 :tapestry-internal-test:assemble
+#9 37.83 :tapestry-internal-test:check
+#9 37.83 :tapestry-internal-test:build
+#9 37.83 :tapestry-ioc:sourcesJar
+#9 37.85 :tapestry-ioc:assemble
+#9 37.85 :tapestry-ioc:check
+#9 37.85 :tapestry-ioc:build
+#9 37.85 :tapestry-ioc-jcache:compileJava
+#9 37.98 Download https://repo1.maven.org/maven2/javax/cache/cache-api/1.0.0/cache-api-1.0.0.pom
+#9 38.21 Download https://repo1.maven.org/maven2/org/jsr107/ri/cache-annotations-ri-common/1.0.0/cache-annotations-ri-common-1.0.0.pom
+#9 38.62 Download https://repo1.maven.org/maven2/org/jsr107/ri/cache-annotations-ri/1.0.0/cache-annotations-ri-1.0.0.pom
+#9 38.69 Download https://repo1.maven.org/maven2/org/jsr107/ri/cache-ri/1.0.0/cache-ri-1.0.0.pom
+#9 38.74 Download https://repo1.maven.org/maven2/javax/cache/cache-api/1.0.0/cache-api-1.0.0.jar
+#9 38.96 Download https://repo1.maven.org/maven2/org/jsr107/ri/cache-annotations-ri-common/1.0.0/cache-annotations-ri-common-1.0.0.jar
+#9 38.97 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 38.99 1 warning
+#9 38.99 :tapestry-ioc-jcache:compileGroovy UP-TO-DATE
+#9 38.99 :tapestry-ioc-jcache:processResources UP-TO-DATE
+#9 38.99 :tapestry-ioc-jcache:classes
+#9 38.99 :tapestry-ioc-jcache:jar
+#9 38.99 :tapestry-ioc-jcache:sourcesJar
+#9 39.00 :tapestry-ioc-jcache:assemble
+#9 39.00 :tapestry-ioc-jcache:check
+#9 39.00 :tapestry-ioc-jcache:build
+#9 39.00 :tapestry-ioc-junit:compileJava
+#9 39.12 Download https://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.pom
+#9 39.16 Download https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.pom
+#9 39.20 Download https://repo1.maven.org/maven2/org/hamcrest/hamcrest-parent/1.3/hamcrest-parent-1.3.pom
+#9 39.25 Download https://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
+#9 39.33 Download https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+#9 39.34 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 39.35 1 warning
+#9 39.36 :tapestry-ioc-junit:compileGroovy UP-TO-DATE
+#9 39.36 :tapestry-ioc-junit:processResources UP-TO-DATE
+#9 39.36 :tapestry-ioc-junit:classes
+#9 39.36 :tapestry-ioc-junit:jar
+#9 39.36 :tapestry-ioc-junit:sourcesJar
+#9 39.36 :tapestry-ioc-junit:assemble
+#9 39.36 :tapestry-ioc-junit:check
+#9 39.36 :tapestry-ioc-junit:build
+#9 39.36 :tapestry-javadoc:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 39.44 1 warning
+#9 39.44 
+#9 39.44 :tapestry-javadoc:compileGroovy UP-TO-DATE
+#9 39.44 :tapestry-javadoc:processResources UP-TO-DATE
+#9 39.44 :tapestry-javadoc:classes
+#9 39.44 :tapestry-javadoc:jar
+#9 39.45 :tapestry-javadoc:sourcesJar
+#9 39.45 :tapestry-javadoc:assemble
+#9 39.45 :tapestry-javadoc:check
+#9 39.45 :tapestry-javadoc:build
+#9 39.45 :tapestry-jmx:compileJavawarning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 39.46 1 warning
+#9 39.47 
+#9 39.47 :tapestry-jmx:compileGroovy UP-TO-DATE
+#9 39.47 :tapestry-jmx:processResources UP-TO-DATE
+#9 39.47 :tapestry-jmx:classes
+#9 39.47 :tapestry-jmx:jar
+#9 39.48 :tapestry-jmx:sourcesJar
+#9 39.49 :tapestry-jmx:assemble
+#9 39.49 :tapestry-jmx:check
+#9 39.49 :tapestry-jmx:build
+#9 39.49 :tapestry-jpa:compileJava
+#9 39.58 Download https://repo1.maven.org/maven2/org/apache/geronimo/specs/geronimo-jpa_2.0_spec/1.1/geronimo-jpa_2.0_spec-1.1.pom
+#9 39.61 Download https://repo1.maven.org/maven2/org/apache/geronimo/genesis/genesis-java5-flava/2.0/genesis-java5-flava-2.0.pom
+#9 39.66 Download https://repo1.maven.org/maven2/org/apache/geronimo/genesis/genesis-default-flava/2.0/genesis-default-flava-2.0.pom
+#9 39.69 Download https://repo1.maven.org/maven2/org/apache/geronimo/genesis/genesis/2.0/genesis-2.0.pom
+#9 39.73 Download https://repo1.maven.org/maven2/org/apache/apache/6/apache-6.pom
+#9 39.79 Download https://repo1.maven.org/maven2/org/apache/geronimo/specs/geronimo-jpa_2.0_spec/1.1/geronimo-jpa_2.0_spec-1.1.jar
+#9 39.82 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 39.85 Note: Some input files use or override a deprecated API.
+#9 39.85 Note: Recompile with -Xlint:deprecation for details.
+#9 39.85 Note: Some input files use unchecked or unsafe operations.
+#9 39.85 Note: Recompile with -Xlint:unchecked for details.
+#9 39.85 1 warning
+#9 39.85 :tapestry-jpa:compileGroovy UP-TO-DATE
+#9 39.85 :tapestry-jpa:processResources UP-TO-DATE
+#9 39.85 :tapestry-jpa:classes
+#9 39.85 :tapestry-jpa:jar
+#9 39.86 :tapestry-jpa:sourcesJar
+#9 39.86 :tapestry-jpa:assemble
+#9 39.86 :tapestry-jpa:check
+#9 39.86 :tapestry-jpa:build
+#9 39.86 :tapestry-json:sourcesJar
+#9 39.87 :tapestry-json:assemble
+#9 39.87 :tapestry-json:check
+#9 39.87 :tapestry-json:build
+#9 39.87 :tapestry-kaptcha:compileJava
+#9 40.11 Download https://repo1.maven.org/maven2/com/github/axet/kaptcha/0.0.8/kaptcha-0.0.8.pom
+#9 40.15 Download https://repo1.maven.org/maven2/junit/junit/4.10/junit-4.10.pom
+#9 40.20 Download https://repo1.maven.org/maven2/com/jhlabs/filters/2.0.235/filters-2.0.235.pom
+#9 40.41 Download https://repo1.maven.org/maven2/com/github/axet/kaptcha/0.0.8/kaptcha-0.0.8.jar
+#9 40.48 Download https://repo1.maven.org/maven2/junit/junit/4.10/junit-4.10.jar
+#9 40.54 Download https://repo1.maven.org/maven2/com/jhlabs/filters/2.0.235/filters-2.0.235.jar
+#9 40.57 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 40.59 1 warning
+#9 40.59 :tapestry-kaptcha:compileGroovy UP-TO-DATE
+#9 40.59 :tapestry-kaptcha:processResources
+#9 40.59 :tapestry-kaptcha:classes
+#9 40.59 :tapestry-kaptcha:jar
+#9 40.60 :tapestry-kaptcha:sourcesJar
+#9 40.60 :tapestry-kaptcha:assemble
+#9 40.60 :tapestry-kaptcha:check
+#9 40.60 :tapestry-kaptcha:build
+#9 40.60 :tapestry-mongodb:compileJava
+#9 40.67 Download https://repo1.maven.org/maven2/org/mongodb/mongo-java-driver/2.10.1/mongo-java-driver-2.10.1.pom
+#9 40.71 Download https://repo1.maven.org/maven2/org/mongodb/mongo-java-driver/2.10.1/mongo-java-driver-2.10.1.jar
+#9 40.76 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 40.77 Note: Some input files use or override a deprecated API.
+#9 40.77 Note: Recompile with -Xlint:deprecation for details.
+#9 40.77 Note: /workspace/repo/tapestry-mongodb/src/main/java/org/apache/tapestry5/mongodb/modules/MongodbModule.java uses unchecked or unsafe operations.
+#9 40.77 Note: Recompile with -Xlint:unchecked for details.
+#9 40.77 1 warning
+#9 40.77 :tapestry-mongodb:compileGroovy UP-TO-DATE
+#9 40.77 :tapestry-mongodb:processResources UP-TO-DATE
+#9 40.77 :tapestry-mongodb:classes
+#9 40.77 :tapestry-mongodb:jar
+#9 40.77 :tapestry-mongodb:sourcesJar
+#9 40.78 :tapestry-mongodb:assemble
+#9 40.78 :tapestry-mongodb:check
+#9 40.78 :tapestry-mongodb:build
+#9 40.78 :tapestry-runner:sourcesJar
+#9 40.78 :tapestry-runner:assemble
+#9 40.78 :tapestry-runner:check
+#9 40.78 :tapestry-runner:build
+#9 40.78 :tapestry-spring:compileJava
+#9 40.85 Download https://repo1.maven.org/maven2/org/springframework/spring-web/3.1.0.RELEASE/spring-web-3.1.0.RELEASE.pom
+#9 40.88 Download https://repo1.maven.org/maven2/org/springframework/spring-parent/3.1.0.RELEASE/spring-parent-3.1.0.RELEASE.pom
+#9 40.91 Download https://repo1.maven.org/maven2/aopalliance/aopalliance/1.0/aopalliance-1.0.pom
+#9 40.95 Download https://repo1.maven.org/maven2/org/springframework/spring-beans/3.1.0.RELEASE/spring-beans-3.1.0.RELEASE.pom
+#9 40.98 Download https://repo1.maven.org/maven2/org/springframework/spring-context/3.1.0.RELEASE/spring-context-3.1.0.RELEASE.pom
+#9 41.02 Download https://repo1.maven.org/maven2/org/springframework/spring-core/3.1.0.RELEASE/spring-core-3.1.0.RELEASE.pom
+#9 41.06 Download https://repo1.maven.org/maven2/org/springframework/spring-aop/3.1.0.RELEASE/spring-aop-3.1.0.RELEASE.pom
+#9 41.09 Download https://repo1.maven.org/maven2/org/springframework/spring-expression/3.1.0.RELEASE/spring-expression-3.1.0.RELEASE.pom
+#9 41.12 Download https://repo1.maven.org/maven2/org/springframework/spring-asm/3.1.0.RELEASE/spring-asm-3.1.0.RELEASE.pom
+#9 41.17 Download https://repo1.maven.org/maven2/org/springframework/spring-web/3.1.0.RELEASE/spring-web-3.1.0.RELEASE.jar
+#9 41.35 Download https://repo1.maven.org/maven2/aopalliance/aopalliance/1.0/aopalliance-1.0.jar
+#9 41.38 Download https://repo1.maven.org/maven2/org/springframework/spring-beans/3.1.0.RELEASE/spring-beans-3.1.0.RELEASE.jar
+#9 41.45 Download https://repo1.maven.org/maven2/org/springframework/spring-context/3.1.0.RELEASE/spring-context-3.1.0.RELEASE.jar
+#9 41.53 Download https://repo1.maven.org/maven2/org/springframework/spring-core/3.1.0.RELEASE/spring-core-3.1.0.RELEASE.jar
+#9 41.58 Download https://repo1.maven.org/maven2/org/springframework/spring-aop/3.1.0.RELEASE/spring-aop-3.1.0.RELEASE.jar
+#9 41.62 Download https://repo1.maven.org/maven2/org/springframework/spring-expression/3.1.0.RELEASE/spring-expression-3.1.0.RELEASE.jar
+#9 41.67 Download https://repo1.maven.org/maven2/org/springframework/spring-asm/3.1.0.RELEASE/spring-asm-3.1.0.RELEASE.jar
+#9 41.69 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 41.72 Note: Some input files use unchecked or unsafe operations.
+#9 41.72 Note: Recompile with -Xlint:unchecked for details.
+#9 41.72 1 warning
+#9 41.72 :tapestry-spring:compileGroovy UP-TO-DATE
+#9 41.72 :tapestry-spring:processResources UP-TO-DATE
+#9 41.72 :tapestry-spring:classes
+#9 41.72 :tapestry-spring:jar
+#9 41.72 :tapestry-spring:sourcesJar
+#9 41.73 :tapestry-spring:assemble
+#9 41.73 :tapestry-spring:check
+#9 41.73 :tapestry-spring:build
+#9 41.73 :tapestry-test:sourcesJar
+#9 41.73 :tapestry-test:assemble
+#9 41.73 :tapestry-test:check
+#9 41.73 :tapestry-test:build
+#9 41.73 :tapestry-test-constants:sourcesJar
+#9 41.73 :tapestry-test-constants:assemble
+#9 41.73 :tapestry-test-constants:check
+#9 41.73 :tapestry-test-constants:build
+#9 41.73 :tapestry-test-data:sourcesJar
+#9 41.79 :tapestry-test-data:assemble
+#9 41.79 :tapestry-test-data:check
+#9 41.79 :tapestry-test-data:build
+#9 41.79 :tapestry-upload:compileJava
+#9 41.86 Download https://repo1.maven.org/maven2/commons-fileupload/commons-fileupload/1.3.1/commons-fileupload-1.3.1.pom
+#9 41.92 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/32/commons-parent-32.pom
+#9 41.96 Download https://repo1.maven.org/maven2/commons-fileupload/commons-fileupload/1.3.1/commons-fileupload-1.3.1.jar
+#9 41.97 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 41.98 Note: Some input files use or override a deprecated API.
+#9 41.98 Note: Recompile with -Xlint:deprecation for details.
+#9 41.98 Note: /workspace/repo/tapestry-upload/src/main/java/org/apache/tapestry5/upload/internal/services/MultipartDecoderImpl.java uses unchecked or unsafe operations.
+#9 41.98 Note: Recompile with -Xlint:unchecked for details.
+#9 41.98 1 warning
+#9 41.99 :tapestry-upload:compileGroovy UP-TO-DATE
+#9 41.99 :tapestry-upload:processResources
+#9 41.99 :tapestry-upload:classes
+#9 41.99 :tapestry-upload:jar
+#9 41.99 :tapestry-upload:sourcesJar
+#9 42.00 :tapestry-upload:assemble
+#9 42.00 :tapestry-upload:check
+#9 42.00 :tapestry-upload:build
+#9 42.00 :tapestry-webresources:compileJava
+#9 42.07 Download https://repo1.maven.org/maven2/com/github/sommeri/less4j/1.12.0/less4j-1.12.0.pom
+#9 42.10 Download https://repo1.maven.org/maven2/com/google/javascript/closure-compiler/v20131014/closure-compiler-v20131014.pom
+#9 42.14 Download https://repo1.maven.org/maven2/org/mozilla/rhino/1.7.7.1/rhino-1.7.7.1.pom
+#9 42.18 Download https://repo1.maven.org/maven2/commons-beanutils/commons-beanutils/1.8.3/commons-beanutils-1.8.3.pom
+#9 42.21 Download https://repo1.maven.org/maven2/org/apache/commons/commons-parent/14/commons-parent-14.pom
+#9 42.25 Download https://repo1.maven.org/maven2/org/json/json/20140107/json-20140107.pom
+#9 42.29 Download https://repo1.maven.org/maven2/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.pom
+#9 42.32 Download https://repo1.maven.org/maven2/com/google/google/1/google-1.pom
+#9 42.36 Download https://repo1.maven.org/maven2/args4j/args4j/2.0.16/args4j-2.0.16.pom
+#9 42.40 Download https://repo1.maven.org/maven2/args4j/args4j-site/2.0.16/args4j-site-2.0.16.pom
+#9 42.44 Download https://repo1.maven.org/maven2/com/google/guava/guava/15.0/guava-15.0.pom
+#9 42.48 Download https://repo1.maven.org/maven2/com/google/guava/guava-parent/15.0/guava-parent-15.0.pom
+#9 42.52 Download https://repo1.maven.org/maven2/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.pom
+#9 42.56 Download https://repo1.maven.org/maven2/com/github/sommeri/less4j/1.12.0/less4j-1.12.0.jar
+#9 42.70 Download https://repo1.maven.org/maven2/com/google/javascript/closure-compiler/v20131014/closure-compiler-v20131014.jar
+#9 42.92 Download https://repo1.maven.org/maven2/org/mozilla/rhino/1.7.7.1/rhino-1.7.7.1.jar
+#9 43.02 Download https://repo1.maven.org/maven2/commons-beanutils/commons-beanutils/1.8.3/commons-beanutils-1.8.3.jar
+#9 43.06 Download https://repo1.maven.org/maven2/org/json/json/20140107/json-20140107.jar
+#9 43.09 Download https://repo1.maven.org/maven2/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar
+#9 43.15 Download https://repo1.maven.org/maven2/args4j/args4j/2.0.16/args4j-2.0.16.jar
+#9 43.18 Download https://repo1.maven.org/maven2/com/google/guava/guava/15.0/guava-15.0.jar
+#9 43.32 Download https://repo1.maven.org/maven2/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar
+#9 43.35 warning: [options] bootstrap class path not set in conjunction with -source 1.6
+#9 43.39 Note: /workspace/repo/tapestry-webresources/src/main/java/com/yahoo/platform/yui/compressor/CssCompressor.java uses unchecked or unsafe operations.
+#9 43.39 Note: Recompile with -Xlint:unchecked for details.
+#9 43.39 1 warning
+#9 43.39 :tapestry-webresources:compileGroovy UP-TO-DATE
+#9 43.39 :tapestry-webresources:processResources
+#9 43.39 :tapestry-webresources:classes
+#9 43.39 :tapestry-webresources:jar
+#9 43.40 :tapestry-webresources:sourcesJar
+#9 43.40 :tapestry-webresources:assemble
+#9 43.40 :tapestry-webresources:check
+#9 43.40 :tapestry-webresources:build
+#9 43.40 :tapestry5-annotations:sourcesJar
+#9 43.41 :tapestry5-annotations:assemble
+#9 43.41 :tapestry5-annotations:check
+#9 43.41 :tapestry5-annotations:build
+#9 43.41 
+#9 43.41 BUILD SUCCESSFUL
+#9 43.41 
+#9 43.41 Total time: 43.273 secs
+#9 DONE 43.9s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 4.5s done
+#10 exporting manifest sha256:f3d234845ee3d2e3fcb078951b74a0847edc5dfacd37f8068ee13befc838cd1f done
+#10 exporting config sha256:73914af63b5548a5fa8e13f520782759e640000c98c7f8b375830b02492302ff done
+#10 exporting attestation manifest sha256:cb33da0afa887b5cf8663bdb7936d6798d42acc213e201f1922e108ffeb6e890 done
+#10 exporting manifest list sha256:06af2765838bc5e49da2813d597300526bd32dab93ed969c5e04901f7da1d789 done
+#10 naming to docker.io/library/simpleautosec-finding-11bd97cc3c1c:6479321ee913 done
+#10 unpacking to docker.io/library/simpleautosec-finding-11bd97cc3c1c:6479321ee913
+#10 unpacking to docker.io/library/simpleautosec-finding-11bd97cc3c1c:6479321ee913 1.4s done
+#10 DONE 6.0s
+

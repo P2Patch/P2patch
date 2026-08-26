@@ -1,0 +1,259 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:23:40.562402+00:00",
+    "finished_at": "2026-07-11T23:24:18.466358+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is functionally identical to the official reference fix, placed at the exact same sink (AbstractUnArchiver.extractFile, right after FileUtils.resolveFile), and additionally hardens it by appending File.separator to the canonical destination-directory path before the startsWith check. This closes the well-known sibling-prefix bypass that the official fix leaves open (e.g. dir \"dest\" vs sibling \"dest-evil\"/\"destination\"), making our patch a strict superset of the reference. Both tar and zip extraction funnel through this single choke point, so the whole Zip Slip class is neutralized. POV no longer reproduces and no legitimate behavior is broken.",
+    "root_cause": "Archive entry names (tar/zip getName) flow untrusted into FileUtils.resolveFile at extractFile, letting \"../\" sequences resolve outside the destination directory; a correct fix must canonicalize the resolved path and verify it stays within the destination base.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalizes resolved file and destination, rejects anything not under dest; resolves symlinks/.. so the class is closed, not just the payload.",
+        "evidence": "AbstractUnArchiver.extractFile: f.getCanonicalPath() checked against dir.getCanonicalPath()+File.separator, else throw ArchiverException",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the central sink immediately after resolveFile, the choke point all unarchivers pass through.",
+        "evidence": "inserted after `final File f = FileUtils.resolveFile( dir, entryName )` (line 309)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Both tar and zip taint traces converge on extractFile; guarding there covers every path and encoding variant since it uses canonical resolution.",
+        "evidence": "trace sinks all reach AbstractUnArchiver.extractFile line 319/322; single fix covers all callers",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy and location as official fix, plus separator hardening — strict superset.",
+        "evidence": "identical canonicalize+startsWith at same lines; ours adds `+ File.separator` closing sibling-prefix bypass",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate in-dir entries still start with dest+separator; POV rejected, tests pass.",
+        "evidence": "pov_after_still_reproduces=false; added TarUnArchiverPathTraversalTest asserts rejection",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses canonical-path primitive correctly; getCanonicalPath IOException already declared by method (official uses same).",
+        "evidence": "mirrors official fix which compiles in same method signature void extractFile(...) throws",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized 10-line guard at the right place plus a focused regression test.",
+        "evidence": "single hunk in AbstractUnArchiver.java matching official diff",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify-within-base is the CWE-022 defense of record, not a ../ blocklist; separator appended prevents prefix confusion.",
+        "evidence": "canonicalDirPath = dir.getCanonicalPath() + File.separator; startsWith check",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [],
+    "overall": {
+      "mean": 5.0,
+      "score": 100,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 100,
+        "score_mean": 99.3,
+        "score_min": 98,
+        "score_max": 100,
+        "score_stdev": 0.94,
+        "mean_median": 5.0,
+        "band_mode": "good",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            5,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 100,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 100,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+      ]
+    }
+  }
+}

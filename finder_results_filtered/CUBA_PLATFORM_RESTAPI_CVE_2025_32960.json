@@ -1,0 +1,59 @@
+{
+  "cwe_id": "cwe-079",
+  "cve_id": "CVE-2025-32960",
+  "note": "CVE-aligned file name and extension flows reaching the Content-Type and Content-Disposition response headers in FileDownloadController download handling, which lets a stored file be served back as inline HTML.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "getExtension(...) : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 123
+          },
+          {
+            "message": "toLowerCase(...) : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 123
+          },
+          {
+            "message": "... + ... : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 123
+          },
+          {
+            "message": "getMIMEType(...) : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 123
+          },
+          {
+            "message": "getContentType(...)",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 94
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getName(...) : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 96
+          },
+          {
+            "message": "encodeUtf8(...) : String",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 96
+          },
+          {
+            "message": "... + ...",
+            "uri": "modules/rest-api/src/com/haulmont/addon/restapi/api/controllers/FileDownloadController.java",
+            "line": 95
+          }
+        ]
+      ]
+    }
+  ]
+}

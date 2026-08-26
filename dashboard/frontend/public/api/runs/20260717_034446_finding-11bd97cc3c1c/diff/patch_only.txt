@@ -1,0 +1,68 @@
+diff --git a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
+index 2ead75e..1c6db03 100644
+--- a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
++++ b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java
+@@ -101,7 +101,10 @@ public abstract class AbstractResource extends LockSupport implements Resource
+             terms.add(term);
+         }
+ 
+-        for (String term : relativePath.split("/"))
++        // Normalize all platform path-separator variants (not just '/') before splitting into
++        // terms, so that a '\'-delimited ".." segment can't smuggle a traversal past the
++        // root-boundary check below (CVE-aligned path traversal fix).
++        for (String term : relativePath.split("[/\\\\]+"))
+         {
+             // This will occur if the relative path contains sequential slashes
+ 
+diff --git a/tapestry-ioc/src/test/groovy/ioc/specs/ClasspathResourceSpec.groovy b/tapestry-ioc/src/test/groovy/ioc/specs/ClasspathResourceSpec.groovy
+index 1550adf..6865ba1 100644
+--- a/tapestry-ioc/src/test/groovy/ioc/specs/ClasspathResourceSpec.groovy
++++ b/tapestry-ioc/src/test/groovy/ioc/specs/ClasspathResourceSpec.groovy
+@@ -257,6 +257,47 @@ class ClasspathResourceSpec extends Specification {
+         r.forFile("../foo/bar").toString() == "classpath:foo/bar"
+     }
+ 
++    // Single backslash character, built explicitly (rather than as an inline escaped literal)
++    // so the number of ".." segments in each `where:` case below is unambiguous.
++    static final String BS = "\\"
++
++    @Issue('CWE-022')
++    def "backslash-delimited traversal segments are rejected same as forward-slash ones"() {
++        // "root/sub/a-file" gives a 2-segment folder ("root/sub"), so 3 or more ".." segments
++        // -- via any mix of '/' and '\' separators -- must go above the resolvable root.
++        def r = new ClasspathResource("root/sub/a-file")
++
++        when:
++
++        r.forFile(path)
++
++        then:
++
++        IllegalStateException e = thrown()
++        e.message.contains("would go above root")
++
++        where:
++
++        description                                    | path
++        "pure backslash traversal"                      | "..${BS}..${BS}..${BS}secret.txt"
++        "doubled/run of backslashes as one separator"    | "..${BS}${BS}..${BS}..${BS}secret.txt"
++        "mixed slash and backslash"                      | "../..${BS}../secret.txt"
++        "extra leading segment then mixed escape"         | "a/..${BS}../..${BS}../secret.txt"
++    }
++
++    @Issue('CWE-022')
++    def "backslash path separators are normalized like forward slashes"() {
++        def r = new ClasspathResource(PATH)
++
++        when:
++
++        def n = r.forFile("..\\util\\same-folder.txt")
++
++        then:
++
++        content(n) == SAME_FOLDER_RESOURCE_CONTENT
++    }
++
+     @Issue('TAP5-2448')
+     def "Cannot open a stream for a directory resource within a JAR file"() {
+       setup:

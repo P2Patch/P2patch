@@ -1,0 +1,106 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_034533_finding-51d2686c6a7d/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-51d2686c6a7d:48315980202a bash -lc mvn -q -B -pl vertx-web -am -DskipTests package && mvn -q -B -pl vertx-web dependency:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt && CP="vertx-web/target/classes:$(cat /tmp/pov_cp.txt)" && mkdir -p /tmp/pov-classes && javac -cp "$CP" -d /tmp/pov-classes .security-pipeline/pov/PathTraversalPoV.java && java -cp "/tmp/pov-classes:$CP" PathTraversalPoV
+exit_code=1
+timed_out=false
+
+--- stdout ---
+request path                                      = /..%5csecret.txt
+configured webRoot                                = ../../tmp/vertxweb-pov3847465639747935328/webroot
+path handed to the REAL FileSystem sink            
+  (StaticHandlerImpl.java:292 fs.exists(file,...)) = ../../tmp/vertxweb-pov3847465639747935328/webroot/secret.txt
+HTTP status returned by the real StaticHandler     = 404
+raw '..' backslash segment survived sanitisation  = false
+resolved sink path escapes configured webRoot     = false
+SAFE: the backslash-based traversal segment was neutralised before reaching the real FileSystem sink; the resolved path stays confined to webRoot.
+
+--- stderr ---
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.codec.impl.BodyCodecImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.codec.impl.StreamingBodyCodec is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.common.template.impl.ConcurrentLRUCache is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.multipart.impl.MultipartFormImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.multipart.impl.FormDataPartImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RouteImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RoutingContextImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RoutingContextImplBase is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RoutingContextDecorator is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.ParsableMIMEValue is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RouteState is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.Utils is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RoutingContextWrapper is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.LRUCache is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.BlockingHandlerDecorator is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.HeaderParser is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.ParsableHeaderValue is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.FileUploadImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.HttpServerRequestWrapper is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.CookieImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.ParsableLanguageValue is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.ParsableHeaderValuesContainer is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RouterState is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.RouterImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.impl.ConcurrentLRUCache is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.TemplateHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.DigestAuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.BasicAuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.LoggerHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.UserSessionHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.AuthorizationAuthHandler is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.RedirectAuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.SessionHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.ResponseTimeHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.MultiTenantHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.BodyHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.ChainAuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.ResponseContentTypeHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.FormLoginHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.UserHolder is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.CookieHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.CSRFHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.AuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.JWTAuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.TimeoutHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.HttpStatusException is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.OAuth2AuthHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.ErrorHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.StaticHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.FaviconHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.VirtualHostHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.impl.CorsHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.XhrTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.WebSocketTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.RawWebSocketTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.SockJSHandlerImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.JsonPTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.JsonCodec is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.TransportListener is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.EventBusBridgeImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.BridgeEventImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.SockJSSocketBase is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.BaseTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.EventSourceTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.HtmlFileTransport is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.handler.sockjs.impl.SockJSSession is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.sstore.impl.SharedDataSessionImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.sstore.impl.LocalSessionStoreImpl is in an implementation package 
+WARNING: io.vertx.codegen.CodeGen - Processed element io.vertx.ext.web.sstore.impl.ClusteredSessionStoreImpl is in an implementation package 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.Cookie does not redeclare the @Fluent return type  of method setSameSite(io.vertx.core.http.CookieSameSite) declared by io.vertx.core.http.Cookie 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.JWTAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.JWTAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.sstore.LocalSessionStore does not redeclare the @Fluent return type  of method init(io.vertx.core.Vertx,io.vertx.core.json.JsonObject) declared by io.vertx.ext.web.sstore.SessionStore 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.DigestAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.DigestAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.sockjs.SockJSSocket does not redeclare the @Fluent return type  of method fetch(long) declared by io.vertx.core.streams.ReadStream 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.sstore.ClusteredSessionStore does not redeclare the @Fluent return type  of method init(io.vertx.core.Vertx,io.vertx.core.json.JsonObject) declared by io.vertx.ext.web.sstore.SessionStore 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.ChainAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.ChainAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.OAuth2AuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.OAuth2AuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.BasicAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.BasicAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.RedirectAuthHandler does not redeclare the @Fluent return type  of method addAuthority(java.lang.String) declared by io.vertx.ext.web.handler.AuthHandler 
+WARNING: io.vertx.codegen.ClassModel - Interface io.vertx.ext.web.handler.RedirectAuthHandler does not redeclare the @Fluent return type  of method addAuthorities(java.util.Set<java.lang.String>) declared by io.vertx.ext.web.handler.AuthHandler 
+Note: .security-pipeline/pov/PathTraversalPoV.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+

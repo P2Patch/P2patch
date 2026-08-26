@@ -1,0 +1,15 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-51d2686c6a7d:48315980202a bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=0
+timed_out=false
+
+--- stdout ---
+[POV] request URI : /pub/..%5c..%5csecret.txt
+[POV] web root    : /tmp/pov-webroot-1056222455349267717
+[POV] status code : 200
+[POV] body        : TOP-SECRET-PATH-TRAVERSAL-MARKER
+[POV] VULNERABLE: backslash traversal payload reached the filesystem unsanitized and the guarded resource was served.
+
+--- stderr ---
+Note: /workspace/repo/.security-pipeline/pov/PovStaticHandlerTraversal.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+

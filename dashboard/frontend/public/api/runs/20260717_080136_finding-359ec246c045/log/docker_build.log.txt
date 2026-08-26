@@ -1,0 +1,58 @@
+$ docker build --target builder -f /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/srikanth-lingala__zip4j_[redacted]_1.3.2/25/Dockerfile -t simpleautosec-finding-359ec246c045:9e95644bb5c7 /Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/srikanth-lingala__zip4j_[redacted]_1.3.2/25
+exit_code=0
+timed_out=false
+
+--- stdout ---
+
+--- stderr ---
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 2.28kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:17-jdk
+#2 ...
+
+#3 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:17-jdk
+#2 DONE 0.9s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [builder 1/7] FROM docker.io/library/eclipse-temurin:17-jdk@sha256:068a8f9ae4b74d9a20de3ecca771ba1a6437f1d7a8a8ad6deaf9dbdd2274397a
+#5 resolve docker.io/library/eclipse-temurin:17-jdk@sha256:068a8f9ae4b74d9a20de3ecca771ba1a6437f1d7a8a8ad6deaf9dbdd2274397a done
+#5 DONE 0.0s
+
+#6 [builder 4/7] RUN set -eux;     apt-get update && apt-get install -y --no-install-recommends wget &&     wget -O /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.8.6/binaries/apache-maven-3.8.6-bin.tar.gz &&     tar -xzf /tmp/maven.tar.gz -C /opt &&     ln -s /opt/apache-maven-* /opt/maven &&     rm /tmp/maven.tar.gz &&     apt-get remove -y wget &&     apt-get autoremove -y &&     rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [builder 6/7] RUN set -eux; rm -rf /root/.m2/repository || true
+#7 CACHED
+
+#8 [builder 2/7] WORKDIR /workspace
+#8 CACHED
+
+#9 [builder 5/7] RUN set -eux;     git clone "https://github.com/srikanth-lingala/zip4j" repo;     cd repo;     if [ -n "c4c993cb143db99832eadd03699bd8228a9793b8" ]; then git checkout "c4c993cb143db99832eadd03699bd8228a9793b8"; elif [ -n "1.3.2" ]; then git checkout "1.3.2"; fi
+#9 CACHED
+
+#10 [builder 3/7] RUN set -eux;     if ! command -v git >/dev/null 2>&1; then       apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*;     fi
+#10 CACHED
+
+#11 [builder 7/7] RUN set -eux; cd /workspace/repo; mvn -B -e -U -DskipTests -Dmaven.compiler.source=1.8 -Dmaven.compiler.target=1.8 package
+#11 CACHED
+
+#12 exporting to image
+#12 exporting layers done
+#12 exporting manifest sha256:7cc85a6a8c7fb9bd463f6dd90988dbe1c192e19d637b6242177501858ce0196d done
+#12 exporting config sha256:7442c7298e3ee5085778fac859c2923ab68749bf1ee4390318b953d6fbbd347b done
+#12 exporting attestation manifest sha256:b1bf920bffe7931acd8a59f283037e6e1e46d93ea94b453b89ec5a7a9672b7ee done
+#12 exporting manifest list sha256:1451d4ca0922af3088516336a6bbfb12aca9c096057466e35895f23f568b1ee7 done
+#12 naming to docker.io/library/simpleautosec-finding-359ec246c045:9e95644bb5c7 done
+#12 unpacking to docker.io/library/simpleautosec-finding-359ec246c045:9e95644bb5c7 done
+#12 DONE 0.0s
+

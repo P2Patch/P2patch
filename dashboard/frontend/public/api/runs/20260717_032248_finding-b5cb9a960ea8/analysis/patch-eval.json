@@ -1,0 +1,123 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:37:24.928077+00:00",
+    "finished_at": "2026-07-17T08:39:00.969085+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a sound, textbook CWE-022 fix at the traced sink: it canonicalizes both the destination and the candidate file, then enforces containment with an explicit separator boundary (`filePath.equals(destPath) || filePath.startsWith(destPath + File.separator)`), which is actually stricter than the official fix's bare `startsWith(destPath)` (the official is prefix-confusable, e.g. `/tmp/dest-evil` passes for base `/tmp/dest`). All three ArchiveAnalyzer sinks the official touched (gz, bz2, extractArchive entry loop) are covered, the POV no longer reproduces, and both regression tests pass. The gap is coverage, not mechanism: the official fix also hardened `ExtractionUtil.extractFiles`/`extractArchive`/`extractFile`, and our patch leaves those sibling extraction sinks unguarded, so the same Zip Slip class survives on any code path routed through ExtractionUtil.",
+    "root_cause": "Archive entry names (`entry.getName()`) are attacker-controlled and were joined directly onto the extraction directory via `new File(destination, entry.getName())` with no canonicalization or containment check, so `../` sequences (or absolute paths) let a malicious archive write files outside the intended destination.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "The traced sink is provably safe for the whole class (canonical-path containment, not payload blocklisting), and the POV no longer reproduces — but the same class remains live in ExtractionUtil, which the official fix treated as part of this CVE.",
+        "evidence": "ArchiveAnalyzer.java: `isFileWithinDestination(destination, file)` guard inserted immediately after `new File(destination, entry.getName())` in extractArchive (line ~523) and before both gz/bz2 `decompressFile` calls; pov_after_still_reproduces=false. No change to ExtractionUtil.java (official_only).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "The guard sits at the sink — directly on the File object derived from the tainted entry name, before any mkdirs/write — rather than filtering the input string or patching a caller.",
+        "evidence": "ArchiveAnalyzer.extractArchive: check is placed between `final File file = new File(destination, entry.getName());` and the `entry.isDirectory()` / `extractFile` branches, so both the directory-creation and file-write sinks are dominated by it.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Every path to the sink inside ArchiveAnalyzer (gz, bz2, and the generic entry loop covering all three taint traces) is covered, but the sibling sinks in ExtractionUtil that the official fix hardened are untouched.",
+        "evidence": "Covered: ArchiveAnalyzer lines ~414, ~425, ~523 (matches trace lines 516/523/540-547). Missing: ExtractionUtil.extractFiles (line 86), ExtractionUtil.extractArchive (line 163), ExtractionUtil.extractFile (line 197) — overlap jaccard 0.5, covers_all_official=false.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy at the same locations, with a stricter comparison than the official; deviates by skip-and-warn instead of abort-with-exception, and does not extend to the second file.",
+        "evidence": "Ours: `return filePath.equals(destinationPath) || filePath.startsWith(destinationPath + File.separator);` vs official `if (!f.getCanonicalPath().startsWith(destPath)) throw new AnalysisException(msg)`. Ours `continue`s the loop; official throws ArchiveExtractionException and aborts.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Regressions pass and benign entries still extract (asserted by the added test), but skip-and-warn plus fail-closed-on-IOException means a malformed/unreadable-path archive is silently partially extracted rather than surfacing an error — a false-negative risk for a scanner.",
+        "evidence": "regressions_ran=2, regressions_passed=true; ArchiveAnalyzerTest.testExtractFilesBlocksZipSlip asserts `extractedBenign.exists()`. `catch (IOException ex) { LOGGER.debug(...); return false; }` skips the entry with only a debug log.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe primitives correctly and fails closed; no injection/ReDoS/crash added. Minor residual: silent-skip semantics can mask extraction failures, and canonicalization is not re-checked after entries are written (theoretical symlink TOCTOU, not reachable here since the extractor writes no symlinks).",
+        "evidence": "`isFileWithinDestination` returns false on IOException (fail-closed); helper is `private static`, no shared mutable state; `getCanonicalPath()` resolves symlinks and `..` before comparison.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized diff: one small private helper plus three guard insertions in the file the trace points at, with a focused regression test; no unrelated edits.",
+        "evidence": "Production diff is ~40 lines confined to ArchiveAnalyzer.java (3 call sites + `isFileWithinDestination`); test diff adds a single test method.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "This is the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks and `..`), then verify containment in the allowed base — with the separator boundary that avoids the sibling-prefix bypass the official fix still has.",
+        "evidence": "`final String destinationPath = destination.getCanonicalPath(); final String filePath = file.getCanonicalPath(); return filePath.equals(destinationPath) || filePath.startsWith(destinationPath + File.separator);` — no `../` string blocklisting anywhere.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Unfixed sibling sink: the official fix also hardened core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java (extractFiles, extractArchive, extractFile, extractGzip), all of which build `new File(extractTo, entry.getName())` from attacker-controlled entry names with no containment check. Our patch leaves these untouched, so identical Zip Slip payloads delivered through any analyzer that extracts via ExtractionUtil rather than ArchiveAnalyzer.extractArchive remain exploitable. The POV happens to route through the patched sink only."
+      },
+      {
+        "severity": "medium",
+        "description": "Skip-and-warn instead of abort changes failure semantics versus the official fix (which throws ArchiveExtractionException/AnalysisException). A malicious archive is partially extracted and analysis continues on the remaining entries; the caller receives no signal that the archive was hostile. Defensible, but it diverges from upstream and weakens the audit trail."
+      },
+      {
+        "severity": "low",
+        "description": "`isFileWithinDestination` swallows IOException with only a LOGGER.debug and returns false, silently skipping the entry. In a security scanner this converts an I/O fault into a quiet coverage gap (files never analyzed, no warning at INFO/WARN level). The official fix propagates the IOException as an ExtractionException."
+      }
+    ],
+    "overall": {
+      "mean": 4.25,
+      "score": 85,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ArchiveAnalyzer.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "ExtractionUtil.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+        "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java"
+      ],
+      "commits": [
+        "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7"
+      ]
+    }
+  }
+}

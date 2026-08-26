@@ -1,0 +1,174 @@
+diff --git a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollector.java b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollector.java
+index 2179d37..671f2b9 100644
+--- a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollector.java
++++ b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollector.java
+@@ -147,6 +147,25 @@ public abstract class AbstractResourceCollector {
+         resources.add(lr);
+     }
+ 
++    /**
++     * Checks whether <code>path</code> is equal to, or a descendant of,
++     * <code>basePath</code>.
++     * <p>
++     * This is used to make sure that resource lookups built by appending a
++     * caller/request-controlled path segment (e.g. a script name fragment or a
++     * request selector) to a trusted base/location path cannot be used to
++     * escape that base path (path traversal protection), independent of
++     * whether an <code>executionPaths</code> allow-list has been configured.
++     *
++     * @param basePath the trusted base path the lookup is scoped to
++     * @param path the (resolved) path to check; may be <code>null</code>
++     * @return <code>true</code> if <code>path</code> is non-null and equal to,
++     *         or contained within, <code>basePath</code>
++     */
++    protected static boolean isContained(@NotNull final String basePath, @Nullable final String path) {
++        return path != null && (path.equals(basePath) || path.startsWith(basePath + '/'));
++    }
++
+     /**
+      * Returns a resource for the given <code>path</code>.
+      * If no resource exists at the given path a
+diff --git a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollector.java b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollector.java
+index 45dd29e..8ecc45c 100644
+--- a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollector.java
++++ b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollector.java
+@@ -110,9 +110,22 @@ public class NamedScriptResourceCollector extends AbstractResourceCollector {
+             current = location;
+             name = this.scriptName;
+         } else {
+-            current = getResource(resolver, location.getPath() + '/' + this.scriptName.substring(0, pos), useResourceCaching);
++            // normalize the concatenated path and make sure it did not escape the
++            // location's own subtree (e.g. via "../" segments in the script name)
++            // before resolving it; this must hold independent of whether an
++            // executionPaths allow-list is configured (SLING path traversal hardening)
++            final String path = ResourceUtil.normalize(location.getPath() + '/' + this.scriptName.substring(0, pos));
++            if ( path != null && isContained(location.getPath(), path)
++                    && SlingServletResolver.isPathAllowed(path, this.executionPaths) ) {
++                current = getResource(resolver, path, useResourceCaching);
++            } else {
++                current = null;
++            }
+             name = this.scriptName.substring(pos + 1);
+         }
++        if ( current == null ) {
++            return;
++        }
+         final List<Resource> children = getChildrenList(current, useResourceCaching);
+         for (Resource child: children) {
+ 
+diff --git a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/ResourceCollector.java b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/ResourceCollector.java
+index d159256..02606e2 100644
+--- a/src/main/java/org/apache/sling/servlets/resolver/internal/helper/ResourceCollector.java
++++ b/src/main/java/org/apache/sling/servlets/resolver/internal/helper/ResourceCollector.java
+@@ -272,7 +272,13 @@ public class ResourceCollector extends AbstractResourceCollector {
+             }
+ 
+             if (selector != null) {
+-                current = resolver.getResource(current, selector);
++                final Resource next = resolver.getResource(current, selector);
++                // make sure the selector-driven descent cannot walk the intermediate
++                // resource outside of the location's own subtree (e.g. via a ".."
++                // selector segment) before it is used to look up further children;
++                // this must hold independent of whether an executionPaths allow-list
++                // is configured (SLING path traversal hardening)
++                current = (next != null && isContained(location.getPath(), next.getPath())) ? next : null;
+                 parentName = selector;
+                 selIdx++;
+             }
+diff --git a/src/test/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollectorTest.java b/src/test/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollectorTest.java
+index d4bf5ed..7d6f9a3 100644
+--- a/src/test/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollectorTest.java
++++ b/src/test/java/org/apache/sling/servlets/resolver/internal/helper/AbstractResourceCollectorTest.java
+@@ -144,6 +144,20 @@ public class AbstractResourceCollectorTest {
+         assertEquals(payload, spyResolver.getPropertyMap().get(AbstractResourceCollector.CACHE_KEY_RESOURCES));
+     }
+     
++    @Test
++    public void testIsContained() {
++        // exact match and true descendants are contained
++        assertEquals(true, AbstractResourceCollector.isContained("/apps/foo/bar", "/apps/foo/bar"));
++        assertEquals(true, AbstractResourceCollector.isContained("/apps/foo/bar", "/apps/foo/bar/legit.esp"));
++        assertEquals(true, AbstractResourceCollector.isContained("/apps/foo/bar", "/apps/foo/bar/sub/legit.esp"));
++
++        // null, siblings, ancestors and unrelated paths are not contained
++        assertEquals(false, AbstractResourceCollector.isContained("/apps/foo/bar", null));
++        assertEquals(false, AbstractResourceCollector.isContained("/apps/foo/bar", "/apps/foo/barred"));
++        assertEquals(false, AbstractResourceCollector.isContained("/apps/foo/bar", "/apps/foo"));
++        assertEquals(false, AbstractResourceCollector.isContained("/apps/foo/bar", "/secret/admin/leak.esp"));
++    }
++
+     @Test
+     public void testGetResourceOrNullCachingDisabled() {
+     	ResourceResolver spyResolver = Mockito.spy(context.resourceResolver());
+diff --git a/src/test/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollectorTest.java b/src/test/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollectorTest.java
+new file mode 100644
+index 0000000..2c1dcf5
+--- /dev/null
++++ b/src/test/java/org/apache/sling/servlets/resolver/internal/helper/NamedScriptResourceCollectorTest.java
+@@ -0,0 +1,66 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one
++ * or more contributor license agreements.  See the NOTICE file
++ * distributed with this work for additional information
++ * regarding copyright ownership.  The ASF licenses this file
++ * to you under the Apache License, Version 2.0 (the
++ * "License"); you may not use this file except in compliance
++ * with the License.  You may obtain a copy of the License at
++ *
++ *   http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing,
++ * software distributed under the License is distributed on an
++ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++ * KIND, either express or implied.  See the License for the
++ * specific language governing permissions and limitations
++ * under the License.
++ */
++package org.apache.sling.servlets.resolver.internal.helper;
++
++import java.util.Collection;
++import java.util.Collections;
++
++import org.apache.sling.api.resource.Resource;
++
++/**
++ * Regression test for CWE-22 (path traversal) in
++ * {@link NamedScriptResourceCollector#getWeightedResources(java.util.Set, Resource)}.
++ * <p>
++ * A caller-supplied "script name" containing "../" segments must not be able
++ * to escape the resource's own resourceType script folder (here
++ * "/apps/foo/bar") and reach an unrelated resource elsewhere in the
++ * repository, even when no {@code executionPaths} allow-list is configured
++ * (the common, unrestricted default).
++ */
++public class NamedScriptResourceCollectorTest extends HelperTestBase {
++
++    public void testScriptNameCannotEscapeLocationSubtreeViaDotDotSegments() {
++        // a legitimate script sitting in the resource type's own script folder
++        // ("/apps/" + resourceTypePath, i.e. "/apps/foo/bar")
++        String legitPath = "/apps/" + resourceTypePath + "/legit.esp";
++        addOrReplaceResource(resourceResolver, legitPath, "nt:file");
++
++        // a sensitive resource that lives completely outside of the
++        // resourceType's own script tree
++        String secretPath = "/secret/admin/leak.esp";
++        addOrReplaceResource(resourceResolver, secretPath, "nt:file");
++
++        // "/apps/foo/bar" has 3 path segments (apps, foo, bar), so 3 "../"
++        // segments are enough to climb out to the repository root before
++        // descending into "secret/admin/leak"
++        String maliciousScriptName = "../../../secret/admin/leak";
++
++        NamedScriptResourceCollector collector = NamedScriptResourceCollector.create(
++                maliciousScriptName, resource, null /* executionPaths: unconfigured/unrestricted */, false);
++
++        Collection<Resource> found = collector.getServlets(resourceResolver, Collections.emptyList());
++        for (Resource r : found) {
++            assertFalse("must not resolve a script outside the resourceType's own script tree, found: " + r.getPath(),
++                    r.getPath().startsWith("/secret"));
++        }
++
++        // sanity: the legitimate, in-tree script is unaffected by the fix
++        assertNotNull(resourceResolver.getResource(legitPath));
++    }
++}

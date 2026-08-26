@@ -1,0 +1,51 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/StringUtils.java b/src/main/java/org/codehaus/plexus/util/StringUtils.java
+index 846f491..67083f7 100644
+--- a/src/main/java/org/codehaus/plexus/util/StringUtils.java
++++ b/src/main/java/org/codehaus/plexus/util/StringUtils.java
+@@ -2311,8 +2311,17 @@ public class StringUtils
+             return null;
+         }
+ 
+-        if ( !force && source.startsWith( Character.toString( quoteChar ) )
+-                && source.endsWith( Character.toString( quoteChar ) ) )
++        // A token that is already wrapped in the quote delimiter is trusted verbatim only when it
++        // cannot break out of that wrapping. For the single quote (used by the shells to quote
++        // arguments) that means the interior must not contain the delimiter at all: a POSIX
++        // single-quoted string is fully literal and cannot even contain an escaped single quote,
++        // so an argument such as "'a' ; touch x ; 'b'" would otherwise break out and inject an OS
++        // command (CWE-078). Such input now falls through and is fully escaped below. Other
++        // delimiters keep the previous behaviour so already-quoted executable paths (whose interior
++        // delimiters are escaped, e.g. path\"test) are not doubly quoted.
++        if ( !force && source.length() >= 2 && source.charAt( 0 ) == quoteChar
++                && source.charAt( source.length() - 1 ) == quoteChar
++                && ( quoteChar != '\'' || source.indexOf( quoteChar, 1 ) == source.length() - 1 ) )
+         {
+             return source;
+         }
+diff --git a/src/test/java/org/codehaus/plexus/util/StringUtilsTest.java b/src/test/java/org/codehaus/plexus/util/StringUtilsTest.java
+index e7c505e..7889326 100644
+--- a/src/test/java/org/codehaus/plexus/util/StringUtilsTest.java
++++ b/src/test/java/org/codehaus/plexus/util/StringUtilsTest.java
+@@ -176,6 +176,22 @@ public class StringUtilsTest
+         assertEquals( src, result );
+     }
+ 
++    public void testQuote_EscapeBrokenPreQuotedArgument()
++    {
++        // Regression test for CWE-078 OS command injection: an argument that merely starts and
++        // ends with the quote delimiter but contains interior delimiters can break out of the
++        // surrounding quotes. It must NOT be trusted verbatim; it must be fully escaped so the
++        // embedded ";" and command cannot be interpreted by the shell.
++        String src = "\'a\' ; touch /tmp/marker ; \'b\'";
++
++        char[] escaped = { '\'', '\"' };
++        String result = StringUtils.quoteAndEscape( src, '\'', escaped, '\\', false );
++
++        assertEquals( "\'\\\'a\\\' ; touch /tmp/marker ; \\\'b\\\'\'", result );
++        // The interior single quotes are all escaped, so none can terminate the wrapping quotes.
++        assertFalse( "input must not be returned verbatim", src.equals( result ) );
++    }
++
+     public void testQuote_WrapExistingQuotesWhenForceIsTrue()
+     {
+         String src = "\'This is a test\'";

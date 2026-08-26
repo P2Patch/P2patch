@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-190",
+  "cve_id": "CVE-2016-9557",
+  "note": "jas_image_create() computes rawsize by multiplying cmptparm->width * cmptparm->height * (cmptparm->prec + 7), where cmptparm walks the cmptparms array parameter (caller-supplied component geometry from a decoded image header), at jas_image.c:162.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "cmptparm walks the cmptparms array parameter -- caller-supplied component geometry",
+            "uri": "src/libjasper/base/jas_image.c",
+            "line": 160
+          },
+          {
+            "message": "rawsize += cmptparm->width * cmptparm->height * (cmptparm->prec + 7) / 8",
+            "uri": "src/libjasper/base/jas_image.c",
+            "line": 162
+          }
+        ]
+      ]
+    }
+  ]
+}

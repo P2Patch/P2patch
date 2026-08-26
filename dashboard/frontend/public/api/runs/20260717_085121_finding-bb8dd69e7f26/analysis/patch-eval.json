@@ -1,0 +1,133 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:46.807197+00:00",
+    "finished_at": "2026-07-17T15:47:17.791882+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch adds a canonicalize-then-verify-inside-base check (isPathUnderBase) invoked in both ClassPathResourceHandler.getResource and ExternalResourceHandler.getResource, for both the primary path and the welcome-file sub-case, returning null when the resolved path escapes the configured base. This is the CWE-022 defense-of-record and, for external resources, is actually stronger than the official fix (it resolves symlinks via getCanonicalPath and avoids the sibling-prefix false-accept of the official string startsWith). It is applied at the same detection points as the official fix (the two resource handlers); it omits only the official's non-security plumbing (StaticFilesFolder tracking, warn-logging wrapper), achieving the equivalent \"not served\" outcome by returning null. The class appears closed at the sink.",
+    "root_cause": "Untrusted request path is combined with the static-files base and resolved to a File without verifying the canonicalized result stays inside the configured base directory, allowing \"../\" traversal to escape the static root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Boundary re-check at the filesystem sink neutralizes the whole traversal class, not just one payload; canonicalization normalizes .. and separators before the resource is built.",
+        "evidence": "AbstractResourceHandler.isPathUnderBase uses File.getCanonicalPath() + startsWith(base+separator); called in ClassPathResourceHandler/ExternalResourceHandler getResource before resource creation and return null on escape.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guards the actual filesystem/trust boundary in both handlers where the tainted path becomes a File, not a caller symptom.",
+        "evidence": "isPathUnderBase(baseResource, addedPath) inserted immediately after addPaths() and before new ClassPathResource/new ExternalResource.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Both handlers plus the welcome-file sub-path are covered, matching the official detection points; slight residual uncertainty whether a separate JAR resolution path bypasses ClassPathResourceHandler.getResource.",
+        "evidence": "welcomePath re-checked via isPathUnderBase in both handlers; official-only StaticFilesConfiguration consume-wrapper not replicated (compensated by returning null).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy (verify resolved path stays under configured base) and same location; different, stronger mechanism (canonicalization vs configured-folder string match).",
+        "evidence": "Official uses DirectoryTraversal.protectAgainst* with removeLeadingAndTrailingSlashesFrom(path).startsWith(StaticFilesFolder.local()); ours uses getCanonicalPath prefix check in the same getResource methods.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate under-base paths still pass (consistent fake-root normalization for classpath, real canonicalization for external); added unit tests pass, but no regression suite was executed to confirm.",
+        "evidence": "withLeadingSlash normalizes both operands; regressions_ran:0 / regressions_passed:null in execution results is a weak signal.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Safe standard primitive; IOException from getCanonicalPath is swallowed by the surrounding catch(Exception) → returns null (fail-closed). Minor inherent TOCTOU between canonical check and later file open.",
+        "evidence": "isPathUnderBase throws IOException, called inside getResource's existing try/catch(Exception e); no regex/shell introduced.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized: one shared helper in the abstract base plus two-line guards in each handler.",
+        "evidence": "AbstractResourceHandler.isPathUnderBase/withLeadingSlash + minimal insertions in ClassPathResourceHandler and ExternalResourceHandler.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-to-real-path then verify containment is the CWE-022 defense-of-record; for external resources it resolves symlinks and avoids the official's sibling-prefix false-accept.",
+        "evidence": "candidate.equals(base) || candidate.startsWith(base + File.separator) over getCanonicalPath results.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "No regression suite was executed (regressions_ran:0, regressions_passed:null) and pov_before_reproduced was false, so verification of both closure and non-regression rests on code analysis rather than execution evidence."
+      },
+      {
+        "severity": "low",
+        "description": "Does not replicate the official StaticFilesConfiguration.consume warn-logging wrapper; blocked traversals are silently returned as null (functionally safe but no audit log). Also omits StaticFilesFolder tracking used by the official fix."
+      },
+      {
+        "severity": "low",
+        "description": "Coverage of any JAR-served resolution path that does not route through ClassPathResourceHandler.getResource is unverified from the provided context."
+      }
+    ],
+    "overall": {
+      "mean": 4.5,
+      "score": 90,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ClassPathResourceHandler.java",
+        "ExternalResourceHandler.java"
+      ],
+      "ours_only": [
+        "AbstractResourceHandler.java"
+      ],
+      "official_only": [
+        "DirectoryTraversal.java",
+        "StaticFilesConfiguration.java",
+        "StaticFilesFolder.java",
+        "StringUtils.java"
+      ],
+      "jaccard": 0.286,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/spark/resource/ClassPathResourceHandler.java",
+        "src/main/java/spark/resource/ExternalResourceHandler.java",
+        "src/main/java/spark/staticfiles/DirectoryTraversal.java",
+        "src/main/java/spark/staticfiles/StaticFilesConfiguration.java",
+        "src/main/java/spark/staticfiles/StaticFilesFolder.java",
+        "src/main/java/spark/utils/StringUtils.java"
+      ],
+      "commits": [
+        "efcb46c710e3f56805b9257a63d1306882f4faf9"
+      ]
+    }
+  }
+}

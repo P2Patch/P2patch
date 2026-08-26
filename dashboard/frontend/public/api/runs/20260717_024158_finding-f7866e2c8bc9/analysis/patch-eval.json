@@ -1,0 +1,120 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:36:57.914370+00:00",
+    "finished_at": "2026-07-17T08:38:23.791032+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch inserts a canonicalization-then-containment check at exactly the same location as the official fix — immediately after `FileUtils.resolveFile( dir, entryName )` in `AbstractUnArchiver.extractFile`, before any filesystem side effect (overwrite check, mkdirs, symlink creation, output stream write). It is semantically a strict superset of the official fix: where the official uses a bare `canonicalDestPath.startsWith( canonicalDirPath )` (which admits the classic sibling-prefix bypass, e.g. dest `/tmp/out` vs target `/tmp/outsider/evil`), ours requires exact equality or a `destPath + File.separator` boundary. The POV no longer reproduces, 4 regressions pass, and the changed production file set exactly matches the official fix (jaccard 1.0). This is the CWE-022 defense-of-record applied at the single choke point every tainted trace (tar, zip, dirF parent, symlink) funnels through.",
+    "root_cause": "`AbstractUnArchiver.extractFile` resolved an attacker-controlled archive entry name against the destination directory via `FileUtils.resolveFile` and then used the resulting `File` for all filesystem writes without ever verifying that the resolved path remained inside the destination, letting `../`-bearing (or absolute/symlink-resolving) entry names escape the extraction root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "The sink is guarded for the whole attack class, not just the observed payload: containment is enforced on the canonical path, so `../`, absolute names, redundant separators, encodings that normalize, and symlink-resolving components are all covered.",
+        "evidence": "AbstractUnArchiver.java: `assertWithinDestination( dir, f, entryName );` inserted directly after `final File f = FileUtils.resolveFile( dir, entryName );`; helper compares `target.getCanonicalPath()` against `destination.getCanonicalPath()` via `equals(destPath) || startsWith(destPath + File.separator)`. Execution: pov_after_still_reproduces=false.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the flaw at the sink/trust boundary — the single point where the untrusted entry name becomes a filesystem path — rather than sanitizing per-caller (TarUnArchiver/AbstractZipUnArchiver) or scrubbing the string.",
+        "evidence": "Check placed in AbstractUnArchiver.extractFile, the convergence point of every trace in the report (TarUnArchiver:113 → AbstractUnArchiver:304/309; AbstractZipUnArchiver:93-95/178/218/222 → AbstractUnArchiver:304/309); guard precedes line 313 (`f` write), 319-322 (`dirF` mkdirs), and the symlink branch.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 4,
+        "rationale": "Every reported tainted path reaches the guarded sink and the guard runs before all side effects, so tar/zip/dir-creation/symlink-placement variants are covered. Not a 5 because traversal via a symlink entry whose *target* points outside (the later CVE-2023-37460 class) is unaddressed — though the official fix has the identical gap.",
+        "evidence": "Guard sits above the whole `try` block containing the overwrite check, `dirF.mkdirs()` (~line 322), the symlink branch, and the output-stream write; `assertWithinDestination` inspects only the resolved entry path, not link targets. Added test exercises both tar and zip callers.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy, same file, same method, same insertion point as the official fix, with a strictly tighter comparison — a semantic superset.",
+        "evidence": "Official: canonicalize `dir`/`f` after resolveFile, throw ArchiverException on escape. Ours: identical placement and exception type, plus a separator-boundary check instead of the bare `startsWith( canonicalDirPath )`. Overlap: AbstractUnArchiver.java, jaccard 1.0, covers_all_official=true, ours_only=[].",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Legitimate extraction is preserved; the boundary check is strictly more precise than the official one and rejects nothing an official-patched build would accept, so there is no over-restriction risk.",
+        "evidence": "regressions_ran=4, regressions_passed=true; `targetPath.equals( destPath )` explicitly permits the destination root itself and `startsWith( destPath + File.separator )` permits all legitimate nested entries.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Safe JDK primitives used correctly; no regex (no ReDoS), no new injection surface. Canonicalization failure is fail-closed (wrapped, not swallowed), and the check runs on the same `File` object later used for I/O, so no meaningful TOCTOU delta versus the official fix.",
+        "evidence": "`catch ( final IOException e ) { throw new ArchiverException( \"Failed to resolve canonical path for entry '\" + entryName + \"'\", e ); }`; no new mutable state introduced.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is tight and localized (one call site plus one private helper in the same class), but the extracted helper with javadoc is modestly larger than the official 9-line inline block; the added test file is legitimate coverage rather than scope creep.",
+        "evidence": "Production diff: +5 lines in extractFile, +30-line private `assertWithinDestination` in the same file; no other production files touched (ours_only=[]).",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Textbook CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks and `..`), then verify containment within the allowed base — with a separator boundary closing the prefix-collision hole the official fix leaves open. No `../` blocklisting anywhere.",
+        "evidence": "`destPath = destination.getCanonicalPath(); targetPath = target.getCanonicalPath(); if ( !targetPath.equals( destPath ) && !targetPath.startsWith( destPath + File.separator ) ) throw new ArchiverException(...)`",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Symlink-target traversal is not addressed: the guard validates where the entry is written (`f`), not the link target of a symlink entry, so an entry creating an in-destination symlink pointing outside remains possible (the later CVE-2023-37460 class). The official fix shares this gap exactly, so it is not a deficiency relative to ground truth."
+      },
+      {
+        "severity": "low",
+        "description": "Canonicalization failure is converted into ArchiverException, a behavior change versus the official fix, which lets the IOException propagate from extractFile. Fail-closed and safe, but a caller distinguishing IOException from ArchiverException would observe a different exception type on unreadable or malformed paths."
+      },
+      {
+        "severity": "low",
+        "description": "Only 4 regression tests were executed — thin evidence for a library whose entire surface is extraction. No observed regression exercises extraction into a destination that is itself a symlink or supplied as a relative path, though canonicalizing both sides makes those cases sound by construction."
+      }
+    ],
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 4,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "all_blocked": true,
+  "base_build": "ok",
+  "base_revision_matches_dataset": true,
+  "blocked": 1,
+  "conclusive": 1,
+  "cve_id": "bugzilla-2633",
+  "cwe_id": "CWE-125",
+  "dataset_revision": "f3069a5adc65b67b90222441e3711b236a16e624",
+  "errored": 0,
+  "evaluation_mode": "reconstructed",
+  "evaluation_revision": "f3069a5adc65b67b90222441e3711b236a16e624",
+  "patched_build": "ok",
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh colorcontig_oob.tif",
+      "description": "tiff2ps against the original asarubbo reproducer 00107: a 4-pixel-wide, 1-row RGB TIFF with ExtraSamples=1 (alpha) whose malformed IFD (StripByteCounts(4) < 16, unsorted tags, bogus YResolution/Software offsets) libtiff coerces instead of rejecting, so PSDataColorContig runs with a 4-byte scanline buffer tf_buf and es = samplesperpixel - nc = -2 (never validated at tools/tiff2ps.c:2437). The per-pixel alpha-matte read `adjust = 255 - cp[nc]` (line 2470) then reads one byte past tf_buf -- witnessed AddressSanitizer heap-buffer-overflow READ of size 1 at tools/tiff2ps.c:2470 (address 0x...1b4, 0 bytes to the right of the 4-byte region).",
+      "exit_code": 1,
+      "exploit_path": "tiff2ps <rgb+alpha.tif> -> PSpage RGB-branch (tools/tiff2ps.c:2347, nc=3) -> PSDataColorContig (tools/tiff2ps.c:2434) -> es = samplesperpixel - nc = -2 (line 2437, unvalidated) -> for cc < tf_bytesperrow (4): adjust = 255 - cp[nc] (line 2470) -> cp[nc] = tf_buf+4 = one byte past the 4-byte heap row buffer tf_buf",
+      "id": "colorcontig_es_zero_oob_read",
+      "outcome": "blocked",
+      "patched_tail": "100 dict begin\n4.000912 0.393701 scale\n/bwproc {\n    rgbproc\n    dup length 3 idiv string 0 3 0\n    5 -1 roll {\n\tadd 2 1 roll 1 sub dup 0 eq {\n\t    pop 3 idiv\n\t    3 -1 roll\n\t    dup 4 -1 roll\n\t    dup 3 1 roll\n\t    5 -1 roll put\n\t    1 add 3 0\n\t} { 2 1 roll } ifelse\n    } forall\n    pop pop pop\n} def\n/colorimage where {pop} {\n    /colorimage {pop pop /rgbproc exch def {bwproc} image} bind def\n} ifelse\n%ImageData: 4 1 8 3 0 1 2 \"false 3 colorimage\"\n/line 12 string def\n4 1 8\n[4 0 0 -1 0 1]\n{currentfile line readhexstring pop} bind\nfalse 3 colorimage\nffffff\nend\ngrestore\nshowpage\n%%Trailer\n%%EOF\n",
+      "reproduces_on_base": true
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2633_f3069a5adc65",
+  "reproduced": 0,
+  "score": 1.0,
+  "scored_by": "patchagent-runs/povscore15 (build-and-replay, no LLM calls)",
+  "total": 1,
+  "wall_clock_s": 94
+}

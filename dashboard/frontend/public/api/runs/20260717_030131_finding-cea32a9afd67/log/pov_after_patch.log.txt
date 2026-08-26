@@ -1,0 +1,18 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030131_finding-cea32a9afd67/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-cea32a9afd67:c5314ac69ae9 bash -lc cd agent/core && mvn -q test-compile && mvn -q dependency:build-classpath -Dmdep.outputFile=/tmp/pov-cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov-classes && javac -cp "target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)" -d /tmp/pov-classes ../../.security-pipeline/pov/JsonpCallbackXssPov.java && java -cp "/tmp/pov-classes:target/classes:target/test-classes:$(cat /tmp/pov-cp.txt)" org.jolokia.http.JsonpCallbackXssPov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+[POV] Exception while driving AgentServlet -- treating as NOT VULNERABLE:
+java.lang.IllegalArgumentException: Invalid callback name given. Only alphanumeric characters, '_', '$', '.' and array-index brackets ('[', ']') are allowed for a JSONP callback name.
+	at org.jolokia.util.IoUtil.checkCallbackSafe(IoUtil.java:40)
+	at org.jolokia.util.IoUtil.streamResponseAndClose(IoUtil.java:62)
+	at org.jolokia.http.AgentServlet.sendStreamingResponse(AgentServlet.java:492)
+	at org.jolokia.http.AgentServlet.sendResponse(AgentServlet.java:481)
+	at org.jolokia.http.AgentServlet.handle(AgentServlet.java:288)
+	at org.jolokia.http.AgentServlet.doGet(AgentServlet.java:237)
+	at org.jolokia.http.JsonpCallbackXssPov.performJsonpRequest(JsonpCallbackXssPov.java:198)
+	at org.jolokia.http.JsonpCallbackXssPov.main(JsonpCallbackXssPov.java:89)
+
+--- stderr ---
+

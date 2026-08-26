@@ -1,0 +1,124 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:37:04.022849+00:00",
+    "finished_at": "2026-07-17T08:39:59.307256+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Every destination-file construction from a tainted entry name is now canonicalized and containment-checked, so the whole Zip Slip class (not just `../`) is closed.",
+        "evidence": "ZipUtil.java: `resolveDestinationFile(outputDir, name)` replaces `new File(outputDir, name)` at Unpacker.process (~1152), BackslashUnpacker.process both branches (~1244/1252) and its mkdir loop, and Unwraper.process (~1290); helper does `outputDir.getCanonicalPath()` / `file.getCanonicalPath()` then `!filePath.equals(outputDirPath) && !filePath.startsWith(outputDirPath + File.separator)` → ZipException.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard is placed at the sink (destination resolution) rather than at a caller or on the raw entry string, so all entry-name shapes are neutralized where the path becomes a File.",
+        "evidence": "Private static helper `resolveDestinationFile(File outputDir, String name)` interposed at each `new File(outputDir, name)` sink; no reliance on `name.indexOf(\"..\")` blocklisting (unlike the official fix).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Covers all tainted sinks in the codebase plus one the official fix left unguarded; Zips fluent API delegates to these same Unpacker/Unwraper callbacks.",
+        "evidence": "grep of src/main shows exactly three `new File(outputDir, name)` sinks (ZipUtil.java:1152, 1225, 1260) — all three replaced; additionally the BackslashUnpacker directory-creation loop `new File(parentDirectory, dirs[i])` is guarded (official fix does not guard the loop, only destFile). Verified Zips.java:471/unpack paths route through ZipUtil.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy at the same locations as the official fix (canonical-path containment → ZipException), and a strict superset of it.",
+        "evidence": "Official adds `if (name.indexOf(\"..\") != -1 && !file.getCanonicalPath().startsWith(outputDir.getCanonicalPath())) throw new ZipException(...)` at Unpacker.process/BackslashUnpacker/Unwraper; ours checks unconditionally and adds a `File.separator` boundary, closing the prefix-sibling bypass (/tmp/out vs /tmp/outEvil) the official `startsWith` permits.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Statically verified to compile and to preserve legitimate archives, but the pipeline ran zero regression tests and the POV never reproduced pre-patch, so no execution evidence exists.",
+        "evidence": "Verified in source: ZipException.java:3 `extends RuntimeException` (helper needs no throws clause), ZipExceptionUtil.rethrow(IOException) is package-visible, BackslashUnpacker is `public static` with a `File` ctor and ZipUtilTest already imports ZipOutputStream/FileOutputStream/ZipEntry/FileUtils/IOUtils → added tests compile. Existing testUnpackBackslashes (ZipUtilTest:878, entries `testDirectory\\...`) still passes each per-segment check. Execution results: regressions_ran=0, pov_before_reproduced=false.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses safe JDK primitives correctly; IOException from canonicalization is rethrown via the codebase's own idiom rather than swallowed (fail-closed).",
+        "evidence": "`catch (IOException e) { throw ZipExceptionUtil.rethrow(e); }` matches existing ZipUtil style; loop guard is transitive (each child ⊆ its parent, parent₀ = outputDir), so containment holds cumulatively; residual TOCTOU between the canonical check and forceMkdir/copy is inherent and identical to the official fix.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "One small private helper plus five one-line call-site substitutions in the single affected file — tighter than the official fix's four copy-pasted blocks.",
+        "evidence": "Production diff touches only src/main/java/org/zeroturnaround/zip/ZipUtil.java: +30 lines (helper + javadoc), 5 lines changed; remaining diff is three targeted regression tests in ZipUtilTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks and `..`), then verify the result stays under the base dir with a separator-anchored boundary — no blocklisting.",
+        "evidence": "`outputDirPath = outputDir.getCanonicalPath(); filePath = file.getCanonicalPath(); if (!filePath.equals(outputDirPath) && !filePath.startsWith(outputDirPath + File.separator)) throw new ZipException(...)`.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": false
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "No execution evidence at all: pov_before_reproduced=false (the POV never demonstrated the vulnerability pre-patch), pov_after_present=false, and regressions_ran=0/regressions_passed=null. The verdict rests entirely on static review; I confirmed by reading the checked-out source that the patch compiles (ZipException is unchecked, ZipExceptionUtil.rethrow exists, BackslashUnpacker is public, all test imports present) and that existing tests such as ZipUtilTest:878 remain satisfied, but nothing was actually executed. This is an evidence gap, not an identified defect."
+      },
+      {
+        "severity": "low",
+        "description": "BackslashUnpacker's directory loop now validates each segment against its immediate parent, so an archive containing an intermediate traversal segment that nets back inside outputDir (e.g. `a\\..\\b.txt`) is rejected, whereas the official fix only checks the final destFile and would allow it. Stricter than upstream; essentially no realistic legitimate archive is affected."
+      },
+      {
+        "severity": "low",
+        "description": "resolveDestinationFile calls getCanonicalPath() on both outputDir and the destination for every entry (and for every path segment in BackslashUnpacker), whereas the official fix short-circuits unless the name contains \"..\". This adds two filesystem syscalls per entry — a measurable but minor throughput cost on very large archives. It is the price of closing the non-\"..\" bypass class, so the trade is favourable."
+      },
+      {
+        "severity": "low",
+        "description": "Residual TOCTOU: the canonical-path check happens before FileUtils.forceMkdir/FileUtils.copy, so an attacker able to swap a component for a symlink concurrently with extraction could still redirect a write. Inherent to this design and identical to the official fix; not a regression introduced by this patch."
+      }
+    ],
+    "root_cause": "ZipUtil resolved attacker-controlled ZIP entry names directly against the extraction directory (`new File(outputDir, name)`) in Unpacker.process, BackslashUnpacker.process, and Unwraper.process without verifying that the resulting canonical path stays inside outputDir, letting a crafted entry name write files anywhere the JVM has permission (\"Zip Slip\").",
+    "summary": "This is a good fix and a strict superset of the official one. It interposes a single `resolveDestinationFile` helper at every tainted sink — all three `new File(outputDir, name)` sites confirmed by grep over src/main, plus the BackslashUnpacker mkdir loop the upstream fix left unguarded — and applies the CWE-022 defense-of-record: canonicalize both sides, then require the destination to equal outputDir or start with `outputDir + File.separator`, failing closed with ZipException. Dropping the official's `name.indexOf(\"..\")` gate and adding the separator boundary closes two bypasses upstream left open (non-`..` symlink/canonicalization escapes, and prefix-sibling directories like /tmp/outEvil matching /tmp/out via bare startsWith). The one real weakness is verification, not code: the pipeline reproduced no POV before the patch and ran zero regression tests, so I set the no_regressions gate false on missing evidence — static review of the actual checkout (unchecked ZipException, ZipExceptionUtil.rethrow, public BackslashUnpacker, existing test imports) found no compile or behavioral breakage.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "ZipUtil.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/zeroturnaround/zip/ZipUtil.java"
+      ],
+      "commits": [
+        "759b72f33bc8f4d69f84f09fcb7f010ad45d6fff"
+      ]
+    }
+  }
+}

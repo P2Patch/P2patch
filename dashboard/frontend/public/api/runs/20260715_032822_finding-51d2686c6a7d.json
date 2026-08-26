@@ -1,0 +1,1011 @@
+{
+  "run_id": "20260715_032822_finding-51d2686c6a7d",
+  "finding_id": "finding-51d2686c6a7d",
+  "timestamp": "2026-07-15T03:28:22",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v1_full-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260715_032822_finding-51d2686c6a7d",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-51d2686c6a7d",
+    "cve_id": "CVE-2019-17640",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "vert-x3__vertx-web_CVE-2019-17640_3.9.3",
+    "alert_file": "VERT_X3_VERTX_WEB_CVE_2019_17640.json",
+    "github_url": "https://github.com/vert-x3/vertx-web",
+    "repo": "vert-x3/vertx-web",
+    "github_tag": "3.9.3",
+    "advisory_id": "GHSA-vjw7-6gfq-6wf5",
+    "buggy_commit_id": "2146b7240096e25b40bb1acc083fa7ec79330989",
+    "fix_commit_ids": [
+      "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+        "file": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java",
+        "class": "StaticHandlerImpl",
+        "class_start": "51.0",
+        "class_end": "824.0",
+        "method": "handle",
+        "method_start": "125.0",
+        "method_end": "145.0",
+        "signature": "void handle(RoutingContext)",
+        "is_test": false
+      },
+      {
+        "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+        "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+        "class": "StaticHandlerTest",
+        "class_start": "39.0",
+        "class_end": "861.0",
+        "method": "testGetDefaultIndex",
+        "method_start": "51.0",
+        "method_end": "52.0",
+        "signature": "void testGetDefaultIndex()",
+        "is_test": true
+      },
+      {
+        "commit": "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4",
+        "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+        "class": "StaticHandlerTest",
+        "class_start": "39.0",
+        "class_end": "861.0",
+        "method": "toDateTime",
+        "method_start": "852.0",
+        "method_end": "857.0",
+        "signature": "long toDateTime(String)",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2019-17640",
+      "advisory": "https://github.com/advisories/GHSA-vjw7-6gfq-6wf5",
+      "repo": "https://github.com/vert-x3/vertx-web",
+      "buggy_commit": "https://github.com/vert-x3/vertx-web/commit/2146b7240096e25b40bb1acc083fa7ec79330989"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 147,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/HttpServerRequestWrapper.java"
+            },
+            {
+              "line": 216,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "normalizePath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "normalisedPath : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "decodeURIComponent(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "removeDots(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 145,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 149,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 189,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 610,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 611,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 115,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "...?...:... : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 611,
+              "message": "pathOffset(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 613,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 189,
+              "message": "getFile(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 192,
+              "message": "sfile : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 290,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "...->... : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 272,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 275,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "parameter this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            }
+          ],
+          [
+            {
+              "line": 147,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/HttpServerRequestWrapper.java"
+            },
+            {
+              "line": 216,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "normalizePath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "this <.field> [post update] : RoutingContextImpl [normalisedPath] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "this <.field> : RoutingContextImpl [normalisedPath] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "normalisedPath : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 180,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextDecorator.java"
+            },
+            {
+              "line": 131,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "decodeURIComponent(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "removeDots(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 145,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 149,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 154,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 610,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 611,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 115,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "substring(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "...?...:... : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 611,
+              "message": "pathOffset(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 613,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 154,
+              "message": "getFile(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 156,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 192,
+              "message": "sfile : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 290,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "...->... : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 272,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 280,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "parameter this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            }
+          ],
+          [
+            {
+              "line": 216,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "normalizePath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "normalisedPath : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "decodeURIComponent(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "removeDots(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 145,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 149,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 189,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 610,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 611,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 115,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "...?...:... : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 611,
+              "message": "pathOffset(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 613,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 189,
+              "message": "getFile(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 192,
+              "message": "sfile : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 290,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "...->... : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 272,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 275,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "parameter this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            }
+          ],
+          [
+            {
+              "line": 216,
+              "message": "path(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "normalizePath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 220,
+              "message": "this <.field> [post update] : RoutingContextImpl [normalisedPath] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "this <.field> : RoutingContextImpl [normalisedPath] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 223,
+              "message": "normalisedPath : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextImpl.java"
+            },
+            {
+              "line": 180,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/RoutingContextDecorator.java"
+            },
+            {
+              "line": 131,
+              "message": "normalisedPath(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "decodeURIComponent(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 131,
+              "message": "removeDots(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 145,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 149,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 154,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 610,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 611,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 115,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "path : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "substring(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 133,
+              "message": "...?...:... : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/impl/Utils.java"
+            },
+            {
+              "line": 611,
+              "message": "pathOffset(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 613,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 154,
+              "message": "getFile(...) : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 156,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 192,
+              "message": "sfile : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 290,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "...->... : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 272,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 280,
+              "message": "callable : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "parameter this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "this : new Callable<FileSystem>(...) { ... } [file] : String",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            },
+            {
+              "line": 292,
+              "message": "file",
+              "uri": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-51d2686c6a7d",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-51d2686c6a7d:48315980202a",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B -pl vertx-web -am -DskipTests install -Dmaven.javadoc.skip=true",
+        "mvn -B -pl vertx-web -Dtest=StaticHandlerTest test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/vert-x3__vertx-web_[redacted]_3.9.3/22/Dockerfile",
+        "-t",
+        "simpleautosec-finding-51d2686c6a7d:48315980202a",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/vert-x3__vertx-web_[redacted]_3.9.3/22"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-51d2686c6a7d:48315980202a",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-51d2686c6a7d:48315980202a",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-51d2686c6a7d:48315980202a",
+        "bash",
+        "-lc",
+        "mvn -B -pl vertx-web -am -DskipTests install -Dmaven.javadoc.skip=true"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_032822_finding-51d2686c6a7d/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-51d2686c6a7d:48315980202a",
+        "bash",
+        "-lc",
+        "mvn -B -pl vertx-web -Dtest=StaticHandlerTest test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 564637,
+        "duration_api_ms": 479095,
+        "num_turns": 38,
+        "cost_usd": 2.3585000000000003,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 62,
+          "output": 31205,
+          "cache_read": 1817354,
+          "cache_creation": 64082
+        }
+      },
+      "parsed_output": {
+        "evidence": "Unpatched run: status code 200, body 'TOP-SECRET-PATH-TRAVERSAL-MARKER', FINAL_EXIT=0. Simulated-patch run (added .replace('\\\\','/') to line 131 of StaticHandlerImpl.handle, matching the official 3.9.4 fix): status code 404, body '<html><body><h1>Resource not found</h1></body></html>', FINAL_EXIT=1. The simulated patch was reverted afterward; git diff of vertx-web/src/main/java is empty, confirming no product code was modified.",
+        "expected_vulnerable_behavior": "The real StaticHandler serves the guarded resource that lives behind a backslash traversal payload: the request GET /pub/..%5c..%5csecret.txt returns HTTP 200 with body containing TOP-SECRET-PATH-TRAVERSAL-MARKER, proving the request-controlled backslash/traversal bytes reached filesystem resolution unsanitized. run_pov.sh prints '[POV] VULNERABLE' and exits 0. After a correct patch that normalizes backslashes to '/' before dot removal (as in vertx-web 3.9.4), the same request collapses to /secret.txt, is not found, returns HTTP 404, and the command exits 1.",
+        "notes": "Runs on Linux where '\\\\' is an ordinary filename byte, so a real cross-directory file read cannot be demonstrated (the CVE's actual escape manifests on Windows). The POV therefore observes the identical vulnerable code behavior in a platform-independent, patch-sensitive way: it materializes the decoded backslash payload as a literal filename inside the web root and asserts that the unsanitized request path reaches and serves it. It exercises the genuine StaticHandlerImpl.handle/getFile/Utils.pathOffset flow through a real HTTP request (StaticHandler.create()/Router/HttpServer public API); no product code or normal tests were modified. run_pov.sh rebuilds vertx-web offline (mvn -o) so it automatically picks up any patch, then compiles and runs PovStaticHandlerTraversal.java against the reactor classes + local .m2 dependency jars. The server binds localhost:18080 inside the container.",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/PovStaticHandlerTraversal.java",
+        "regression_hint": "A correct fix must normalize/reject backslash bytes in the request path before the resource is resolved (e.g. StaticHandlerImpl.handle should convert '\\\\' to '/' prior to HttpUtils.removeDots, as done in vertx-web 3.9.4). After such a fix, GET /pub/..%5c..%5csecret.txt no longer resolves to webRoot/pub/..\\\\..\\\\secret.txt (it collapses to /secret.txt), so the handler returns 404 and 'bash .security-pipeline/pov/run_pov.sh' exits non-zero.",
+        "status": "pov_created",
+        "summary": "Created a real proof-of-vulnerability for the CWE-022 path traversal in vertx-web 3.9.3 StaticHandlerImpl. StaticHandlerImpl.handle() computes the served path as HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false)); neither normalizePath nor removeDots treats a backslash ('\\\\') as a path separator, so a request-controlled backslash traversal payload (e.g. %5c..%5c..%5c) flows unsanitized through getFile()/Utils.pathOffset() into the Vert.x FileSystem lookup — exactly the finder's HttpServerRequestWrapper.path -> RoutingContextImpl.normalisedPath -> StaticHandlerImpl -> Utils.pathOffset -> FileSystem callable trace. The POV drives a real Router+StaticHandler+HTTP server via the public API and issues GET /pub/..%5c..%5csecret.txt against a web root whose 'pub' subdir contains a file whose literal on-disk name is the decoded traversal payload '..\\\\..\\\\secret.txt'. On unpatched code the backslashes survive normalization, the guarded file is resolved and served (200 + secret body) and the POV exits 0. The official 3.9.4 fix (replace('\\\\','/') before removeDots) collapses the payload to /secret.txt, which does not exist, yielding 404 and a non-zero exit."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 401330,
+        "duration_api_ms": 252092,
+        "num_turns": 31,
+        "cost_usd": 1.4730115000000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 57,
+          "output": 14252,
+          "cache_read": 1327971,
+          "cache_creation": 44188
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java",
+          "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java"
+        ],
+        "patch_notes": "Root cause: StaticHandlerImpl.handle() computed the served path as HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false)). Neither normalizePath nor removeDots treats a backslash ('\\\\') as a path separator, so a request-controlled backslash traversal payload (e.g. %5c..%5c) survived normalization and flowed unsanitized through getFile()/Utils.pathOffset() into the Vert.x FileSystem lookup, enabling directory traversal on platforms where '\\\\' is a separator (Windows).\n\nFix: Insert `.replace('\\\\', '/')` on the decoded path before HttpUtils.removeDots(...), so backslashes are treated as path separators and collapsed by dot-segment removal along with '/'. This is the exact approach used in the upstream vertx-web 3.9.4 fix. A single-line source change in the one identified sink; no behavioral change for legitimate '/'-based paths.\n\nRegression test: Added StaticHandlerTest.testBackslashTraversalNormalized which issues GET /somedir/..%5c..%5cotherpage.html. With the fix the backslashes are treated as separators and the path collapses inside the web root to /otherpage.html (HTTP 200, \"Other page\" body). Without the fix the literal name \"somedir/..\\\\..\\\\otherpage.html\" is looked up and does not exist, so the assertion fails — making the test a precise, platform-independent discriminator that locks in the fix. Note: the install step in regression_commands is required because building/testing vertx-web needs the sibling vertx-web-common reactor module installed to the local .m2 first.\n\nVerification: The provided POV (bash .security-pipeline/pov/run_pov.sh) was VULNERABLE (200, secret served) before and is now blocked (404, exit code 1) after the patch. Full StaticHandlerTest suite: 64 tests, 0 failures.",
+        "regression_commands": [
+          "mvn -B -pl vertx-web -am -DskipTests install -Dmaven.javadoc.skip=true",
+          "mvn -B -pl vertx-web -Dtest=StaticHandlerTest test"
+        ],
+        "risk_notes": "Low risk. The change only affects how the request path is interpreted: backslashes are now normalized to forward slashes before dot-segment removal, which is standard for HTTP static file serving and matches upstream vertx-web 3.9.4. A legitimate URL containing an actual backslash byte in a filename would now be interpreted as a path separator; this is extremely rare and considered safe/desirable behavior. No dependency, formatting, or unrelated changes. The regression commands require network access on first run to fetch the Maven surefire provider and transitive dependencies (offline -o mode is not fully seeded in the container).",
+        "status": "patched",
+        "summary": "Fixed CWE-022 backslash path traversal in vertx-web StaticHandlerImpl by normalizing backslashes to '/' in the request path before dot-segment removal, matching the official vertx-web 3.9.4 fix. The POV (GET /pub/..%5c..%5csecret.txt) now returns 404 and exits non-zero, and all 64 StaticHandlerTest tests pass."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 93260,
+        "duration_api_ms": 47407,
+        "num_turns": 8,
+        "cost_usd": 0.8315300000000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 3995,
+          "output": 3125,
+          "cache_read": 282720,
+          "cache_creation": 55851
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "bash .security-pipeline/pov/run_pov.sh",
+          "mvn -B -pl vertx-web -am -DskipTests install -Dmaven.javadoc.skip=true",
+          "mvn -B -pl vertx-web -Dtest=StaticHandlerTest test"
+        ],
+        "diff_review": "patch_only.diff touches two files: (1) StaticHandlerImpl.java — a single one-line source change at line ~131 adding `.replace('\\\\', '/')` before removeDots, plus an explanatory comment; verified present in the on-disk source. (2) StaticHandlerTest.java — adds one regression test `testBackslashTraversalNormalized` asserting GET /somedir/..%5c..%5cotherpage.html returns 200 and collapses inside the web root, a genuine platform-independent discriminator for the fix. The pov.diff only adds files under .security-pipeline/pov (PovStaticHandlerTraversal.java, run_pov.sh) and is untouched by the patch — the POV was not altered, disabled, or weakened. The change is minimal, addresses the exact sink in the alert trace (StaticHandlerImpl.handle -> getFile -> Utils.pathOffset -> FileSystem), introduces no broad/unrelated behavior, and preserves normal '/'-based path handling. No vulnerable functionality was removed without justification; static file serving is intact.",
+        "issues": [],
+        "pov_result": "Reran `bash .security-pipeline/pov/run_pov.sh` via the Docker wrapper against the patched tree: status code 404, body \"Resource not found\", exit code 1 (NOT VULNERABLE) — the backslash traversal payload is normalized/blocked. The orchestrator's pre-patch run recorded status 200 with body TOP-SECRET-PATH-TRAVERSAL-MARKER and exit 0 (VULNERABLE), and the exploiter independently confirmed the same simulated-fix behavior, establishing the POV is a real, patch-sensitive discriminator. The fix flips the outcome from vulnerable to blocked.",
+        "regression_result": "Reran both regression commands via the Docker wrapper: `mvn -B -pl vertx-web -am -DskipTests install` succeeded (INSTALL_EXIT=0), and `mvn -B -pl vertx-web -Dtest=StaticHandlerTest test` reported \"Tests run: 64, Failures: 0, Errors: 0, Skipped: 0\" with BUILD SUCCESS, including the new testBackslashTraversalNormalized. No regressions.",
+        "summary": "The patch fixes the CWE-022 backslash path traversal in vertx-web StaticHandlerImpl by inserting `.replace('\\\\', '/')` on the decoded request path before HttpUtils.removeDots, so backslash traversal payloads (e.g. %5c..%5c) are collapsed as path separators. This is the exact upstream vertx-web 3.9.4 fix. I independently reran the POV (now 404/exit 1, blocked) and the regression suite (64/64 StaticHandlerTest pass). Accepted.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.663,
+    "num_turns": 77,
+    "agent_duration_ms": 1059227
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log"
+    ]
+  }
+}

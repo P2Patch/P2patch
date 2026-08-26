@@ -1,0 +1,273 @@
+{
+  "run_id": "20260717_021224_finding-93146093deb4",
+  "finding_id": "finding-93146093deb4",
+  "timestamp": "2026-07-17T02:12:24",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_021224_finding-93146093deb4",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-93146093deb4",
+    "cve_id": "CVE-2022-22932",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "asf__karaf_CVE-2022-22932_4.3.5",
+    "alert_file": "ASF_KARAF_CVE_2022_22932.json",
+    "github_url": "https://github.com/apache/karaf",
+    "repo": "apache/karaf",
+    "github_tag": "4.3.5",
+    "advisory_id": "GHSA-544x-2jx9-4pfg",
+    "buggy_commit_id": "d0439e5b0dde1c7e3ff0207c557aa701093acd25",
+    "fix_commit_ids": [
+      "36a2bc430cc773db1cfd0b32e307d9da2d1697f7"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "36a2bc4",
+        "file": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java",
+        "class": "FileUtil",
+        "class_start": "34.0",
+        "class_end": "144.0",
+        "method": "unjar",
+        "method_start": "96.0",
+        "method_end": "140.0",
+        "signature": "void unjar(JarInputStream,File)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-22932",
+      "advisory": "https://github.com/advisories/GHSA-544x-2jx9-4pfg",
+      "repo": "https://github.com/apache/karaf",
+      "buggy_commit": "https://github.com/apache/karaf/commit/d0439e5b0dde1c7e3ff0207c557aa701093acd25"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 134,
+              "message": "getName(...) : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 140,
+              "message": "name : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 145,
+              "message": "destName : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 171,
+              "message": "destName : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 171,
+              "message": "new File(...)",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            }
+          ],
+          [
+            {
+              "line": 136,
+              "message": "getName(...) : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 136,
+              "message": "substring(...) : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 139,
+              "message": "destination : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 139,
+              "message": "replace(...) : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 140,
+              "message": "destination : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 145,
+              "message": "destDir : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 155,
+              "message": "destDir : String",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 155,
+              "message": "new File(...) : File",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 171,
+              "message": "targetDir : File",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            },
+            {
+              "line": 171,
+              "message": "new File(...)",
+              "uri": "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-93146093deb4",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021224_finding-93146093deb4/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-93146093deb4:a27710aa4208",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__karaf_[redacted]_4.3.5/20/Dockerfile",
+        "-t",
+        "simpleautosec-finding-93146093deb4:a27710aa4208",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/asf__karaf_[redacted]_4.3.5/20"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 114059,
+        "duration_api_ms": 100493,
+        "num_turns": 16,
+        "cost_usd": 0.48938039999999994,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 30,
+          "output": 8492,
+          "cache_read": 602848,
+          "cache_creation": 30176
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java",
+          "obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java"
+        ],
+        "patch_notes": "Root cause: FileUtil.unjar() derived `destName`/`destDir` from the (attacker-controlled) JAR entry name and passed them to FileUtil.copy(), which built the final output file (`new File(targetDir, destName)`, the sink at old line 171) with NO containment check of its own — it only relied on a check performed earlier in unjar() on a differently-constructed File object (`target = new File(dir, je.getName())`). That made copy() unsafe both when called directly (it's a public method) and, more subtly, because its own resolved path was never verified. In addition, the pre-existing unjar() check used a raw `String.startsWith()` comparison of canonical paths without a trailing separator, which is vulnerable to the classic sibling-directory bypass (e.g. dest `target/test` vs an entry resolving to `target/testEVIL/...`, which also \"starts with\" `target/test`).\n\nFix:\n1. In FileUtil.copy() (the actual extraction sink), compute the fully resolved `targetFile` and its canonical path, then verify it equals the destination directory's canonical path or starts with `canonicalDir + File.separator` before creating any directories or writing the file. This closes the gap for both traces in the alert (both terminate at the `new File(...)`/FileOutputStream sink in copy()) and protects any current or future caller of copy(), not just unjar().\n2. Hardened the existing containment check in FileUtil.unjar() the same way (append `File.separator` to the prefix comparison, plus an equals check) to eliminate the sibling-directory prefix bypass as defense in depth.\n3. Added regression tests: `badExtractSiblingPrefixTest` (unjar sibling-prefix bypass) and `badCopyDirectTest` (calling copy() directly with a `..`-laden destDir) alongside the existing `badExtractTest`/`goodExtractTest`.\n\nNo behavioral change for legitimate archives whose entries resolve inside the destination directory.",
+        "regression_commands": [
+          "cd obr && mvn -B test -Dtest=FileUtilTest",
+          "cd obr && mvn -B test"
+        ],
+        "risk_notes": "Low risk: the change only adds a containment check before writes in copy() and tightens an existing check in unjar(); it does not alter behavior for well-formed archives. IOException is already a declared/handled exception type in both methods, so the new failure path fits existing error handling (downloadSource() catches Exception and prints the error). Ran `mvn clean test -Dtest=FileUtilTest` in the project's Docker container: 4/4 tests pass (2 pre-existing + 2 new).",
+        "status": "patched",
+        "summary": "Fixed CWE-022 path traversal in OBR's FileUtil archive extraction by enforcing canonical-path containment at the actual write sink (copy()) and hardening the existing check in unjar() against a prefix-matching bypass."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.4894,
+    "num_turns": 16,
+    "agent_duration_ms": 114059
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

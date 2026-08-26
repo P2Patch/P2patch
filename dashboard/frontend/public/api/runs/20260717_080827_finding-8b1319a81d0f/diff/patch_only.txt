@@ -1,0 +1,151 @@
+diff --git a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+index 52454f1..04165a2 100644
+--- a/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
++++ b/src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java
+@@ -22,7 +22,9 @@
+ import java.io.InputStream;
+ import java.io.OutputStream;
+ import java.nio.file.Files;
++import java.nio.file.InvalidPathException;
+ import java.nio.file.Path;
++import java.nio.file.Paths;
+ import java.util.ArrayList;
+ import java.util.Date;
+ import java.util.List;
+@@ -368,6 +370,41 @@ protected void extractFile( final File srcF, final File dir, final InputStream c
+ 
+             if ( !StringUtils.isEmpty( symlinkDestination ) )
+             {
++                // Make sure that the (possibly still non-existent, i.e. dangling) resolved target of the
++                // symlink doesn't escape the destination directory either. Relative targets are resolved
++                // against the symlink's own (canonical) parent directory, absolute targets are taken as-is.
++                // Path#normalize() is a purely lexical operation, so this also catches traversal targets
++                // that point to entries which don't exist yet and therefore can't be canonicalized.
++                final Path rawSymlinkTargetPath;
++                try
++                {
++                    rawSymlinkTargetPath = Paths.get( symlinkDestination );
++                }
++                catch ( final InvalidPathException e )
++                {
++                    throw new ArchiverException( "Entry " + entryName
++                        + " specifies an invalid symlink target (" + symlinkDestination + ")", e );
++                }
++
++                // Resolve relative targets against the *canonical parent directory* of the entry being
++                // created (dirF, which was just materialized above) rather than against canonicalDestPath's
++                // parent: if targetFileName itself already happens to exist as a symlink (e.g. left over
++                // from a previous extraction of this same entry, or planted by an earlier archive entry),
++                // getCanonicalFile() on targetFileName would silently follow that symlink and yield a
++                // misleading base directory.
++                final Path canonicalParentPath = dirF != null ? dirF.getCanonicalFile().toPath() : canonicalDirPath;
++
++                final Path resolvedSymlinkTargetPath = rawSymlinkTargetPath.isAbsolute()
++                    ? rawSymlinkTargetPath.normalize()
++                    : canonicalParentPath.resolve( rawSymlinkTargetPath ).normalize();
++
++                if ( !resolvedSymlinkTargetPath.startsWith( canonicalDirPath ) )
++                {
++                    throw new ArchiverException( "Entry " + entryName
++                        + " is trying to create a symlink whose target (" + symlinkDestination
++                        + ") escapes the target directory" );
++                }
++
+                 SymlinkUtils.createSymbolicLink( targetFileName, new File( symlinkDestination ) );
+             }
+             else if ( isDirectory )
+diff --git a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+index d2ebd4c..a6d06e2 100644
+--- a/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
++++ b/src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java
+@@ -14,6 +14,7 @@
+ import org.junit.jupiter.api.condition.OS;
+ 
+ import static org.junit.jupiter.api.Assertions.assertFalse;
++import static org.junit.jupiter.api.Assertions.assertThrows;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
+ 
+ /**
+@@ -52,6 +53,12 @@ public void testSymlinkFile()
+         assertTrue( Files.isSymbolicLink( dummyContent.toPath() ) );
+     }
+ 
++    // Names of the symlink entries in src/test/resources/symlinks/src whose targets deliberately
++    // point outside of that directory ( ../dirOnTheOutside and ../onTheOutside.txt ). They are used
++    // to exercise the "escaping symlink target" rejection below, so the happy-path round trip tests
++    // exclude them.
++    private static final String[] ESCAPING_SYMLINK_NAMES = { "symLinkToDirOnTheOutside", "symLinkToFileOnTheOutside" };
++
+     @Test
+     public void testSymlinkTar()
+         throws Exception
+@@ -60,7 +67,7 @@ public void testSymlinkTar()
+         archiver.setLongfile( TarLongFileMode.posix );
+ 
+         File dummyContent = getTestFile( "src/test/resources/symlinks/src" );
+-        archiver.addDirectory( dummyContent );
++        archiver.addDirectory( dummyContent, null, ESCAPING_SYMLINK_NAMES );
+         final File archiveFile = new File( "target/output/symlinks.tar" );
+         archiver.setDestFile( archiveFile );
+         archiver.createArchive();
+@@ -79,7 +86,7 @@ public void testSymlinkZip()
+         ZipArchiver archiver = (ZipArchiver) lookup( Archiver.class, "zip" );
+ 
+         File dummyContent = getTestFile( "src/test/resources/symlinks/src" );
+-        archiver.addDirectory( dummyContent );
++        archiver.addDirectory( dummyContent, null, ESCAPING_SYMLINK_NAMES );
+         final File archiveFile = new File( "target/output/symlinks.zip" );
+         archiveFile.delete();
+         archiver.setDestFile( archiveFile );
+@@ -93,6 +100,51 @@ public void testSymlinkZip()
+         unarchiver.extract();
+     }
+ 
++    @Test
++    public void testSymlinkTarEscapingTargetRejected()
++        throws Exception
++    {
++        TarArchiver archiver = (TarArchiver) lookup( Archiver.class, "tar" );
++        archiver.setLongfile( TarLongFileMode.posix );
++
++        File dummyContent = getTestFile( "src/test/resources/symlinks/src" );
++        archiver.addDirectory( dummyContent, ESCAPING_SYMLINK_NAMES, null );
++        final File archiveFile = new File( "target/output/symlinks-escaping.tar" );
++        archiver.setDestFile( archiveFile );
++        archiver.createArchive();
++        File output = getTestFile( "target/output/untaredSymlinksEscaping" );
++        output.mkdirs();
++        TarUnArchiver unarchiver = (TarUnArchiver) lookup( UnArchiver.class, "tar" );
++        unarchiver.setSourceFile( archiveFile );
++        unarchiver.setDestFile( output );
++
++        assertThrows( ArchiverException.class, unarchiver::extract );
++        assertFalse( new File( output, "symLinkToDirOnTheOutside" ).exists() );
++    }
++
++    @Test
++    public void testSymlinkZipEscapingTargetRejected()
++        throws Exception
++    {
++        ZipArchiver archiver = (ZipArchiver) lookup( Archiver.class, "zip" );
++
++        File dummyContent = getTestFile( "src/test/resources/symlinks/src" );
++        archiver.addDirectory( dummyContent, ESCAPING_SYMLINK_NAMES, null );
++        final File archiveFile = new File( "target/output/symlinks-escaping.zip" );
++        archiveFile.delete();
++        archiver.setDestFile( archiveFile );
++        archiver.createArchive();
++
++        File output = getTestFile( "target/output/unzippedSymlinksEscaping" );
++        output.mkdirs();
++        ZipUnArchiver unarchiver = (ZipUnArchiver) lookup( UnArchiver.class, "zip" );
++        unarchiver.setSourceFile( archiveFile );
++        unarchiver.setDestFile( output );
++
++        assertThrows( ArchiverException.class, unarchiver::extract );
++        assertFalse( new File( output, "symLinkToDirOnTheOutside" ).exists() );
++    }
++
+     @Test
+     @DisabledOnOs( OS.WINDOWS )
+     public void testSymlinkDirArchiver()

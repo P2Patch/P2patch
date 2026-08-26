@@ -1,0 +1,242 @@
+{
+  "run_id": "20260717_020835_finding-a4dceb431829",
+  "finding_id": "finding-a4dceb431829",
+  "timestamp": "2026-07-17T02:08:35",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_020835_finding-a4dceb431829",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-a4dceb431829",
+    "cve_id": "CVE-2020-8570",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "kubernetes-client__java_CVE-2020-8570_client-java-parent-9.0.1",
+    "alert_file": "KUBERNETES_CLIENT_CVE_2020_8570.json",
+    "github_url": "https://github.com/kubernetes-client/java",
+    "repo": "kubernetes-client/java",
+    "github_tag": "client-java-parent-9.0.1",
+    "advisory_id": "GHSA-cghx-9gcr-r42x",
+    "buggy_commit_id": "796c74f4244cacd90d99393640ccaad0c72f8893",
+    "fix_commit_ids": [
+      "858316ae8bc1145005a0310e1f65f95d2389a589"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "858316ae8bc1145005a0310e1f65f95d2389a589",
+        "file": "util/src/main/java/io/kubernetes/client/Copy.java",
+        "class": "Copy",
+        "class_start": "45.0",
+        "class_end": "385.0",
+        "method": "copyDirectoryFromPod",
+        "method_start": "142.0",
+        "method_end": "196.0",
+        "signature": "void copyDirectoryFromPod(String,String,String,String,Path,boolean)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "util/src/main/java/io/kubernetes/client/Copy.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2020-8570",
+      "advisory": "https://github.com/advisories/GHSA-cghx-9gcr-r42x",
+      "repo": "https://github.com/kubernetes-client/java",
+      "buggy_commit": "https://github.com/kubernetes-client/java/commit/796c74f4244cacd90d99393640ccaad0c72f8893"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 140,
+              "message": "getName(...) : String",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 140,
+              "message": "new File(...) : File",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 142,
+              "message": "f",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 140,
+              "message": "getName(...) : String",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 140,
+              "message": "new File(...) : File",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 146,
+              "message": "f : File",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 146,
+              "message": "getParentFile(...) : File",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            },
+            {
+              "line": 147,
+              "message": "parent",
+              "uri": "util/src/main/java/io/kubernetes/client/Copy.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-a4dceb431829",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_020835_finding-a4dceb431829/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-a4dceb431829:211b726dc24d",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/kubernetes-client__java_[redacted]_client-java-parent-9.0.1/18/Dockerfile",
+        "-t",
+        "simpleautosec-finding-a4dceb431829:211b726dc24d",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/kubernetes-client__java_[redacted]_client-java-parent-9.0.1/18"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 440703,
+        "duration_api_ms": 116408,
+        "num_turns": 21,
+        "cost_usd": 0.6922434000000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 40,
+          "output": 9793,
+          "cache_read": 856848,
+          "cache_creation": 48029
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "util/src/main/java/io/kubernetes/client/Copy.java",
+          "util/src/test/java/io/kubernetes/client/CopyTest.java"
+        ],
+        "patch_notes": "Introduced `Copy.resolveArchiveEntry(File destinationDir, String entryName)` (package-private static, in util/src/main/java/io/kubernetes/client/Copy.java) which builds the candidate File the same way as before, then compares canonical paths of the destination directory and the candidate file: the candidate must equal the destination directory or be nested under it (via `startsWith(destDirCanonicalPath + File.separator)`), otherwise it throws IOException(\"Entry with illegal path (path traversal) in tar archive: \" + entryName). copyDirectoryFromPod's extraction loop now calls this helper instead of constructing `File f` inline, so both the directory-creation branch and the file-write branch (including the `f.getParentFile()`/`mkdirs()` call) operate only on validated, contained paths. Added two JUnit tests in CopyTest.java: one asserting IOException for `../evil.txt`, `../../etc/evil.txt`, and `nested/../../evil.txt` entry names, and one asserting a normal nested entry (`subdir/file.txt`) still resolves correctly inside the destination directory.",
+        "regression_commands": [
+          "mvn -B -pl util -am test -Dtest=CopyTest",
+          "mvn -B -pl util -am test"
+        ],
+        "risk_notes": "Low risk: the change only tightens validation on tar entry names read from an untrusted source (the pod's tar output) before they are used to construct filesystem paths; well-formed entries that stay within the destination directory continue to work exactly as before (confirmed by the added positive test and by the full existing util module test suite — 147/147 tests pass, including the pre-existing testCopyFileToPod/testUrl Copy tests). The only behavioral change for malicious/anomalous entries is that extraction now fails fast with an IOException instead of silently writing outside the destination directory. No public API signatures changed (copyDirectoryFromPod's contract is unchanged); the new helper is package-private and additive.",
+        "status": "patched",
+        "summary": "Fixed a tar-extraction path traversal (CWE-22, akin to CVE-2021-25738) in Copy.copyDirectoryFromPod. Tar entry names read from `tar cz` output piped from the target pod were used directly to build the extraction target File via `new File(destination, entry.getName())`, without verifying the resolved path stayed inside the destination directory. A malicious/compromised pod could supply entries like `../../evil.txt` to write files outside the intended destination when a caller extracted a pod directory to a local path. The fix extracts the target-file resolution into a new `Copy.resolveArchiveEntry(File destinationDir, String entryName)` helper that canonicalizes both the destination directory and the resolved entry path and rejects (throwing IOException) any entry whose canonical path is not equal to or nested under the destination directory's canonical path. This single root-cause fix covers both trace sinks in the alert (the `new File(...)` construction and the subsequent `getParentFile()`/`mkdirs()` parent-directory creation), since both derive from the now-validated `f`. It also blocks same-class bypass variants such as multi-level `../../` sequences and mixed `subdir/../../` traversal, while legitimate absolute-looking entry names (e.g. `/etc/evil.txt`) remain safely contained because Java's File resolution already treats them as relative to the parent on this platform — verified in the added test."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.6922,
+    "num_turns": 21,
+    "agent_duration_ms": 440703
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

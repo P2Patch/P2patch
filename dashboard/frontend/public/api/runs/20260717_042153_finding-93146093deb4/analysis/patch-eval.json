@@ -1,0 +1,123 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:52.225130+00:00",
+    "finished_at": "2026-07-17T08:45:01.460755+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a technically sound, root-cause fix at the traced sink: it replaces the boundary-less canonical prefix comparison with a `checkContainment` helper that canonicalizes both paths (resolving symlinks) and requires an explicit `File.separator` boundary — the CWE-022 defense-of-record, and the same mechanism and location as the official fix. It is actually stronger than official within FileUtil.java, additionally guarding the public `copy()` sink (a genuine second entry point on the taint trace, lines 145/155/171) that the developer left unguarded. Its one material gap is that RunMojo.java:439 retains the byte-identical vulnerable pattern the developer fixed in the same commit. The reported regression failure is NOT attributable to the patch: `mvn -pl obr -am test -Dtest=FileUtilTest` aborts in the untouched `org.apache.karaf.jaas.boot` module with \"No tests were executed!\" (the -Dtest filter applies across the -am reactor), leaving the obr module SKIPPED — a harness misconfiguration that would fail identically on unpatched code, though it does mean FileUtilTest was never actually verified to pass.",
+    "root_cause": "The containment check at the extraction sink compared canonical paths with a bare `String#startsWith` that has no path-separator boundary, so an entry resolving into a sibling directory whose name merely extends the root's (root `/tmp/x/extract` vs `/tmp/x/extractEVIL`) passed validation and escaped the extraction root.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "POV flips from reproducing to rejected, and the sink is closed for the whole bypass class (sibling-prefix, ../, absolute), not just the observed payload.",
+        "evidence": "pov_before_patch.log exit_code=0 'VULNERABLE: ...escaped the extraction root'; pov_after_patch.log exit_code=1 'FileUtil.unjar(...) rejected the archive: IOException'. FileUtil.checkContainment requires canonicalTarget.startsWith(canonicalRoot + File.separator), which no sibling-prefix or ../ variant can satisfy; the pre-existing startsWith(\"/\") guard covers absolute entries.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the sink/trust boundary — the containment predicate itself — rather than sanitizing entry names or guarding a caller.",
+        "evidence": "FileUtil.java:113 `checkContainment(dir, target)` replaces the boundary-less `target.getCanonicalPath().startsWith(dir.getCanonicalPath())`; helper at FileUtil.java:182-200 fixes the missing separator boundary that is the actual defect. Also guards the real write sink: `File targetFile = new File(targetDir, destName); checkContainment(dir, targetFile);` before `new FileOutputStream(targetFile)`.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "FileUtil is covered more completely than official (unjar + the public copy() entry point), but an identically-flawed sibling sink from the same official commit survives.",
+        "evidence": "Repo-wide grep for `getCanonicalPath().startsWith` leaves exactly one production hit: tooling/karaf-maven-plugin/.../RunMojo.java:439 `if (!file.getCanonicalPath().startsWith(targetDir.getCanonicalPath()))` — unpatched, and explicitly fixed in official commit 36a2bc430c. Ours covers all three FileUtil sinks (unjar target, copy targetDir, copy targetFile).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same defensive strategy and same primary location as official; a superset at FileUtil, but omits the RunMojo half of the reference fix.",
+        "evidence": "Official appends File.separator to canonicalizedDir before startsWith in FileUtil.unjar; ours enforces the identical separator boundary via checkContainment at the same call site (FileUtil.java:113), plus extra hardening in copy(). Official's second file (RunMojo.java) has no counterpart in our diff (covers_all_official=false).",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate extraction is preserved — the equals branch is load-bearing — but FileUtilTest never actually executed, and one pathological root-dir case diverges from official.",
+        "evidence": "In copy(), destDir==\"\" for top-level entries makes `new File(dir, \"\")` canonically equal dir, so the `canonicalTarget.equals(canonicalRoot)` branch (FileUtil.java:195) is required; a strict startsWith(root+separator) alone would reject every normal extraction. Unverified: regression_1.log shows obr module SKIPPED. Divergence: if dir is the filesystem root, canonicalRoot+File.separator == \"//\" so \"/foo\" is rejected, whereas official's endsWith(File.separator) guard allows it (fail-closed).",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Safe primitives used correctly; no new weakness, and the reordering is sound and marginally safer.",
+        "evidence": "checkContainment uses getCanonicalPath() (resolves symlinks) — no regex/ReDoS, no blocklist, no crash path. getCanonicalPath() works on non-existent paths, so resolving targetFile before mkdirs (FileUtil.java:154-160) is valid and prevents mkdirs from materializing out-of-root dirs pre-validation. Residual check→open TOCTOU is inherent to the official fix, not introduced here.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight and localized — one private helper plus three call sites in a single file — though modestly larger than official's 4-line change.",
+        "evidence": "Production diff touches only FileUtil.java: helper at :182-200 and call sites at :113, :152, :158, plus replacing `new FileOutputStream(new File(targetDir, destName))` with the pre-validated targetFile. Extra copy() hardening and the added siblingPrefixExtractTest are on-topic, not unrelated sprawl.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path (symlinks resolved), then verify containment under the base dir with an explicit separator boundary.",
+        "evidence": "FileUtil.checkContainment: `String canonicalRoot = root.getCanonicalPath(); String canonicalTarget = target.getCanonicalPath(); if (!canonicalTarget.equals(canonicalRoot) && !canonicalTarget.startsWith(canonicalRoot + File.separator)) throw new IOException(...)`. No '..' blocklisting or string filtering anywhere in the diff.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Unfixed sibling sink: tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java:439 retains the byte-identical vulnerable pattern `if (!file.getCanonicalPath().startsWith(targetDir.getCanonicalPath()))` in extract(). This is the same sibling-prefix bypass and was fixed by the developer in the same commit (36a2bc430c) as part of CVE-2022-22932. Confirmed by repo-wide grep as the only surviving production instance. Lower attack surface (build-time maven plugin, developer-supplied archive) than the OBR path, but it is in official scope and remains exploitable. Fix: apply the same checkContainment/separator-boundary logic there."
+      },
+      {
+        "severity": "medium",
+        "description": "Patch tests were never actually executed, so functional correctness is unverified by the harness. regression_1.log ran `mvn -B -pl obr -am test -Dtest=FileUtilTest`, which aborts in org.apache.karaf.jaas.boot with 'No tests were executed!' because the -Dtest filter applies to every module pulled in by -am; the reactor lists 'Apache Karaf :: OBR :: Core ... SKIPPED'. This is a harness misconfiguration in a module our diff does not touch and would fail identically on unpatched code — it is NOT a patch-induced regression — but it means neither the pre-existing FileUtilTest cases nor the newly added siblingPrefixExtractTest were confirmed green, and the modified test file was never compiled. Fix the harness with -DfailIfNoTests=false (or -Dsurefire.failIfNoSpecifiedTests=false) and re-run to obtain real evidence."
+      },
+      {
+        "severity": "low",
+        "description": "Divergence from official in a pathological edge case: when the extraction root is the filesystem root, getCanonicalPath() returns a value already ending in a separator (\"/\" on Unix, \"C:\\\\\" on Windows), so `canonicalRoot + File.separator` becomes \"//\" and every legitimate child is rejected. The official fix avoids this via `if (!canonicalizedDir.endsWith(File.separator)) canonicalizedDir += File.separator;`. Impact is negligible (extracting an OBR bundle to the filesystem root is not legitimate usage) and the behavior fails closed, but adding the same endsWith guard would make checkContainment exactly match official semantics."
+      }
+    ],
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "FileUtil.java"
+      ],
+      "ours_only": [],
+      "official_only": [
+        "RunMojo.java"
+      ],
+      "jaccard": 0.5,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "rejected",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": false
+    },
+    "reference": {
+      "production_files": [
+        "obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java",
+        "tooling/karaf-maven-plugin/src/main/java/org/apache/karaf/tooling/RunMojo.java"
+      ],
+      "commits": [
+        "36a2bc430cc773db1cfd0b32e307d9da2d1697f7"
+      ]
+    }
+  }
+}

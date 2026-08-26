@@ -1,0 +1,20 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_030138_finding-9cd89dec9b04/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-9cd89dec9b04:ec49b32dada6 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+ZipUtil.unpack(...) rejected the malicious entry: org.zeroturnaround.zip.ZipException: Extracting entry '../evil-escaped.txt' would create a file outside of the target directory '/tmp/zipslip-pov4635151473997364912/safe-extract-target' (Zip Slip)
+outputDir            = /tmp/zipslip-pov4635151473997364912/safe-extract-target
+malicious entry name = ../evil-escaped.txt
+resolved escape path = /tmp/zipslip-pov4635151473997364912/evil-escaped.txt
+unpack() threw        = true
+escape file exists    = false
+escape file outside outputDir = false
+marker content matches        = false
+RESULT: SAFE - ZipUtil.unpack() did not write outside the requested output directory.
+
+--- stderr ---
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+

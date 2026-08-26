@@ -1,0 +1,490 @@
+{
+  "run_id": "20260715_050613_finding-8b1319a81d0f",
+  "finding_id": "finding-8b1319a81d0f",
+  "timestamp": "2026-07-15T05:06:13",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v1_full-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260715_050613_finding-8b1319a81d0f",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-8b1319a81d0f",
+    "cve_id": "CVE-2023-37460",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "codehaus-plexus__plexus-archiver_CVE-2023-37460_4.7.1",
+    "alert_file": "CODEHAUS_PLEXUS_PLEXUS_ARCHIVER_CVE_2023_37460.json",
+    "github_url": "https://github.com/codehaus-plexus/plexus-archiver",
+    "repo": "codehaus-plexus/plexus-archiver",
+    "github_tag": "4.7.1",
+    "advisory_id": "GHSA-wh3p-fphp-9h2m",
+    "buggy_commit_id": "e7cbadba1b5c78192677da95b355dd790f3a4535",
+    "fix_commit_ids": [
+      "54759839fbdf85caf8442076f001d5fd64e0dcb2"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+        "class": "AbstractUnArchiver",
+        "class_start": "48.0",
+        "class_end": "391.0",
+        "method": "extractFile",
+        "method_start": "274.0",
+        "method_end": "331.0",
+        "signature": "void extractFile(File,File,InputStream,String,Date,boolean,Integer,String,FileMapper)",
+        "is_test": false
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkTar",
+        "method_start": "50.0",
+        "method_end": "64.0",
+        "signature": "void testSymlinkTar()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkDirArchiver",
+        "method_start": "88.0",
+        "method_end": "104.0",
+        "signature": "void testSymlinkDirArchiver()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkZip",
+        "method_start": "68.0",
+        "method_end": "83.0",
+        "signature": "void testSymlinkZip()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java",
+        "class": "ZipArchiverTest",
+        "class_start": "95.0",
+        "class_end": "825.0",
+        "method": "toLocalTimeZone",
+        "method_start": "825.0",
+        "method_end": "837.0",
+        "signature": "long toLocalTimeZone(long)",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2023-37460",
+      "advisory": "https://github.com/advisories/GHSA-wh3p-fphp-9h2m",
+      "repo": "https://github.com/codehaus-plexus/plexus-archiver",
+      "buggy_commit": "https://github.com/codehaus-plexus/plexus-archiver/commit/e7cbadba1b5c78192677da95b355dd790f3a4535"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 118,
+              "message": "getLinkName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java"
+            },
+            {
+              "line": 120,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java"
+            },
+            {
+              "line": 330,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "new File(...)",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ],
+          [
+            {
+              "line": 173,
+              "message": "getUnixSymlink(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 209,
+              "message": "resolveSymlink(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 330,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "new File(...)",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 2"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-8b1319a81d0f",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B test -Dtest=SymlinkTest",
+        "mvn -B test"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_4.7.1/50/Dockerfile",
+        "-t",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_4.7.1/50"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 2,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "bash",
+        "-lc",
+        "mvn -B test -Dtest=SymlinkTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_050613_finding-8b1319a81d0f/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "bash",
+        "-lc",
+        "mvn -B test"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 407807,
+        "duration_api_ms": 319116,
+        "num_turns": 28,
+        "cost_usd": 1.4480655,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 43,
+          "output": 23357,
+          "cache_read": 949621,
+          "cache_creation": 38725
+        }
+      },
+      "parsed_output": {
+        "evidence": "Container run output (unpatched): \"Created symlink: .../dest/evil -> points to: .../escape-zone\", \"escapes destination? true\", \"Arbitrary file written OUTSIDE destination: .../escape-zone/pwned.txt\", EXIT=0. Container run with a representative containment check added to AbstractUnArchiver.extractFile: \"Extraction rejected the escaping symlink: ArchiverException: Entry symlink destination is outside of the target directory (evil)\", EXIT=2. Product code was reverted afterward (git status clean under src/).",
+        "expected_vulnerable_behavior": "On unpatched code the extraction creates dest/evil as a symlink pointing to the sibling escape-zone directory (outside the destination), and a subsequent write through that archive-created symlink lands at target/pov-work/escape-zone/pwned.txt, outside the destination directory. The POV prints \"VULNERABLE: archive-created symlink escaped the destination directory.\" and exits 0. A correct patch rejects the escaping symlink destination (ArchiverException) or contains it, so the POV exits non-zero (2).",
+        "notes": "POV is standalone Java compiled against the project's own classes plus its Maven dependency classpath (no plexus container lookup needed); run_pov.sh compiles main sources, resolves the dependency classpath, compiles and runs PovSymlinkEscape. Product code and normal tests are untouched; all POV artifacts live under .security-pipeline/pov/. Note: getCanonicalFile() does not follow the symlink across the Docker bind-mount, so the POV reads the raw symlink target via Files.readSymbolicLink for reliable escape detection. The final PASS condition (arbitrary file created outside the destination) is robust regardless of whether a patch throws during extraction or merely refuses to create the escaping symlink.",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/PovSymlinkEscape.java",
+        "regression_hint": "The POV exercises the tar symlink path (trace #1: TarUnArchiver.getLinkName -> AbstractUnArchiver.extractFile symlinkDestination -> new File(symlinkDestination) -> SymlinkUtils.createSymbolicLink). A correct fix must validate the symlink destination stays within the extraction directory for BOTH the tar path (TarUnArchiver.getLinkName) and the zip path (AbstractZipUnArchiver.resolveSymlink/getUnixSymlink), since both feed the same extractFile sink. Patching only one flow leaves the other exploitable.",
+        "status": "pov_created",
+        "summary": "Created a real proof-of-vulnerability for CWE-022 (CVE-2023-37460 aligned) in plexus-archiver. TarUnArchiver/AbstractUnArchiver.extractFile validates only the *location* of an extracted entry against the destination directory, not the *target* of a symbolic-link entry. A crafted tar with a symlink entry whose link name is an absolute path outside the destination causes AbstractUnArchiver.java:371 (SymlinkUtils.createSymbolicLink(targetFileName, new File(symlinkDestination))) to create a symlink that escapes the destination. The POV builds such a tar with commons-compress, extracts it with the project's TarUnArchiver, confirms the created symlink points outside the destination, and then writes a file through it to demonstrate arbitrary file write outside the extraction directory. Verified: exit 0 on unpatched code; after adding a symlink-destination containment check the extraction throws ArchiverException and the POV exits 2."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 504731,
+        "duration_api_ms": 409555,
+        "num_turns": 29,
+        "cost_usd": 2.0535445,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 46,
+          "output": 29196,
+          "cache_read": 1368843,
+          "cache_creation": 60854
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+          "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java"
+        ],
+        "patch_notes": "Root cause: extractFile validated only the *location* of an extracted entry (targetFileName) against the destination directory, never the *target* of a symlink entry. A crafted tar/zip with a symlink whose link name is an absolute (or ../-traversing) path outside the destination caused SymlinkUtils.createSymbolicLink(targetFileName, new File(symlinkDestination)) to create a symlink escaping the destination — an arbitrary read/write primitive.\n\nFix (AbstractUnArchiver.extractFile): after the existing target-location containment check, when symlinkDestination is non-empty, resolve the link target — absolute targets as-is, relative targets against the symlink's parent directory — canonicalize it, and throw ArchiverException(\"Entry symlink destination is outside of the target directory (...)\") unless it startsWith the canonical destination directory. Because both TarUnArchiver and AbstractZipUnArchiver feed symlinkDestination into this single sink, one check covers both trace paths from the alert.\n\nTests: the shared fixture src/test/resources/symlinks/src intentionally contains symlinks pointing outside the archive root (../onTheOutside.txt, ../dirOnTheOutside/), so the pre-existing SymlinkTest.testSymlinkTar/testSymlinkZip (which extracted that fixture) now correctly reject it — updated them to assertThrows(ArchiverException) with a message check. Added testSymlinkWithinDestinationIsExtracted to prove an in-bounds symlink (symR -> fileR.txt) still extracts successfully, preserving positive coverage.\n\nVerification: POV (bash .security-pipeline/pov/run_pov.sh) exit 0 → 2 after patch (extraction rejects the escaping symlink). Full suite: 322 run, 0 failures, 0 errors, 10 skipped (skip count unchanged from baseline). SymlinkTest: 7 run, 0 failures.",
+        "regression_commands": [
+          "mvn -B test -Dtest=SymlinkTest",
+          "mvn -B test"
+        ],
+        "risk_notes": "Behavior change: extracting archives that contain symlinks whose destinations point outside the extraction directory now throws ArchiverException instead of silently creating an escaping symlink. This is stricter than current upstream plexus-archiver (which permits such symlinks and only guards subsequent same-extraction writes via canonical-path checks). Consumers who legitimately rely on archives producing symlinks that escape the destination (uncommon; also the exploit vector) will now get an exception. Relative symlinks resolving within the destination, and symlinks to files inside it, are unaffected. Containment uses getCanonicalFile().toPath().startsWith(canonicalDir); the symlink target need not exist yet (canonicalization normalizes the non-existent suffix), consistent with the existing entry-location check.",
+        "status": "patched",
+        "summary": "Fixed CWE-022 symlink-escape in plexus-archiver: AbstractUnArchiver.extractFile now validates that a symbolic-link entry's destination resolves within the extraction directory, rejecting archive-created symlinks that escape it. This closes both the tar (TarUnArchiver.getLinkName) and zip (AbstractZipUnArchiver.resolveSymlink) flows, which share the same extractFile sink."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 81809,
+        "duration_api_ms": 55227,
+        "num_turns": 8,
+        "cost_usd": 0.6772144999999999,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 9,
+          "output": 3730,
+          "cache_read": 236397,
+          "cache_creation": 44246
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "bash .security-pipeline/pov/run_pov.sh",
+          "mvn -B test -Dtest=SymlinkTest -q"
+        ],
+        "diff_review": "Non-POV diff touches two files. AbstractUnArchiver.java: after the pre-existing entry-location containment check, when symlinkDestination is non-empty it builds the link target (absolute as-is, otherwise resolved against targetFileName.getParentFile()), canonicalizes it, and throws ArchiverException(\"Entry symlink destination is outside of the target directory (...)\") unless it startsWith canonicalDirPath. This executes before the SymlinkUtils.createSymbolicLink sink (line 390), so the escaping symlink is never created. A single sink covers both alert traces (TarUnArchiver.getLinkName and AbstractZipUnArchiver.resolveSymlink/getUnixSymlink). SymlinkTest.java: testSymlinkTar/testSymlinkZip changed to assertThrows(ArchiverException) with a message-contains check because the shared fixture intentionally has out-of-bounds symlinks (../onTheOutside.txt, ../dirOnTheOutside/), and a new testSymlinkWithinDestinationIsExtracted proves in-bounds symlinks still extract. The test change reflects the new stricter, correct behavior — the real fix is the product code, not the test edit. POV artifacts live under .security-pipeline/ and are untouched by the product patch. Fix is minimal, targeted, and does not remove vulnerable functionality without justification.",
+        "issues": [],
+        "pov_result": "Reran `bash .security-pipeline/pov/run_pov.sh` via the Docker wrapper on the patched worktree: extraction throws ArchiverException \"Entry symlink destination is outside of the target directory (evil)\", printing \"NOT VULNERABLE (patched behaviour).\" and exiting 2. Orchestrator's pre-patch run of the same POV exited 0 (escaping symlink created, arbitrary write outside destination), confirming the POV genuinely reproduced the vulnerability before the fix.",
+        "regression_result": "Reran `mvn -B test -Dtest=SymlinkTest` via the Docker wrapper: BUILD SUCCESS, exit 0 (7 tests, 0 failures). Orchestrator's full `mvn -B test` shows 322 run, 0 failures, 0 errors, 10 skipped — skip count unchanged from baseline, no regressions.",
+        "summary": "The patch adds a symlink-destination containment check in AbstractUnArchiver.extractFile that rejects symbolic-link entries whose (absolute or relative-resolved, canonicalized) target escapes the extraction directory, closing the CWE-022 escape for both the tar and zip flows that share this sink. Independently reran the POV (now exits 2, escaping symlink rejected) and SymlinkTest (passes); full suite is 322/0 failures. Fix is minimal, appropriate, and the POV is untouched.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.1788,
+    "num_turns": 65,
+    "agent_duration_ms": 994347
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log"
+    ]
+  }
+}

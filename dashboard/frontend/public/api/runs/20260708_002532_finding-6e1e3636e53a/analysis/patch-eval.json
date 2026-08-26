@@ -1,0 +1,300 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:10:48.443539+00:00",
+    "finished_at": "2026-07-11T23:12:03.722790+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "Neutralizes the one observed PropertyClass.fromString trigger by not initializing the class, but arbitrary-class instantiation sinks remain reachable.",
+        "evidence": "PropertyClass.java fromString now calls Class.forName(v, false, loader); untouched PropertyFactory.createProperty still does Class.forName(pType).getConstructor(String,String).newInstance(...)",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Guards only the reported entry point via a non-initializing load; does not enforce a type/trust boundary at the instantiation sinks where RCE actually occurs.",
+        "evidence": "Only PropertyClass.java changed; official adds isAssignableFrom(Property/FlippingStrategy) at PropertyFactory/XmlParser/YamlParser/PropertiesParser/MappingUtil/ConsoleOperations",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 1,
+        "rationale": "Fixes 1 sink of ~10; parser (XML/YAML/properties/JSON) and web-console instantiation paths are entirely unaddressed.",
+        "evidence": "official_only lists ConsoleOperations, MappingUtil, PropertiesParser, PropertyFactory, XmlParser, YamlParser; ours_only=[PropertyClass.java]",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Different mechanism (non-initializing forName) and different location than the official assignability-check strategy; much narrower.",
+        "evidence": "jaccard 0.0, covers_all_official=false; official uses `if(!Property.class.isAssignableFrom(typeClass)) throw`",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Returns the correct Class token and passes regressions plus an added canary test; minor risk from switching to context classloader resolution.",
+        "evidence": "Class.forName(v,false,loader) returns token; regressions_ran=1 passed; tesPropertyClassFromStringDoesNotInitialize asserts correct name",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 4,
+        "rationale": "initialize=false is a safe primitive; slight edge risk that context-classloader resolution differs from original single-arg behavior in some containers.",
+        "evidence": "loader = Thread.currentThread().getContextClassLoader() fallback to PropertyClass.class.getClassLoader()",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Tight, localized production diff plus a focused test, but placed at an insufficient location to be a full fix.",
+        "evidence": "Single production hunk in PropertyClass.fromString",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Not the CWE-094 defense-of-record; no allowlist/type-restriction on dynamic loading, and it leaves newInstance-based instantiation of attacker classes open elsewhere.",
+        "evidence": "No isAssignableFrom allowlist; PropertyFactory.createProperty newInstance path unchanged",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Arbitrary-class instantiation RCE remains open: PropertyFactory.createProperty and the XML/YAML/properties parsers and web ConsoleOperations still do Class.forName(userType).newInstance()/getConstructor(...).newInstance(...) with no isAssignableFrom type check, so an attacker controlling the property/flipstrategy type can still load and instantiate arbitrary classes."
+      },
+      {
+        "severity": "medium",
+        "description": "Fix is symptom-scoped to the single taint trace ending at PropertyClass.fromString; the official fix restricts loaded classes to Property/FlippingStrategy subtypes at every instantiation sink, which our patch does not replicate."
+      },
+      {
+        "severity": "low",
+        "description": "Switching to the thread context classloader (with fallback) changes class-resolution semantics versus the original single-arg Class.forName and could resolve differently in some container/classloader setups."
+      }
+    ],
+    "root_cause": "Untrusted, externally-supplied class names are passed to Class.forName and then instantiated (newInstance / getConstructor().newInstance()) with no restriction that the resolved type belongs to an expected supertype, allowing attacker-controlled code execution.",
+    "summary": "Our patch only hardens the single PropertyClass.fromString sink named in the taint trace, switching to a non-initializing Class.forName so the observed static-initializer payload no longer fires (POV stops, regressions pass). But it does not close the vulnerability class: the official fix adds isAssignableFrom type guards at every instantiation sink (PropertyFactory, XmlParser, YamlParser, PropertiesParser, MappingUtil, ConsoleOperations), all of which still call newInstance on attacker-controlled class names in our tree. It is a weaker subset of the reference fix and leaves real code-injection paths reachable.",
+    "overall": {
+      "mean": 2.62,
+      "score": 52,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 52,
+        "score_mean": 52.3,
+        "score_min": 50,
+        "score_max": 55,
+        "score_stdev": 2.05,
+        "mean_median": 2.62,
+        "band_mode": "incomplete",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.12
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 1,
+          "min": 1,
+          "max": 2,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            4,
+            4,
+            3
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 52,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 55,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 50,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "PropertyClass.java"
+      ],
+      "official_only": [
+        "ConsoleOperations.java",
+        "MappingUtil.java",
+        "PropertiesParser.java",
+        "PropertyFactory.java",
+        "XmlParser.java",
+        "YamlParser.java",
+        "test-ff4j-features.json",
+        "test-ff4j-features.properties",
+        "test-ff4j-features.xml",
+        "test-ff4j-features.yml",
+        "test-ff4j-strategy.json",
+        "test-ff4j-strategy.properties",
+        "test-ff4j-strategy.xml",
+        "test-ff4j-strategy.yml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 1,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+        "ff4j-config-yaml/src/main/java/org/ff4j/parser/yaml/YamlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+        "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+        "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-features.yml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.json",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.properties",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.xml",
+        "ff4j-test/src/main/resources/unsafe/test-ff4j-strategy.yml",
+        "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java"
+      ],
+      "commits": [
+        "62d03140f3bfbd380d0f4b4e5a94dcb8baa9d9c6"
+      ]
+    }
+  }
+}

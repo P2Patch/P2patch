@@ -1,0 +1,11 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_041025_finding-baa9ff67bca0/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-baa9ff67bca0:5c546ef5848d bash -lc rm -rf .security-pipeline/pov/classes && mkdir -p .security-pipeline/pov/classes && javac -d .security-pipeline/pov/classes $(find src/main/java -name '*.java') && javac -cp .security-pipeline/pov/classes -d .security-pipeline/pov/classes .security-pipeline/pov/PathTraversalPOV.java && java -cp .security-pipeline/pov/classes security.pipeline.pov.PathTraversalPOV
+exit_code=0
+timed_out=false
+
+--- stdout ---
+normalize("/../secret.txt") rejected = true
+normalize("//../secret.txt") rejected = false -> normalize() returned [//../secret.txt]
+VULNERABLE: FilenameUtils.normalize("//../secret.txt") did not return null even though the functionally identical "/../secret.txt" IS rejected. A caller that trusts normalize()==null as its path-traversal gate is bypassed by prefixing the payload with an extra leading separator.
+
+--- stderr ---
+

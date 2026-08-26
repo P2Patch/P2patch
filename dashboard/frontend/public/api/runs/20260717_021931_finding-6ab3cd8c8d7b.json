@@ -1,0 +1,738 @@
+{
+  "run_id": "20260717_021931_finding-6ab3cd8c8d7b",
+  "finding_id": "finding-6ab3cd8c8d7b",
+  "timestamp": "2026-07-17T02:19:31",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_021931_finding-6ab3cd8c8d7b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-6ab3cd8c8d7b",
+    "cve_id": "CVE-2022-34662",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "apache__dolphinscheduler_CVE-2022-34662_2.0.9",
+    "alert_file": "APACHE_DOLPHINSCHEDULER_CVE_2022_34662.json",
+    "github_url": "https://github.com/apache/dolphinscheduler",
+    "repo": "apache/dolphinscheduler",
+    "github_tag": "2.0.9",
+    "advisory_id": "GHSA-fp35-xrrr-3gph",
+    "buggy_commit_id": "23302054559410093573fb169336bafeb02db97f",
+    "fix_commit_ids": [
+      "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1454.0",
+        "method": "onlineCreateResource",
+        "method_start": "971.0",
+        "method_end": "1018.0",
+        "signature": "Result onlineCreateResource(User,ResourceType,String,String,String,String,int,String)",
+        "is_test": false
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1454.0",
+        "method": "createDirectory",
+        "method_start": "122.0",
+        "method_end": "172.0",
+        "signature": "Result createDirectory(User,String,String,ResourceType,int,String)",
+        "is_test": false
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1454.0",
+        "method": "verifyFile",
+        "method_start": "517.0",
+        "method_end": "552.0",
+        "signature": "Result verifyFile(String,ResourceType,MultipartFile)",
+        "is_test": false
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java",
+        "class": "FileUtilsTest",
+        "class_start": "36.0",
+        "class_end": "81.0",
+        "method": "testWriteContent2File",
+        "method_start": "81.0",
+        "method_end": "88.0",
+        "signature": "void testWriteContent2File()",
+        "is_test": true
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1476.0",
+        "method": "createDirectory",
+        "method_start": "122.0",
+        "method_end": "173.0",
+        "signature": "Result<Object> createDirectory(User loginUser, String name, String description, ResourceType type, int pid, String currentDir)",
+        "is_test": false
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1476.0",
+        "method": "verifyFile",
+        "method_start": "517.0",
+        "method_end": "566.0",
+        "signature": "Result<Object> verifyFile(String name, ResourceType type, MultipartFile file)",
+        "is_test": false
+      },
+      {
+        "commit": "63f835715f8ca8bff79c0e7177ebfa5917ebb3bd",
+        "file": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+        "class": "ResourcesServiceImpl",
+        "class_start": "84.0",
+        "class_end": "1476.0",
+        "method": "onlineCreateResource",
+        "method_start": "984.0",
+        "method_end": "1036.0",
+        "signature": "Result<Object> onlineCreateResource(User loginUser, ResourceType type, String fileName, String fileSuffix, String desc, String content, int pid, String currentDir)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-34662",
+      "advisory": "https://github.com/advisories/GHSA-fp35-xrrr-3gph",
+      "repo": "https://github.com/apache/dolphinscheduler",
+      "buggy_commit": "https://github.com/apache/dolphinscheduler/commit/23302054559410093573fb169336bafeb02db97f"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 131,
+              "message": "currentDir : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 140,
+              "message": "currentDir : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 140,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 176,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 600,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 602,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 545,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 602,
+              "message": "getHdfsFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 609,
+              "message": "directoryName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 279,
+              "message": "hdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 280,
+              "message": "hdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 280,
+              "message": "new Path(...)",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 307,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 335,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 335,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 489,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 545,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 489,
+              "message": "getHdfsFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 493,
+              "message": "destHdfsFileName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 293,
+              "message": "dstPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 294,
+              "message": "dstPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 294,
+              "message": "new Path(...)",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 950,
+              "message": "fileSuffix : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 961,
+              "message": "fileSuffix : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 961,
+              "message": "trim(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 973,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 973,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 998,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1099,
+              "message": "resourceName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1114,
+              "message": "resourceName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 559,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 563,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 563,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 1114,
+              "message": "getHdfsResourceFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1127,
+              "message": "hdfsFileName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 308,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "new Path(...) : Path",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 312,
+              "message": "dstPath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 950,
+              "message": "currentDir : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 973,
+              "message": "currentDir : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 973,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 998,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1099,
+              "message": "resourceName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1114,
+              "message": "resourceName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 559,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 563,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 563,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 1114,
+              "message": "getHdfsResourceFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 1127,
+              "message": "hdfsFileName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 308,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "new Path(...) : Path",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 312,
+              "message": "dstPath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 307,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 335,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 335,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 470,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 628,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 631,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 643,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 545,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 643,
+              "message": "getHdfsFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 651,
+              "message": "hdfsFilename : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 308,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "new Path(...) : Path",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 312,
+              "message": "dstPath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ],
+          [
+            {
+              "line": 195,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 217,
+              "message": "name : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 217,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 245,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 628,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 631,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 643,
+              "message": "fullName : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 545,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "fileName : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 549,
+              "message": "format(...) : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 643,
+              "message": "getHdfsFileName(...) : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 651,
+              "message": "hdfsFilename : String",
+              "uri": "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java"
+            },
+            {
+              "line": 308,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "dstHdfsPath : String",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 310,
+              "message": "new Path(...) : Path",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            },
+            {
+              "line": 312,
+              "message": "dstPath",
+              "uri": "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/HadoopUtils.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-6ab3cd8c8d7b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_021931_finding-6ab3cd8c8d7b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-6ab3cd8c8d7b:a57f2699a90e",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.9/40/Dockerfile",
+        "-t",
+        "simpleautosec-finding-6ab3cd8c8d7b:a57f2699a90e",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/apache__dolphinscheduler_[redacted]_2.0.9/40"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 1089203,
+        "duration_api_ms": 600372,
+        "num_turns": 80,
+        "cost_usd": 4.255588200000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 158,
+          "output": 49106,
+          "cache_read": 8505934,
+          "cache_creation": 161124
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "dolphinscheduler-common/src/main/java/org/apache/dolphinscheduler/common/utils/FileUtils.java",
+          "dolphinscheduler-api/src/main/java/org/apache/dolphinscheduler/api/service/impl/ResourcesServiceImpl.java",
+          "dolphinscheduler-common/src/test/java/org/apache/dolphinscheduler/common/utils/FileUtilsTest.java",
+          "dolphinscheduler-api/src/test/java/org/apache/dolphinscheduler/api/service/ResourcesServiceTest.java"
+        ],
+        "patch_notes": "Root cause: ResourcesServiceImpl builds `fullName = currentDir + \"/\" + name` (createDirectory line 140, createResource line 217, onlineCreateResource line 973) and passes it to HadoopUtils, which turns it into a Hadoop `Path` (HadoopUtils.java lines ~279-312). `name`/`fileName` were checked with `FileUtils.directoryTraversal(String)` in these methods, but `currentDir` never was; `onlineCreateResource` additionally never checked `fileSuffix` for traversal even though it gets embedded into `name` before the fullName concatenation (e.g. fileSuffix='../../x' would bypass the fileName-only check).\n\nFix:\n1. Added `FileUtils.directoryTraversal(String[] pathSegments)` in dolphinscheduler-common's FileUtils - splits an existing check (`directoryTraversal(String)`, which flags any '/' or canonical-vs-absolute mismatch e.g. '..') across path segments, so a legitimate multi-level directory like '/aa/bb' passes while '/aa/../../etc' is rejected. This reuses the existing, already-tested traversal-detection primitive instead of introducing new logic.\n2. In ResourcesServiceImpl: createDirectory (line 136) now also checks `currentDir.split(\"/\")`; createResource now checks `currentDir.split(\"/\")` right after verifyFile and before the fullName is built/used; onlineCreateResource now checks `fileSuffix.trim()` and `currentDir.split(\"/\")` alongside the existing `fileName` check, before any of those values are folded into `fullName`/`name`.\n3. Added regression tests: FileUtilsTest.testDirectoryTraversalOnPathSegments (unit tests for the new overload, positive and negative cases) and three new assertions in ResourcesServiceTest (createResource, createDirectory, onlineCreateResource) that stub the new overload to return true for a malicious `currentDir` ('/../../etc') and assert the service returns VERIFY_PARAMETER_NAME_FAILED instead of proceeding to the HDFS write.\n\nupdateResource was not touched - it has no `currentDir` parameter; its `fullName` is derived from the already-persisted `originFullName` plus `name`, and `name` is already validated via `verifyFile` before any HDFS operation, so it was not part of the vulnerable data flow.",
+        "regression_commands": [
+          "mvn -B -pl dolphinscheduler-common -am -Djacoco.skip=true -Dtest=FileUtilsTest -DfailIfNoTests=false test",
+          "mvn -B -pl dolphinscheduler-common,dolphinscheduler-api -am -Djacoco.skip=true -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -DskipTests package"
+        ],
+        "risk_notes": "Behavioral risk is low: the new check only rejects `currentDir` values containing a literal '..' (or single-dot) path segment, which is never a legitimate resource-center directory path; ordinary nested paths like '/a/b/c' are unaffected (verified in FileUtilsTest). All 16 existing + new ResourcesServiceTest cases pass, and a full multi-module `mvn package` (skipping tests) compiles cleanly.\n\nSandbox testing caveat: this Docker image's dolphinscheduler-api test classpath includes junit-jupiter (pulled in transitively) without junit-vintage-engine, so Maven Surefire's auto-selected JUnit-Platform provider silently discovers 0 of the ~69 JUnit4/PowerMock test classes when running `mvn test` on dolphinscheduler-api as-is (confirmed this occurs identically on the unmodified baseline via `git stash`, so it's a pre-existing environment gap, not something this patch introduces). To get a real pass/fail signal for ResourcesServiceTest I temporarily added a `junit-vintage-engine` test-scope dependency to dolphinscheduler-api/pom.xml, ran the tests (16/16 passed, including the 3 new traversal-rejection assertions), and then reverted that pom.xml change since it isn't part of the security fix (confirmed via `git diff` that pom.xml is no longer modified). The regression_commands above reflect commands that work reliably in this environment (FileUtilsTest, which runs cleanly without the vintage-engine workaround, plus a full package build); running dolphinscheduler-api's JUnit4 suite in CI/a properly configured environment (or with junit-vintage-engine present) should show ResourcesServiceTest passing 16/16 as verified locally.",
+        "status": "patched",
+        "summary": "Fixed CWE-22 path traversal in the resource-center: `currentDir` (and, in the online-create path, `fileSuffix`) were concatenated into `fullName` and passed down to HadoopUtils' `new Path(...)` calls without ever being checked for traversal sequences, even though the sibling `name`/`fileName` parameter usually was. Added a directory-aware traversal check (`FileUtils.directoryTraversal(String[])`) and applied it to all three request entry points that build `fullName` from an attacker-supplied `currentDir`: createDirectory, createResource, and onlineCreateResource (which also validates fileSuffix, since it gets spliced into the resource name before the same construction). This blocks the create/update/online-create paths described in the alert (and copy/rename, since those reuse the same fullName) without touching HDFS-layer code."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 4.2556,
+    "num_turns": 80,
+    "agent_duration_ms": 1089203
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

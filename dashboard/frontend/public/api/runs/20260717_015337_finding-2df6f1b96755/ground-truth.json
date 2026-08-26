@@ -1,0 +1,83 @@
+{
+  "finding_id": "finding-2df6f1b96755",
+  "cve_id": "CVE-2018-12542",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "vert-x3__vertx-web_CVE-2018-12542_3.5.3.CR1",
+  "alert_file": "VERT_X3_VERTX_WEB_CVE_2018_12542.json",
+  "github_url": "https://github.com/vert-x3/vertx-web",
+  "repo": "vert-x3/vertx-web",
+  "github_tag": "3.5.3.CR1",
+  "advisory_id": "GHSA-h39x-m55c-v55h",
+  "buggy_commit_id": "3fe3873cc28b4d833c90f8989ff797a7b463da2c",
+  "fix_commit_ids": [
+    "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b",
+      "file": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java",
+      "class": "StaticHandlerImpl",
+      "class_start": "54.0",
+      "class_end": "725.0",
+      "method": "handle",
+      "method_start": "132.0",
+      "method_end": "152.0",
+      "signature": "void handle(RoutingContext)",
+      "is_test": false
+    },
+    {
+      "commit": "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b",
+      "file": "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java",
+      "class": "StaticHandlerImpl",
+      "class_start": "54.0",
+      "class_end": "725.0",
+      "method": "sendStatic",
+      "method_start": "157.0",
+      "method_end": "218.0",
+      "signature": "void sendStatic(RoutingContext,String)",
+      "is_test": false
+    },
+    {
+      "commit": "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b",
+      "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+      "class": "StaticHandlerTest",
+      "class_start": "49.0",
+      "class_end": "723.0",
+      "method": "testHandlerAfter",
+      "method_start": "703.0",
+      "method_end": "705.0",
+      "signature": "void testHandlerAfter()",
+      "is_test": true
+    },
+    {
+      "commit": "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b",
+      "file": "vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java",
+      "class": "StaticHandlerTest",
+      "class_start": "49.0",
+      "class_end": "723.0",
+      "method": "toDateTime",
+      "method_start": "713.0",
+      "method_end": "719.0",
+      "signature": "long toDateTime(String)",
+      "is_test": true
+    }
+  ],
+  "fix_files": [
+    "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-12542",
+    "advisory": "https://github.com/advisories/GHSA-h39x-m55c-v55h",
+    "repo": "https://github.com/vert-x3/vertx-web",
+    "buggy_commit": "https://github.com/vert-x3/vertx-web/commit/3fe3873cc28b4d833c90f8989ff797a7b463da2c"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b",
+      "url": "https://github.com/vert-x3/vertx-web/commit/57a65dce6f4c5aa5e3ce7288685e7f3447eb8f3b.diff",
+      "diff": "diff --git a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\nindex 7e456617f2..15f62d9a67 100644\n--- a/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\n+++ b/vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java\n@@ -135,14 +135,27 @@ public void handle(RoutingContext context) {\n       if (log.isTraceEnabled()) log.trace(\"Not GET or HEAD so ignoring request\");\n       context.next();\n     } else {\n-      String path = Utils.removeDots(Utils.urlDecode(context.normalisedPath(), false));\n-      // if the normalized path is null it cannot be resolved\n+      // we are trying to match a URL path to a Filesystem path, so the first step\n+      // is to url decode the normalized path so avoid misinterpretations\n+      String path = Utils.urlDecode(context.normalisedPath(), false);\n+\n       if (path == null) {\n+        // if the normalized path is null it cannot be resolved\n         log.warn(\"Invalid path: \" + context.request().path());\n         context.next();\n         return;\n       }\n \n+      if (File.separatorChar != '/') {\n+        // although forward slashes are not path separators according to the rfc3986 if\n+        // used directly to access the filesystem on Windows, they would be treated as such\n+        // Instead of relying on the usual normalized method, all forward slashes must be\n+        // replaced by backslashes in this handler.\n+        path = path.replace(File.separatorChar, '/');\n+      }\n+      // clean the .. sequences according to rfc3986\n+      path = Utils.removeDots(path);\n+\n       // only root is known for sure to be a directory. all other directories must be identified as such.\n       if (!directoryListing && \"/\".equals(path)) {\n         path = indexPage;\ndiff --git a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\nindex cbd8abcb43..6948b7159b 100644\n--- a/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\n+++ b/vertx-web/src/test/java/io/vertx/ext/web/handler/StaticHandlerTest.java\n@@ -705,6 +705,10 @@ public void testHandlerAfter() throws Exception {\n     testRequest(HttpMethod.GET, \"/not-existing-file.html\", 200, \"OK\", \"Howdy!\");\n   }\n \n+  @Test\n+  public void testEscapeRootFromWindows() throws Exception {\n+    testRequest(HttpMethod.GET, \"/somedir/..\\\\..\\\\somedir/test-template.html\", 404, \"Not Found\");\n+  }\n \n   // TODO\n   // 1.Test all the params including invalid values\n",
+      "cached": true
+    }
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:23:44.259723+00:00",
+    "finished_at": "2026-07-11T23:24:36.705126+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalizes then verifies containment at the sink; whole Zip-Slip class closed, not just the payload.",
+        "evidence": "isInDirectory() called before write in extractFile using getCanonicalFile() + parent-walk equals check",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard placed immediately after FileUtils.resolveFile at the trust boundary, identical location to official fix.",
+        "evidence": "AbstractUnArchiver.extractFile line ~309 right after resolveFile(dir, entryName)",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "All unarchivers (tar, zip) funnel through extractFile, so every tainted path in the trace hits the single guarded sink.",
+        "evidence": "Trace sinks all converge on AbstractUnArchiver line 319/322; guard sits above them",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy and location as official; mechanism differs (parent-walk vs startsWith) but is semantically equivalent or stronger.",
+        "evidence": "Both throw ArchiverException 'Entry is outside of the target directory' after canonicalization",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Regressions passed; legitimate descendants of dest match canonicalDestination via parent walk, no over-restriction.",
+        "evidence": "regressions_ran=2 passed; pov_after_still_reproduces=false",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses getCanonicalFile safely, catches IOException as deny; only residual is theoretical TOCTOU shared with official.",
+        "evidence": "catch(IOException) returns false (fail-closed) in isInDirectory",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Correct and localized to one file but adds a ~30-line helper vs the official's 8-line inline check.",
+        "evidence": "new private static isInDirectory() method plus guard block",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Canonicalize-then-verify-containment is the CWE-022 defense of record; parent-walk equality even avoids the startsWith sibling-prefix pitfall.",
+        "evidence": "getCanonicalFile() resolves symlinks/.. then equals-walk to canonicalDestination",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Canonicalization-based check has an inherent (benign) TOCTOU window shared with the official fix; not exploitable in this extraction flow."
+      },
+      {
+        "severity": "low",
+        "description": "Helper method adds more code than the official inline check, slightly reducing minimality though still confined to one file."
+      }
+    ],
+    "summary": "Our patch places a canonicalize-then-verify-containment guard at exactly the same sink (AbstractUnArchiver.extractFile, right after FileUtils.resolveFile) as the official fix, throwing an ArchiverException when the resolved entry escapes the destination. Because all tar/zip unarchivers route through this single method, the entire Zip-Slip class is closed, and the POV no longer reproduces with regressions passing. The mechanism (walking canonical parents to the canonical destination) is actually stronger than the official startsWith prefix check, which is vulnerable to sibling-directory prefix false-matches (e.g. dest /a/b vs escape /a/bc). This is a correct, sound fix.",
+    "root_cause": "Untrusted archive entry names containing \"../\" were resolved against the destination directory and written without verifying the resolved canonical path stayed inside that directory.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 98,
+        "score_mean": 98.7,
+        "score_min": 98,
+        "score_max": 100,
+        "score_stdev": 0.94,
+        "mean_median": 4.88,
+        "band_mode": "good",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.06
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 4,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 1.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 100,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        },
+        {
+          "score": 98,
+          "band": "good",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+      ]
+    }
+  }
+}

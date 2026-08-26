@@ -1,0 +1,177 @@
+diff --git a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+index 69e2518..60aaae9 100644
+--- a/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
++++ b/src/main/java/net/sf/mpxj/common/InputStreamHelper.java
+@@ -123,7 +123,7 @@ public class InputStreamHelper
+             break;
+          }
+ 
+-         File file = new File(dir, entry.getName());
++         File file = validateZipEntryPath(dir, entry.getName());
+          if (entry.isDirectory())
+          {
+             FileHelper.mkdirsQuietly(file);
+@@ -146,4 +146,28 @@ public class InputStreamHelper
+          fos.close();
+       }
+    }
++
++   /**
++    * Resolve a zip entry name against the target extraction directory,
++    * ensuring the resulting path cannot escape that directory
++    * (protects against "zip slip" path traversal via entry names such as
++    * "../../etc/passwd" or absolute paths).
++    *
++    * @param dir target extraction directory
++    * @param entryName raw name taken from the zip entry
++    * @return File instance guaranteed to be located within {@code dir}
++    */
++   private static File validateZipEntryPath(File dir, String entryName) throws IOException
++   {
++      String canonicalDirPath = dir.getCanonicalPath();
++      File file = new File(dir, entryName);
++      String canonicalFilePath = file.getCanonicalPath();
++
++      if (!(canonicalFilePath + File.separator).startsWith(canonicalDirPath + File.separator) && !canonicalFilePath.equals(canonicalDirPath))
++      {
++         throw new IOException("Zip entry is outside of the target directory: " + entryName);
++      }
++
++      return file;
++   }
+ }
+diff --git a/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java b/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java
+new file mode 100644
+index 0000000..95227c2
+--- /dev/null
++++ b/src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java
+@@ -0,0 +1,129 @@
++/*
++ * file:       InputStreamHelperTest.java
++ * author:     Claude
++ * copyright:  (c) Packwood Software 2026
++ * date:       17/07/2026
++ */
++
++/*
++ * This library is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by the
++ * Free Software Foundation; either version 2.1 of the License, or (at your
++ * option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
++ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
++ * License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this library; if not, write to the Free Software Foundation, Inc.,
++ * 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
++ */
++
++package net.sf.mpxj.junit;
++
++import static org.junit.Assert.*;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.IOException;
++import java.io.InputStream;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.sf.mpxj.common.FileHelper;
++import net.sf.mpxj.common.InputStreamHelper;
++
++import org.junit.Test;
++
++/**
++ * Tests to ensure that zip file extraction cannot write files outside
++ * of the target temporary directory (zip slip / path traversal).
++ */
++public class InputStreamHelperTest
++{
++   /**
++    * A zip entry using "../" segments to escape the extraction directory
++    * must be rejected rather than silently written outside of it.
++    */
++   @Test public void testZipSlipRelativeTraversalIsRejected() throws Exception
++   {
++      InputStream stream = createZipStream("../../tmp/mpxj-zip-slip-relative.txt", "pwned");
++      try
++      {
++         InputStreamHelper.writeZipStreamToTempDir(stream);
++         fail("Expected an IOException to be raised for a path traversal zip entry");
++      }
++
++      catch (IOException ex)
++      {
++         // expected
++      }
++
++      assertFalse("File must not be written outside of the extraction directory", new File(System.getProperty("java.io.tmpdir"), "mpxj-zip-slip-relative.txt").exists());
++   }
++
++   /**
++    * A zip entry using enough "../" segments to walk past the root of the
++    * filesystem and back down into an absolute target path must still be
++    * rejected, not just simple single-level traversal.
++    */
++   @Test public void testZipSlipDeepTraversalToAbsolutePathIsRejected() throws Exception
++   {
++      File target = File.createTempFile("mpxj-zip-slip-absolute", ".txt");
++      FileHelper.deleteQuietly(target);
++
++      InputStream stream = createZipStream("../../../../../../../../" + target.getAbsolutePath(), "pwned");
++      try
++      {
++         InputStreamHelper.writeZipStreamToTempDir(stream);
++         fail("Expected an IOException to be raised for a path traversal zip entry");
++      }
++
++      catch (IOException ex)
++      {
++         // expected
++      }
++
++      assertFalse("File must not be written outside of the extraction directory", target.exists());
++   }
++
++   /**
++    * Ensure well behaved zip files are still extracted correctly.
++    */
++   @Test public void testNormalZipEntryIsExtracted() throws Exception
++   {
++      InputStream stream = createZipStream("subdir/file.txt", "hello");
++      File dir = InputStreamHelper.writeZipStreamToTempDir(stream);
++      try
++      {
++         File file = new File(dir, "subdir/file.txt");
++         assertTrue(file.exists());
++      }
++
++      finally
++      {
++         FileHelper.deleteQuietly(dir);
++      }
++   }
++
++   /**
++    * Build an in-memory zip stream containing a single entry.
++    *
++    * @param entryName name of the zip entry
++    * @param content content of the zip entry
++    * @return InputStream representing the zip file
++    */
++   private InputStream createZipStream(String entryName, String content) throws IOException
++   {
++      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
++      ZipOutputStream zip = new ZipOutputStream(bytes);
++      zip.putNextEntry(new ZipEntry(entryName));
++      zip.write(content.getBytes());
++      zip.closeEntry();
++      zip.close();
++      return new ByteArrayInputStream(bytes.toByteArray());
++   }
++}

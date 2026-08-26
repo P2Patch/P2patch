@@ -1,0 +1,440 @@
+{
+  "run_id": "20260717_043113_finding-2fe2f5ad4d3b",
+  "finding_id": "finding-2fe2f5ad4d3b",
+  "timestamp": "2026-07-17T04:31:13",
+  "status": "accepted",
+  "profile": "full",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "POV reproduced before patching, no longer reproduced after patching, regressions passed, verifier accepted.",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "finding_id": "20260717_043113_finding-2fe2f5ad4d3b",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-2fe2f5ad4d3b",
+    "cve_id": "CVE-2022-28367",
+    "cwe_id": "CWE-079",
+    "cwe_name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+    "project_slug": "nahsra__antisamy_CVE-2022-28367_1.6.5",
+    "alert_file": "NAHSRA_ANTISAMY_CVE_2022_28367.json",
+    "github_url": "https://github.com/nahsra/antisamy",
+    "repo": "nahsra/antisamy",
+    "github_tag": "1.6.5",
+    "advisory_id": "GHSA-3pqg-4rqg-pg9g",
+    "buggy_commit_id": "b7c151112dd19928e700ee48639942fd1079d1e3",
+    "fix_commit_ids": [
+      "0199e7e194dba5e7d7197703f43ebe22401e61ae"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java",
+        "class": "AntiSamyDOMScanner",
+        "class_start": "70.0",
+        "class_end": "783.0",
+        "method": "processStyleTag",
+        "method_start": "403.0",
+        "method_end": "446.0",
+        "signature": "boolean processStyleTag(Element,Node)",
+        "is_test": false
+      },
+      {
+        "commit": "0199e7e194dba5e7d7197703f43ebe22401e61ae",
+        "file": "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java",
+        "class": "AntiSamyTest",
+        "class_start": "87.0",
+        "class_end": "1693.0",
+        "method": "testGithubIssue151",
+        "method_start": "1693.0",
+        "method_end": "1703.0",
+        "signature": "void testGithubIssue151()",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-28367",
+      "advisory": "https://github.com/advisories/GHSA-3pqg-4rqg-pg9g",
+      "repo": "https://github.com/nahsra/antisamy",
+      "buggy_commit": "https://github.com/nahsra/antisamy/commit/b7c151112dd19928e700ee48639942fd1079d1e3"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-079",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 484,
+              "message": "item(...) : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "attribute : Node",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 487,
+              "message": "getNodeValue(...) : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 516,
+              "message": "value : String",
+              "uri": "src/main/java/org/owasp/validator/html/scan/AntiSamyDOMScanner.java"
+            },
+            {
+              "line": 209,
+              "message": "taintedCss : String",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            },
+            {
+              "line": 225,
+              "message": "taintedCss",
+              "uri": "src/main/java/org/owasp/validator/css/CssScanner.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "exploiter",
+      "label": "Exploiter",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "pov_created"
+    },
+    {
+      "key": "pov_before_patch",
+      "label": "POV before",
+      "kind": "step",
+      "status": "pass",
+      "detail": "bash .security-pipeline/pov/run_pov.sh"
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    },
+    {
+      "key": "pov_after_patch",
+      "label": "POV after",
+      "kind": "command",
+      "status": "pass",
+      "detail": "exit 1"
+    },
+    {
+      "key": "patch_and_regression",
+      "label": "Regression",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "verifier",
+      "label": "Verifier",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "accepted"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-079",
+      "finding_id": "finding-2fe2f5ad4d3b",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "command": "bash .security-pipeline/pov/run_pov.sh",
+      "name": "pov_before_patch",
+      "status": "ok"
+    },
+    {
+      "name": "patch_and_regression",
+      "regression_commands": [
+        "mvn -B -DskipTests package",
+        "mvn -B test -Dtest=AntiSamyTest"
+      ],
+      "status": "ok"
+    },
+    {
+      "name": "verifier",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81/Dockerfile",
+        "-t",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/nahsra__antisamy_[redacted]_1.6.5/81"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    },
+    {
+      "name": "pov_before_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "pov_before_patch.log"
+    },
+    {
+      "name": "pov_after_patch",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "bash .security-pipeline/pov/run_pov.sh"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "log": "pov_after_patch.log"
+    },
+    {
+      "name": "regression_1",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "mvn -B -DskipTests package"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_1.log"
+    },
+    {
+      "name": "regression_2",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "-v",
+        "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree:/workspace/repo",
+        "-w",
+        "/workspace/repo",
+        "simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee",
+        "bash",
+        "-lc",
+        "mvn -B test -Dtest=AntiSamyTest"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "regression_2.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "exploiter",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "pov_created",
+      "meta": {
+        "duration_ms": 1299651,
+        "duration_api_ms": 1180270,
+        "num_turns": 83,
+        "cost_usd": 5.361246,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 162,
+          "output": 98191,
+          "cache_read": 9530830,
+          "cache_creation": 171441
+        }
+      },
+      "parsed_output": {
+        "evidence": "Root cause (sink): org/owasp/validator/html/scan/AntiSamyDOMScanner.java:517 -- `attribute.setNodeValue(cr.getCleanHTML())` inside processAttributes()'s \"style\" special-case (lines 505-527) -- stores the CSS scanner's output string directly as the DOM \"style\" Attr node's value. The value crossed the trust boundary (attacker-controlled HTML/CSS from AntiSamy.scan's `html` input) at org/owasp/validator/css/CssScanner.java:209/225 (scanInlineStyle -> Batik parser -> CssHandler.property()/CssValidator.isValidProperty), and is built via org/owasp/validator/css/CssValidator.java:329 lexicalValueToString(), which returns raw Java-string fragments taken straight from parsed CSS tokens (quotes are re-added only when a string contains a space, purely for CSS syntax, never for HTML-attribute safety) and org/owasp/validator/css/CssHandler.java:540 property(), which concatenates name/value/`;` into a StringBuffer with zero HTML-escaping. Empirically confirmed (docker run of the PoV): with the shipped, unmodified src/main/resources/antisamy.xml, input `<div style=\"font-family: 'a&#34;b'\">` produces a DOM style Attr whose raw getValue() is `font-family: a\"b;` (literal, unescaped double-quote) -- reachable today only because AntiSamyDOMScanner never neutralizes it at the sink; `getCleanHTML()`'s String output happens to be safe only because a *separate* downstream component (ASHTMLSerializer) re-escapes when turning the DOM into text. With a one-line, plausible custom-policy edit (font-family regexp-list widened from the shipped `[\\w,\\-'\" ]+` to `.*`, saved as .security-pipeline/pov/permissive-policy.xml), input `<div style=\"font-family: '&lt;script&gt;alert(1)&lt;/script&gt;'\">` produces a raw DOM Attr value of `font-family: <script>alert(1)</script>;` -- a fully-formed, literal `<script>` element sitting unescaped in the sanitizer's own output DOM. Every consumer of the public, documented `CleanResults.getCleanXMLDocumentFragment()` API (explicitly called out in README.md: \"The serialization and deserialization process ... is critical to the effectiveness of the sanitizer\") receives this raw value. Other sink/source paths sharing the SAME root cause (missing output-context neutralization inside CssValidator/CssHandler) that a complete fix must also cover: (1) the sibling `<style>` TAG content sink -- AntiSamyDOMScanner.java:403-431 `processStyleTag()` -> `firstChild.setNodeValue(cr.getCleanHTML())`, fed by CssScanner.scanStyleSheet() (CssScanner.java:146-187); empirically confirmed the same unescaped-quote leak occurs there too (`<style>h1{font-family:'a\"b'}</style>` -> raw Text node value `font-family: a\"b;`), and because that sink additionally allows selectors/conditions (CssHandler.startSelector/endSelector, CssValidator.isValidCondition/isValidSelector) built via `selector.toString()`/`condition.toString()` concatenation with the same lack of escaping, any future/custom policy loosening the selector regexes (cssElementSelector, cssAttributeSelector, cssClassSelector, cssIDSelector, cssPseudoElementSelector -- all in antisamy.xml lines 66-93) is an equally viable path into the same unguarded sink. (2) CssValidator.java:363-365, the SAC_URI branch of lexicalValueToString(): `return \"url(\" + lu.getStringValue() + \")\";` -- concatenates the parsed URL text with zero quoting/escaping, distinct from the SAC_STRING_VALUE/SAC_IDENT branch exercised by this PoV.",
+        "expected_vulnerable_behavior": "The command builds the project, compiles the PoV against the project's real compiled classes, and runs it. On unpatched code it prints \"[check 1] raw DOM attribute contains an unescaped '\"' from CSS: true\" and \"[check 2] raw DOM attribute contains a literal, un-neutralized <script> tag: true\", then \"VULNERABLE: ...\" and exits 0. After a correct fix (CSS-derived content neutralized/HTML-escaped before AntiSamyDOMScanner.java:517's attribute.setNodeValue(...) call, or before it is otherwise written into the DOM), both checks flip to false, the script prints \"NOT VULNERABLE: ...\" and exits 1.",
+        "notes": "Targets the alert's single reported trace: AntiSamyDOMScanner.java lines 484/487/516 (processAttributes -> style attribute -> CssScanner.scanInlineStyle) -> CssScanner.java lines 209/225 (scanInlineStyle -> parser.parseStyleDeclaration). Chose this over the sibling `<style>`-tag-content trace (AntiSamyDOMScanner.java:407-414, CssScanner.scanStyleSheet) because it is the exact one the finder cited and because it is reachable purely through attribute-value HTML-entity decoding (a simpler, more universally-applicable technique than the `<style>` tag's RAWTEXT-content path, which does not entity-decode and instead required CSS-level Unicode escapes -- attempted for completeness but Batik's error recovery silently dropped that specific declaration, so it was not made part of the gating PoV; the simpler quote-based variant on that same `<style>`-tag sink was verified working and is cited in `evidence` as a confirmed sibling path). Investigation process: extensively verified (via a throwaway experiment harness, since removed) that AntiSamy's default `getCleanHTML()` String output is NOT exploitable for quote/tag breakout under any of the shipped policies (antisamy.xml, -ebay, -myspace, -anythinggoes, -slashdot, -tinymce) because ASHTMLSerializer/base Xerces HTMLSerializer uniformly HTML-entity-escapes `\"`,`<`,`>` when serializing DOM text/attribute nodes to a String, regardless of policy permissiveness -- confirmed even with an artificially wide-open `.*` property regex and combined `\"`,`<`,`>` payloads. The real, reproducible gap is one level earlier: the *DOM tree itself* (exposed via the public, documented `CleanResults.getCleanXMLDocumentFragment()` API) still holds the raw, un-neutralized value at the moment `attribute.setNodeValue()` runs -- which is precisely the sink line the finder's taint trace names. Verified the PoV's polarity by temporarily patching AntiSamyDOMScanner.java:517 to `attribute.setNodeValue(HTMLEntityEncoder.htmlEntityEncode(cr.getCleanHTML()))` (using the class's own already-imported encoder) inside the docker build/test container: the PoV correctly flipped to exit 1 (\"NOT VULNERABLE\"), then the edit was reverted (`git diff --stat` / `git status --porcelain` confirm no product code changes remain, only new files under .security-pipeline/pov/).",
+        "pov_command": "bash .security-pipeline/pov/run_pov.sh",
+        "pov_path": ".security-pipeline/pov/StyleAttributeCssSmugglingPoV.java",
+        "regression_hint": "Invariant a correct fix must enforce: CSS-derived text must never be written into any DOM Node/Attr value (or otherwise be reachable via CleanResults.getCleanXMLDocumentFragment()) containing raw, HTML/XML-significant characters (`\"`, `'`, `<`, `>`, `&`) that originated from CSS property/selector/URI values -- neutralization must happen inside org.owasp.validator.css (CssValidator.lexicalValueToString / CssHandler.property/startSelector) at the point the \"clean\" CSS string is built, not rely on a downstream, optional HTML serializer (ASHTMLSerializer/ASXHTMLSerializer) that not all consumers exercise. Concretely: HTML-entity-encode (or strictly character-whitelist) the SAC_STRING_VALUE/SAC_IDENT case (CssValidator.java:356-362) before concatenation, apply the same treatment to the SAC_URI case (CssValidator.java:363-365, currently `\"url(\" + getStringValue() + \")\"` with zero escaping), and to selector/condition text built from `selector.toString()`/`condition.toString()` in CssHandler.startSelector (CssHandler.java:484) regardless of how permissive a given policy's regexp-list is. Sibling call sites needing the same fix / verification: AntiSamyDOMScanner.java:517 (inline \"style\" attribute, this PoV's primary path) and AntiSamyDOMScanner.java:425-431 (`<style>` tag text-node content, processStyleTag). Known bypass variants the fix must also block, all demonstrated or derivable from the same lack of escaping: (a) quote characters admitted by any property regex that permits `'`/`\"` (font-family is the only one shipped, but any custom/future policy regex could add more, e.g. a `.*`-style catch-all as used in this PoV's permissive-policy.xml); (b) CSS Unicode escapes (e.g. `\\3C`, `\\3E`) which Batik decodes to literal `<`/`>` during parsing -- these never appear as raw `<`/`>` in the *source* HTML (so the input HTML/rawtext parser cannot pre-split the tag/attribute), meaning any fix based on rejecting literal `<`/`>` in the *source* string, rather than encoding the *decoded* CSS token value, will not catch this variant; (c) HTML-entity-pre-decoded characters reaching a CSS string token via attribute-value entity decoding (e.g. `&#34;`/`&lt;`/`&gt;` in the source `style=\"...\"` attribute, decoded by the input parser before Batik ever sees the CSS, as used in this PoV's check 1/2); (d) the SAC_URI branch's unescaped `url(...)` concatenation as a distinct, unexercised-by-this-PoV path; (e) selector/attribute-condition string concatenation in CssHandler.startSelector for the `<style>` tag path if any shipped or custom policy's `cssAttributeSelector`/`cssClassSelector`/`cssIDSelector`/`cssPseudoElementSelector`/`cssElementSelector` regex is loosened beyond the current strict `[a-zA-Z0-9\\-_]+`-style classes.",
+        "status": "pov_created",
+        "summary": "Built a real, runnable PoV proving that AntiSamyDOMScanner.processAttributes() writes CSS-scanner output into the DOM \"style\" Attr node via setNodeValue() without any HTML-neutralization of its own. Using AntiSamy's real public API (AntiSamy.scan, CleanResults), the PoV shows the raw DOM node returned by the supported, documented CleanResults.getCleanXMLDocumentFragment() API still contains unescaped HTML/CSS metacharacters (a literal `\"` under the shipped default policy, and a fully-formed, literal `<script>alert(1)</script>` tag under a one-line, plausible custom-policy variant) that originated from attacker-controlled inline CSS. Safety for the common getCleanHTML() String path is provided entirely by a separate, downstream serializer (ASHTMLSerializer/ASXHTMLSerializer), not by the CSS-scanning code at the sink itself -- exactly the gap the finder's taint trace identifies."
+      }
+    },
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 741219,
+        "duration_api_ms": 692849,
+        "num_turns": 49,
+        "cost_usd": 3.4380441000000004,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 90,
+          "output": 61931,
+          "cache_read": 5455137,
+          "cache_creation": 145378
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/owasp/validator/css/CssValidator.java",
+          "src/main/java/org/owasp/validator/css/CssHandler.java",
+          "src/test/java/org/owasp/validator/html/test/AntiSamyTest.java"
+        ],
+        "patch_notes": "Root cause fix in org.owasp.validator.css (per the alert's regression_hint), not a downstream/sink-only patch:\\n\\n1. CssValidator.java: added `lexicalValueToOutputString(LexicalUnit)` — like the existing `lexicalValueToString` (still used unchanged for policy-regex validation) but HTML-entity-encodes '\\\"','\\\\'','<','>','&' found in SAC_STRING_VALUE/SAC_IDENT/SAC_URI token values before they go into generated CSS output. Deliberately never wraps escaped content in raw quote characters (would itself be an attribute-breakout vector); the pre-existing space-triggered raw-quote wrapping is preserved only for values that contain no dangerous characters, keeping existing behavior (e.g. issue29 test: `font-family: \\\"Arial Unicode MS\\\";`) byte-for-byte unchanged.\\n2. CssValidator.java: added `escapeSelectorForOutput(String)` — neutralizes only literal '<' in selector/condition text (the one character that can make CSS-derived <style>-tag content be mistaken for markup by an HTML parser); '>' is deliberately left alone since it is needed verbatim for the CSS child-combinator.\\n3. CssHandler.java: property() now calls `lexicalValueToOutputString` instead of `lexicalValueToString` when appending a value to the shared \\\"clean\\\" stylesheet buffer; startSelector() now escapes `selectorName` via `escapeSelectorForOutput` before appending it. Since CssHandler.property()/startSelector() are shared by both scanInlineStyle (style attribute) and scanStyleSheet (<style> tag), this closes both DOM sinks named in the alert (AntiSamyDOMScanner.java:517 and :425-431) plus the SAC_URI branch, from one shared fix point — no changes needed in AntiSamyDOMScanner.java itself.\\n4. Added 3 regression tests to AntiSamyTest.java, verified to fail on pre-patch code and pass post-patch: (a) default-policy embedded quote in font-family no longer reaches the raw DOM style Attr value unescaped; (b) a widened/custom font-family policy no longer lets a literal <script> tag reach the raw DOM style Attr value; (c) same check for the sibling <style>-tag Text node sink.\\n\\nValidated: `mvn -B -DskipTests package` succeeds; `mvn -B test` — 103/103 tests pass (100 pre-existing + 3 new); the provided PoV (`bash .security-pipeline/pov/run_pov.sh`) now prints \\\"NOT VULNERABLE\\\" and exits 1 (was exit 0/VULNERABLE before the patch).",
+        "regression_commands": [
+          "mvn -B -DskipTests package",
+          "mvn -B test -Dtest=AntiSamyTest"
+        ],
+        "risk_notes": "Behavioral change is intentionally scoped to CSS values/selectors that contain '\\\"', '\\\\'', '<', '>', or '&' — the overwhelming majority of legitimate CSS (colors, lengths, keywords, ordinary font names, combinators, etc.) is untouched, confirmed by the full existing test suite passing unchanged. For the rare case where a CSS string value legitimately embeds one of these 5 characters (e.g. a font-family name containing a literal quote), the \"clean\" output now shows an HTML entity (e.g. `&#34;`) instead of the raw character; within a <style> tag (RAWTEXT, no entity decoding by the browser) this renders as literal entity text rather than being interpreted, which is a minor cosmetic/functional trade-off accepted in exchange for closing the XSS. No changes were made to policy validation logic (`lexicalValueToString`, `isValidProperty`, `isValidSelector`, `isValidCondition` all still operate on raw values), so which CSS is accepted/rejected by a given policy is unaffected — only how already-accepted CSS-derived text is serialized into the DOM changed.",
+        "status": "patched",
+        "summary": "Fixed CWE-079 (CSS-to-DOM XSS) at its root cause: org.owasp.validator.css.CssHandler was writing CSS-derived text (property values, URLs, selectors) into the \"clean\" stylesheet buffer with zero HTML-neutralization, relying entirely on a downstream, optional HTML serializer to escape it. That \"clean\" text is written verbatim into DOM Attr/Text node values by AntiSamyDOMScanner (both the \"style\" attribute sink and the sibling <style>-tag text-node sink), so any consumer of the public CleanResults.getCleanXMLDocumentFragment() API received raw, unescaped HTML-significant characters ('\"', ''', '<', '>', '&') that originated from attacker-controlled CSS. Added CssValidator.lexicalValueToOutputString() (HTML-entity-encodes those 5 characters for SAC_STRING_VALUE/SAC_IDENT/SAC_URI lexical values, leaving CSS structural syntax untouched) and CssValidator.escapeSelectorForOutput() (neutralizes only '<' in selector/condition text, since '>' must remain literal for child-combinator selectors). Wired both into CssHandler.property() and CssHandler.startSelector(), the two places that build the shared \"clean\" CSS text consumed by both the inline style-attribute path and the <style>-tag path — closing the finder's primary trace plus the SAC_URI branch and the sibling <style>-tag/selector paths called out in the alert as sharing the same root cause."
+      }
+    },
+    {
+      "name": "verifier",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "accepted",
+      "meta": {
+        "duration_ms": 199622,
+        "duration_api_ms": 149596,
+        "num_turns": 29,
+        "cost_usd": 1.0496535,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 2617,
+          "output": 12232,
+          "cache_read": 1545715,
+          "cache_creation": 65768
+        }
+      },
+      "parsed_output": {
+        "commands_run": [
+          "git -C worktree status --porcelain",
+          "git -C worktree diff --stat HEAD",
+          "./run_in_docker.sh \"bash .security-pipeline/pov/run_pov.sh; echo EXIT_CODE=$?\"",
+          "./run_in_docker.sh \"mvn -B -DskipTests package -q 2>&1 | tail -40; echo BUILD_EXIT=$?\"",
+          "./run_in_docker.sh \"mvn -B test -Dtest=AntiSamyTest 2>&1 | tail -25\"",
+          "./run_in_docker.sh \"mvn -B clean test -Dtest=AntiSamyTest 2>&1 | grep -E 'Tests run|Running org|ERROR|BUILD'\"",
+          "./run_in_docker.sh \"javap -p target/test-classes/org/owasp/validator/html/test/AntiSamyTest.class | grep -i CssDerived\"",
+          "./run_in_docker.sh \"mvn -B test 2>&1 | grep -E 'Tests run|Running org|BUILD|ERROR'\"",
+          "grep -n -B3 'testGithubIssue34a|testGithubIssue34b|testGithubIssue24' worktree/src/test/java/org/owasp/validator/html/test/AntiSamyTest.java"
+        ],
+        "diff_review": "Inspected patch_only.diff and confirmed (via `git diff --stat` and `git status --porcelain` in the actual worktree) that the patch touches exactly 3 files: src/main/java/org/owasp/validator/css/CssValidator.java (+134/-1, new methods only), src/main/java/org/owasp/validator/css/CssHandler.java (2 one-line call-site swaps: lexicalValueToString→lexicalValueToOutputString, and selectorName→escapeSelectorForOutput(selectorName)), and src/test/java/.../AntiSamyTest.java (+96, 3 new regression tests + 3 small helper methods). The PoV harness files under .security-pipeline/pov/ are untracked/new (not modified) — confirmed the patch does not touch, weaken, or special-case the PoV in any way. The fix is minimal, targeted, well-commented, and does not alter CSS validation/acceptance logic (only output-serialization safety), which is the correct scope per the alert's regression_hint (fix inside org.owasp.validator.css at CssValidator.lexicalValueToString/CssHandler.property/startSelector, not a downstream serializer patch).",
+        "issues": [],
+        "pov_result": "Reran `bash .security-pipeline/pov/run_pov.sh` independently via the docker wrapper against the current (patched) worktree. Output: check 1 raw DOM attr is `font-family: a&#34;b;` (no literal '\\\"'), check 2 raw DOM attr is `font-family: &lt;script&gt;alert(1)&lt;/script&gt;;` (no literal '<'/'>'), both checks report `false`, script prints \"NOT VULNERABLE ...\" and exits 1. This matches the orchestrator's pov_after_patch log exactly and confirms the vulnerability no longer reproduces. The PoV itself was not modified by the patch (verified via git status showing it as untracked, unrelated to the 3 modified product/test files).",
+        "regression_result": "Independently reran (docker wrapper, project container): `mvn -B -DskipTests package` → BUILD SUCCESS. `mvn -B test` (full suite, not just AntiSamyTest) → Tests run: 103, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS, across all 8 test classes (AntiSamyTest 69, ESAPIInvalidPolicyTest 8, LiteralTest 4, AntiSamyMalformedPolicyTest 4, PolicyTest 14, AntiSamyPerformanceTest 1, TagMatcherTest 1, TagTest 2). Investigated an apparent discrepancy (AntiSamyTest.java has 72 @Test-looking occurrences in the source but only 69 ran) and confirmed it's a non-issue: 3 pre-existing tests (testGithubIssue24, testGithubIssue34a, testGithubIssue34b) are wrapped in a /* */ block comment (pre-dating this patch, unrelated to it), so the real active test count is 66 pre-existing + 3 new patch-added tests = 69, all passing. No tests were removed or disabled by the patch; git diff confirms only additive changes to the test file.",
+        "summary": "The patch fixes the CWE-079 CSS-to-DOM smuggling vulnerability at its root cause in org.owasp.validator.css, exactly matching the alert's regression_hint. It adds CssValidator.lexicalValueToOutputString() (HTML-entity-encodes '\\\"','\\'','<','>','&' in SAC_STRING_VALUE/SAC_IDENT/SAC_URI values) and CssValidator.escapeSelectorForOutput() (neutralizes '<' in selector/condition text), and wires both into CssHandler.property()/startSelector() — the single shared code path used by both the inline style-attribute sink (AntiSamyDOMScanner:517) and the <style>-tag sink (AntiSamyDOMScanner:425-431) named in the alert trace. Validation-only logic (lexicalValueToString, isValidProperty, isValidSelector) is untouched, so accepted/rejected CSS is unchanged — only how already-accepted CSS text is serialized into the DOM changed. I independently rebuilt and reran everything in the docker container rather than trusting the logs.",
+        "verdict": "accepted"
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 9.8489,
+    "num_turns": 161,
+    "agent_duration_ms": 2240492
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log",
+      "pov_after_patch.log",
+      "pov_before_patch.log",
+      "regression_1.log",
+      "regression_2.log"
+    ]
+  }
+}

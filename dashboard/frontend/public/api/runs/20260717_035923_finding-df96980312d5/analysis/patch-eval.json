@@ -1,0 +1,120 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:28.248328+00:00",
+    "finished_at": "2026-07-17T08:41:20.531261+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonicalization + containment check is inserted immediately after the tainted File is constructed and before every sink branch, closing the Zip Slip class rather than one payload.",
+        "evidence": "InputStreamHelper.java: `File file = new File(dir, entry.getName()); validateZipEntryDestination(dir, file);` guards all three downstream sinks (mkdirsQuietly(file) L129, mkdirsQuietly(parent) L136, FileOutputStream(file) L139); pov_after_still_reproduces=false.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixes the trust boundary at the point the attacker-controlled entry name becomes a filesystem path inside processZipStream — the same location the official fix chose — not a caller or a symptom.",
+        "evidence": "validateZipEntryDestination() called in processZipStream right after `new File(dir, entry.getName())`, matching official localization InputStreamHelper.processZipStream (method_start 115, method_end 146).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "All three tainted traces from the report (file entry write, parent dir creation, directory entry mkdirs) pass through the single pre-branch check; nested `sub/../../x`, absolute-path, and Windows drive-relative names are all normalized by getCanonicalPath before comparison.",
+        "evidence": "Guard placed before the `if (entry.isDirectory())` branch, so it dominates FileHelper.mkdirsQuietly at L129/L136 and FileOutputStream at L139 — the exact sinks in the two vulnerabilities' traces.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Semantically the same defensive strategy, mechanism, and location as the official Snyk-referenced Zip Slip fix; only refactored into a private helper.",
+        "evidence": "Ours: `!fileCanonicalPath.startsWith(dirCanonicalPath + File.separator)` → throw IOException. Official: `!canonicalDestinationFile.startsWith(canonicalDestinationDirPath + File.separator)` → `throw new IOException(\"Entry is outside of the target dir: \"...)`. Structural overlap jaccard=1.0, covers_all_official=true.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Benign entries still extract; regression suite passed and the added test asserts a normal `safe.txt` entry is still written.",
+        "evidence": "regressions_ran=2, regressions_passed=true; InputStreamHelperTest.testNonTraversalEntryIsExtracted asserts extracted file exists; the `File.separator` suffix on the prefix check prevents the sibling-prefix false positive (e.g. /tmp/dirEvil vs /tmp/dir).",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses java.io canonicalization correctly, throws a checked IOException already declared by processZipStream; no regex/ReDoS, no new injection, no meaningful TOCTOU (dir is a freshly created temp dir and java.util.zip never materializes symlinks).",
+        "evidence": "`private static void validateZipEntryDestination(File dir, File file) throws IOException` — processZipStream already declares `throws IOException`, so failure propagates as before; error message leaks only file.getName().",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is tight and localized (2 inserted lines + one small helper) at the correct method; the accompanying 230-line test file is legitimate but larger than needed.",
+        "evidence": "patch_only.diff: +2 lines in processZipStream, +20-line helper in InputStreamHelper.java; +230 lines in new src/test/java/net/sf/mpxj/common/InputStreamHelperTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "This is the CWE-022 defense-of-record: canonicalize the resolved destination to a real absolute path (resolving symlinks and `..`), then verify containment under the canonicalized base dir — not a `../` blocklist.",
+        "evidence": "`String dirCanonicalPath = dir.getCanonicalPath(); String fileCanonicalPath = file.getCanonicalPath(); if (!fileCanonicalPath.equals(dirCanonicalPath) && !fileCanonicalPath.startsWith(dirCanonicalPath + File.separator)) throw new IOException(...)`.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Ours additionally accepts the case `fileCanonicalPath.equals(dirCanonicalPath)` (e.g. entry name \"\" or \".\"), which the official fix rejects. This is not exploitable — a directory entry resolving to dir itself makes mkdirsQuietly(dir) a no-op, and a file entry resolving to dir makes `new FileOutputStream(dir)` throw FileNotFoundException — but it is a small behavioral divergence from the reference and relies on downstream failure rather than the guard."
+      },
+      {
+        "severity": "low",
+        "description": "dir.getCanonicalPath() is recomputed (a syscall) for every zip entry, whereas the official fix hoists `canonicalDestinationDirPath` above the loop. Purely a performance nit on large archives; no security impact."
+      },
+      {
+        "severity": "low",
+        "description": "The exception message uses `file.getName()` (leaf name only, e.g. \"evil.txt\") instead of `entry.getName()` (the full malicious entry path). Cosmetic/diagnostic only — makes forensic triage of a blocked entry slightly less informative than the official message."
+      }
+    ],
+    "root_cause": "processZipStream built a destination File directly from the attacker-controlled ZipEntry name (`new File(dir, entry.getName())`) and passed it to filesystem sinks (mkdirsQuietly and FileOutputStream) without ever verifying that the resolved real path stays inside the temp extraction directory, allowing `../` (Zip Slip) entries to write arbitrary files outside it.",
+    "summary": "Our patch is a correct, class-closing fix: it canonicalizes both the extraction directory and the resolved entry destination and enforces containment at the exact trust boundary in InputStreamHelper.processZipStream, immediately after `new File(dir, entry.getName())` and before every sink (directory mkdirs, parent mkdirs, and FileOutputStream), so all three tainted traces are dominated by the guard. This is the CWE-022 defense-of-record (canonicalize-then-verify, not `../` blocklisting) and is semantically the same mechanism and location as the official Snyk-referenced fix, with 1.0 file overlap. The POV no longer reproduces, both regression suites pass, and benign extraction is preserved (the `File.separator` suffix avoids sibling-prefix false positives). Only cosmetic divergences remain: an extra allowance for file==dir, per-entry recomputation of the dir canonical path, and a less informative exception message.",
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "InputStreamHelper.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+      ],
+      "commits": [
+        "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d"
+      ]
+    }
+  }
+}

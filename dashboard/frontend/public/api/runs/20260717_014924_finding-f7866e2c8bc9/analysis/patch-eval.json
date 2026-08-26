@@ -1,0 +1,116 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:36:48.782863+00:00",
+    "finished_at": "2026-07-17T08:37:36.733808+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Canonical-path containment check at the resolveFile sink blocks the entire zip-slip/traversal class, not just the observed payload.",
+        "evidence": "isInsideDestination(): entryPath.equals(canonicalDir) || entryPath.startsWith(dir.getCanonicalPath()+File.separator), throwing ArchiverException in extractFile after FileUtils.resolveFile(dir, entryName)",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Guard sits at the shared sink in AbstractUnArchiver.extractFile through which all unarchivers (tar, zip) route, neutralizing the flaw at the trust boundary.",
+        "evidence": "Check inserted immediately after line 309 `final File f = FileUtils.resolveFile(dir, entryName)` in AbstractUnArchiver, same method as official fix",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Because the check is in the common extractFile, every tar/zip trace in the taint report reaches it; covers ../, absolute-path, and sibling-prefix variants.",
+        "evidence": "All traces converge on AbstractUnArchiver.extractFile line 309; helper also handles f==dir and appends File.separator to avoid /dest vs /dest-evil bypass",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy, same location, same mechanism as the official fix — and strictly stronger via the separator boundary.",
+        "evidence": "Official adds canonicalDestPath.startsWith(canonicalDirPath) at line 309; ours does the same plus File.separator + equals guard",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Legitimate entries inside dir pass (equals/startsWith with separator permits direct children); no regression suite was executed to confirm, so slight uncertainty.",
+        "evidence": "regressions_ran=0; helper returns true for entryPath.equals(canonicalDir) or startsWith(destDirPath), preserving normal extraction",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses getCanonicalPath (resolves symlinks) correctly; IOException propagates through extractFile which already handles it; no new injection/TOCTOU introduced.",
+        "evidence": "private boolean isInsideDestination(...) throws IOException; called within extractFile which already deals with canonical/IO semantics like official",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 4,
+        "rationale": "Production change is tight and well-placed; adds a small helper method plus two test files beyond the minimal official one-block insertion.",
+        "evidence": "Extra isInsideDestination helper + testTarPathTraversalIsBlocked/testZipPathTraversalIsBlocked tests vs official's inline 8-line check",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Implements the CWE-022 defense of record: canonicalize to real absolute path then verify containment in base dir, with a proper directory boundary.",
+        "evidence": "dir.getCanonicalPath()+File.separator prefix test in isInsideDestination avoids blocklisting ../ and prevents sibling-prefix escape",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "superset_stronger",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "No regression suite was executed (regressions_ran=0) and pov_before_reproduced=false, so functional-preservation and trigger evidence rest on code analysis rather than test execution."
+      },
+      {
+        "severity": "low",
+        "description": "getCanonicalPath containment is a well-known safe primitive but is TOCTOU-adjacent if the destination tree is concurrently manipulated; negligible for the archiver use case and no worse than the official fix."
+      }
+    ],
+    "root_cause": "Archive entry names (e.g. containing ../ or absolute paths) are resolved against the destination dir and written without verifying the resolved path stays inside that dir, allowing extraction outside the target directory.",
+    "summary": "Our patch inserts a canonical-path containment check at the exact shared sink (AbstractUnArchiver.extractFile, right after FileUtils.resolveFile) that the official fix targets, throwing ArchiverException when the resolved entry escapes the destination directory. It is semantically equivalent to the official fix and slightly stronger: appending File.separator and handling the f==dir case closes the /dest vs /dest-evil sibling-prefix bypass that the official startsWith check leaves open. The guard lives in the common code path all tar/zip unarchivers use, so it closes the whole traversal class rather than one payload. The only weakness is evidentiary — no regressions were run and the POV did not reproduce pre-patch — but code analysis strongly supports correctness.",
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "AbstractUnArchiver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+      ],
+      "commits": [
+        "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+      ]
+    }
+  }
+}

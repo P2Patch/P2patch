@@ -1,0 +1,667 @@
+diff --git a/src/main/java/org/apache/commons/io/FilenameUtils.java b/src/main/java/org/apache/commons/io/FilenameUtils.java
+index 9cddebb..d234faf 100644
+--- a/src/main/java/org/apache/commons/io/FilenameUtils.java
++++ b/src/main/java/org/apache/commons/io/FilenameUtils.java
+@@ -679,7 +679,17 @@ public static int getPrefixLength(final String filename) {
+                 }
+                 posUnix = posUnix == NOT_FOUND ? posWin : posUnix;
+                 posWin = posWin == NOT_FOUND ? posUnix : posWin;
+-                return Math.min(posUnix, posWin) + 1;
++                final int pos = Math.min(posUnix, posWin);
++                // Reject a "host name" component of "." or ".." (e.g. "//../x" or "//./x").
++                // Otherwise the leading ".." would be silently absorbed into the UNC-style
++                // prefix and never evaluated by the parent-traversal checks in doNormalize(),
++                // letting a path such as "//../secret.txt" bypass the same rejection that
++                // correctly applies to the equivalent "/../secret.txt" (CVE-2021-29425).
++                final String hostPart = filename.substring(2, pos);
++                if (".".equals(hostPart) || "..".equals(hostPart)) {
++                    return NOT_FOUND;
++                }
++                return pos + 1;
+             } else {
+                 return isSeparator(ch0) ? 1 : 0;
+             }
+diff --git a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+index 234c25e..c0bd710 100644
+--- a/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
++++ b/src/test/java/org/apache/commons/io/FilenameUtilsTestCase.java
+@@ -246,6 +246,33 @@ public void testNormalize() throws Exception {
+         assertEquals(SEP + SEP + "server" + SEP + "", FilenameUtils.normalize("//server/"));
+     }
+ 
++    /**
++     * Regression test for CVE-2021-29425: a leading double separator followed
++     * immediately by "." or ".." must not be treated as a valid UNC-style
++     * prefix that swallows the traversal token. Without the fix,
++     * {@code normalize("//../secret.txt")} returned the string unchanged
++     * instead of {@code null}, even though the equivalent single-separator
++     * form {@code normalize("/../secret.txt")} correctly returned null.
++     */
++    @Test
++    public void testNormalize_rejectsDoubleSeparatorDotDotPrefix() throws Exception {
++        assertEquals(null, FilenameUtils.normalize("/../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//./secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("\\\\..\\secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//..\\secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("\\\\../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../../secret.txt"));
++        assertEquals(null, FilenameUtils.normalize("//../a/../../secret.txt"));
++
++        assertEquals(null, FilenameUtils.normalizeNoEndSeparator("//../secret.txt"));
++        assertEquals(null, FilenameUtils.normalizeNoEndSeparator("//../secret.txt", true));
++
++        // legitimate two-separator (UNC-style) prefixes with a real host component
++        // must keep working as before.
++        assertEquals(SEP + SEP + "server" + SEP + "a", FilenameUtils.normalize("//server/a"));
++    }
++
+     @Test
+     public void testNormalize_with_nullbytes() throws Exception {
+         try {
+diff --git a/.security-pipeline/pov/PathTraversalPOV.java b/.security-pipeline/pov/PathTraversalPOV.java
+new file mode 100644
+index 0000000..8523dbf
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPOV.java
+@@ -0,0 +1,88 @@
++package security.pipeline.pov;
++
++import org.apache.commons.io.FilenameUtils;
++
++/**
++ * Proof-of-vulnerability for finding-baa9ff67bca0 (CWE-22, CVE-2021-29425-style).
++ *
++ * Root cause (sink): {@code FilenameUtils.doNormalize(String, char, boolean)} in
++ * {@code src/main/java/org/apache/commons/io/FilenameUtils.java}, driven by
++ * {@code FilenameUtils.getPrefixLength(String)}.
++ *
++ * Trust boundary: any caller that treats a user-supplied path string as untrusted
++ * input and calls {@link FilenameUtils#normalize(String)} to decide whether that
++ * path is allowed to be used (the documented contract is: "If the double dot has
++ * no parent path segment to work with, null is returned" -- i.e. normalize()
++ * returning {@code null} is the signal that the path attempts to escape above the
++ * filesystem root and must be rejected).
++ *
++ * Bug: {@code getPrefixLength()} treats a path beginning with two separators
++ * followed by ".." (e.g. "//../secret.txt") as a Windows UNC prefix whose
++ * "server name" component is literally "..", instead of as a relative up-level
++ * reference. Because that leading ".." gets absorbed into the computed prefix,
++ * the double-dot collapsing loop in {@code doNormalize} (which only scans
++ * starting at {@code prefix + 2}) never inspects it. The single-leading-slash
++ * form "/../secret.txt" is correctly rejected (normalize returns null), but the
++ * functionally-equivalent double-leading-slash form "//../secret.txt" is passed
++ * through unchanged and non-null, silently defeating any security gate built on
++ * "reject when normalize() == null".
++ *
++ * This same root cause affects every caller path enumerated in the alert that
++ * ultimately consumes {@code FilenameUtils.normalize(...)} output as a path
++ * (including {@code FileSystemUtils}'s command-array construction at lines
++ * 274/282/304/313 which embeds the unnormalized/mis-normalized path into a
++ * shell command array) -- this PoV targets the normalize() root cause directly
++ * since every other sink in the alert is downstream of the same defect.
++ */
++public final class PathTraversalPOV {
++
++    /**
++     * Mirrors the standard caller-side security gate documented on
++     * FilenameUtils.normalize(): reject the path if normalize() cannot fully
++     * resolve it (returns null).
++     */
++    private static boolean isRejectedAsUnsafe(String userSuppliedPath) {
++        return FilenameUtils.normalize(userSuppliedPath) == null;
++    }
++
++    public static void main(String[] args) {
++        // Baseline: a single leading slash before ".." with no parent segment.
++        // Per FilenameUtils' own javadoc example ("/../"  -->  null) this MUST
++        // be rejected, and it is, on both vulnerable and patched code.
++        final String blockedBaseline = "/../secret.txt";
++
++        // Bypass payload: identical traversal attempt, just prefixed with one
++        // extra leading separator. Semantically it is still "go up one level
++        // from nothing, then read secret.txt" -- there is no legitimate UNC
++        // server named "..".
++        final String bypassPayload = "//../secret.txt";
++
++        final boolean baselineRejected = isRejectedAsUnsafe(blockedBaseline);
++        final boolean payloadRejected = isRejectedAsUnsafe(bypassPayload);
++        final String normalizedPayload = FilenameUtils.normalize(bypassPayload);
++
++        System.out.println("normalize(\"" + blockedBaseline + "\") rejected = " + baselineRejected);
++        System.out.println("normalize(\"" + bypassPayload + "\") rejected = " + payloadRejected
++                + " -> normalize() returned [" + normalizedPayload + "]");
++
++        if (!baselineRejected) {
++            System.out.println("SANITY FAILURE: the single-slash baseline traversal was not rejected;"
++                    + " PoV assumptions about normalize()'s documented contract are broken.");
++            System.exit(2);
++            return;
++        }
++
++        if (!payloadRejected) {
++            System.out.println("VULNERABLE: FilenameUtils.normalize(\"" + bypassPayload + "\") did not "
++                    + "return null even though the functionally identical \"" + blockedBaseline
++                    + "\" IS rejected. A caller that trusts normalize()==null as its path-traversal "
++                    + "gate is bypassed by prefixing the payload with an extra leading separator.");
++            System.exit(0);
++            return;
++        }
++
++        System.out.println("SAFE: normalize() rejected the bypass payload the same way it rejects the "
++                + "baseline; the CVE-2021-29425-style bypass is not present.");
++        System.exit(1);
++    }
++}
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderMark.class b/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderMark.class
+new file mode 100644
+index 0000000..ba69022
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderMark.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderParser.class b/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderParser.class
+new file mode 100644
+index 0000000..a036405
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/ByteOrderParser.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/Charsets.class b/.security-pipeline/pov/classes/org/apache/commons/io/Charsets.class
+new file mode 100644
+index 0000000..90904fa
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/Charsets.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/CopyUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/CopyUtils.class
+new file mode 100644
+index 0000000..35d12b9
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/CopyUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker$CancelException.class b/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker$CancelException.class
+new file mode 100644
+index 0000000..6324bbf
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker$CancelException.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker.class b/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker.class
+new file mode 100644
+index 0000000..b5fc077
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/DirectoryWalker.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/EndianUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/EndianUtils.class
+new file mode 100644
+index 0000000..0dd6976
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/EndianUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaner.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaner.class
+new file mode 100644
+index 0000000..845e891
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaner.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Reaper.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Reaper.class
+new file mode 100644
+index 0000000..c1f7739
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Reaper.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Tracker.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Tracker.class
+new file mode 100644
+index 0000000..3ef463f
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker$Tracker.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker.class
+new file mode 100644
+index 0000000..597e3fc
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileCleaningTracker.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy$ForceFileDeleteStrategy.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy$ForceFileDeleteStrategy.class
+new file mode 100644
+index 0000000..0b34fc7
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy$ForceFileDeleteStrategy.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy.class
+new file mode 100644
+index 0000000..f97e6d1
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileDeleteStrategy.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileExistsException.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileExistsException.class
+new file mode 100644
+index 0000000..62c3981
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileExistsException.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileSystemUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileSystemUtils.class
+new file mode 100644
+index 0000000..bcb0186
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileSystemUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FileUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/FileUtils.class
+new file mode 100644
+index 0000000..6bfb06e
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FileUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/FilenameUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/FilenameUtils.class
+new file mode 100644
+index 0000000..0c75607
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/FilenameUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/HexDump.class b/.security-pipeline/pov/classes/org/apache/commons/io/HexDump.class
+new file mode 100644
+index 0000000..8f09e46
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/HexDump.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/IOCase.class b/.security-pipeline/pov/classes/org/apache/commons/io/IOCase.class
+new file mode 100644
+index 0000000..71631db
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/IOCase.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/IOExceptionWithCause.class b/.security-pipeline/pov/classes/org/apache/commons/io/IOExceptionWithCause.class
+new file mode 100644
+index 0000000..1e3004c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/IOExceptionWithCause.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/IOUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/IOUtils.class
+new file mode 100644
+index 0000000..dc2a471
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/IOUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/LineIterator.class b/.security-pipeline/pov/classes/org/apache/commons/io/LineIterator.class
+new file mode 100644
+index 0000000..80167b5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/LineIterator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/TaggedIOException.class b/.security-pipeline/pov/classes/org/apache/commons/io/TaggedIOException.class
+new file mode 100644
+index 0000000..66b4b2d
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/TaggedIOException.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/ThreadMonitor.class b/.security-pipeline/pov/classes/org/apache/commons/io/ThreadMonitor.class
+new file mode 100644
+index 0000000..0331fa5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/ThreadMonitor.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/AbstractFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/AbstractFileComparator.class
+new file mode 100644
+index 0000000..47bccb8
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/AbstractFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/CompositeFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/CompositeFileComparator.class
+new file mode 100644
+index 0000000..bcc44d0
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/CompositeFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DefaultFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DefaultFileComparator.class
+new file mode 100644
+index 0000000..5a193e4
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DefaultFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DirectoryFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DirectoryFileComparator.class
+new file mode 100644
+index 0000000..ad3074c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/DirectoryFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ExtensionFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ExtensionFileComparator.class
+new file mode 100644
+index 0000000..04c9ef1
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ExtensionFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/LastModifiedFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/LastModifiedFileComparator.class
+new file mode 100644
+index 0000000..b6ff286
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/LastModifiedFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/NameFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/NameFileComparator.class
+new file mode 100644
+index 0000000..f3998a7
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/NameFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/PathFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/PathFileComparator.class
+new file mode 100644
+index 0000000..82ca802
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/PathFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ReverseComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ReverseComparator.class
+new file mode 100644
+index 0000000..eda2b49
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/ReverseComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/comparator/SizeFileComparator.class b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/SizeFileComparator.class
+new file mode 100644
+index 0000000..72b71ad
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/comparator/SizeFileComparator.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AbstractFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AbstractFileFilter.class
+new file mode 100644
+index 0000000..c504edd
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AbstractFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AgeFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AgeFileFilter.class
+new file mode 100644
+index 0000000..67ef444
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AgeFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AndFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AndFileFilter.class
+new file mode 100644
+index 0000000..17dce55
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/AndFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanReadFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanReadFileFilter.class
+new file mode 100644
+index 0000000..5cad269
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanReadFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanWriteFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanWriteFileFilter.class
+new file mode 100644
+index 0000000..c43e287
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/CanWriteFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/ConditionalFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/ConditionalFileFilter.class
+new file mode 100644
+index 0000000..5d865d8
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/ConditionalFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DelegateFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DelegateFileFilter.class
+new file mode 100644
+index 0000000..6a36e41
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DelegateFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DirectoryFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DirectoryFileFilter.class
+new file mode 100644
+index 0000000..c1c1630
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/DirectoryFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/EmptyFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/EmptyFileFilter.class
+new file mode 100644
+index 0000000..70ef327
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/EmptyFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FalseFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FalseFileFilter.class
+new file mode 100644
+index 0000000..feed711
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FalseFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFileFilter.class
+new file mode 100644
+index 0000000..9c26ea9
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFilterUtils.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFilterUtils.class
+new file mode 100644
+index 0000000..359fc8a
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/FileFilterUtils.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/HiddenFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/HiddenFileFilter.class
+new file mode 100644
+index 0000000..f1ea650
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/HiddenFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/IOFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/IOFileFilter.class
+new file mode 100644
+index 0000000..f1b5020
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/IOFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/MagicNumberFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/MagicNumberFileFilter.class
+new file mode 100644
+index 0000000..704d483
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/MagicNumberFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NameFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NameFileFilter.class
+new file mode 100644
+index 0000000..5adc3c0
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NameFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NotFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NotFileFilter.class
+new file mode 100644
+index 0000000..3a2eaa5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/NotFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/OrFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/OrFileFilter.class
+new file mode 100644
+index 0000000..e645b21
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/OrFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/PrefixFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/PrefixFileFilter.class
+new file mode 100644
+index 0000000..3029601
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/PrefixFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/RegexFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/RegexFileFilter.class
+new file mode 100644
+index 0000000..0cd1fd2
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/RegexFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SizeFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SizeFileFilter.class
+new file mode 100644
+index 0000000..c5a9022
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SizeFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SuffixFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SuffixFileFilter.class
+new file mode 100644
+index 0000000..972a37c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/SuffixFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/TrueFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/TrueFileFilter.class
+new file mode 100644
+index 0000000..f8bf686
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/TrueFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFileFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFileFilter.class
+new file mode 100644
+index 0000000..ca2ed27
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFileFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFilter.class b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFilter.class
+new file mode 100644
+index 0000000..53cf43d
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/filefilter/WildcardFilter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/AutoCloseInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/AutoCloseInputStream.class
+new file mode 100644
+index 0000000..f98d085
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/AutoCloseInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream$1.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream$1.class
+new file mode 100644
+index 0000000..bddab31
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream$1.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream.class
+new file mode 100644
+index 0000000..a080b9f
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/BOMInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedInputStream.class
+new file mode 100644
+index 0000000..55d5668
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedReader.class
+new file mode 100644
+index 0000000..20eccd9
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/BoundedReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/BrokenInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/BrokenInputStream.class
+new file mode 100644
+index 0000000..2bc01e6
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/BrokenInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceInputStream.class
+new file mode 100644
+index 0000000..a6cde2b
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceReader.class
+new file mode 100644
+index 0000000..c3a6276
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/CharSequenceReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ClassLoaderObjectInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ClassLoaderObjectInputStream.class
+new file mode 100644
+index 0000000..69b8a7a
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ClassLoaderObjectInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/CloseShieldInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/CloseShieldInputStream.class
+new file mode 100644
+index 0000000..ae27000
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/CloseShieldInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ClosedInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ClosedInputStream.class
+new file mode 100644
+index 0000000..8f428b5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ClosedInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/CountingInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/CountingInputStream.class
+new file mode 100644
+index 0000000..6a71eae
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/CountingInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/DemuxInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/DemuxInputStream.class
+new file mode 100644
+index 0000000..b3d1dee
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/DemuxInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/InfiniteCircularInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/InfiniteCircularInputStream.class
+new file mode 100644
+index 0000000..fcf73ad
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/InfiniteCircularInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream$MessageDigestMaintainingObserver.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream$MessageDigestMaintainingObserver.class
+new file mode 100644
+index 0000000..298cc72
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream$MessageDigestMaintainingObserver.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream.class
+new file mode 100644
+index 0000000..b99bd77
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/MessageDigestCalculatingInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/NullInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/NullInputStream.class
+new file mode 100644
+index 0000000..97c0323
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/NullInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/NullReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/NullReader.class
+new file mode 100644
+index 0000000..01cdf5d
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/NullReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream$Observer.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream$Observer.class
+new file mode 100644
+index 0000000..6c9eb56
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream$Observer.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream.class
+new file mode 100644
+index 0000000..8eeceab
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ObservableInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyInputStream.class
+new file mode 100644
+index 0000000..6286606
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyReader.class
+new file mode 100644
+index 0000000..0f4b223
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ProxyReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ReaderInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReaderInputStream.class
+new file mode 100644
+index 0000000..2aaed97
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReaderInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$1.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$1.class
+new file mode 100644
+index 0000000..f3fe8d4
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$1.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$FilePart.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$FilePart.class
+new file mode 100644
+index 0000000..ef239eb
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader$FilePart.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader.class
+new file mode 100644
+index 0000000..bcf2d65
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/ReversedLinesFileReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/SwappedDataInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/SwappedDataInputStream.class
+new file mode 100644
+index 0000000..a4cb032
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/SwappedDataInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/TaggedInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/TaggedInputStream.class
+new file mode 100644
+index 0000000..113a83b
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/TaggedInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/Tailer.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/Tailer.class
+new file mode 100644
+index 0000000..e9d8a4d
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/Tailer.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListener.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListener.class
+new file mode 100644
+index 0000000..780cd14
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListener.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListenerAdapter.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListenerAdapter.class
+new file mode 100644
+index 0000000..76d80c0
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/TailerListenerAdapter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/TeeInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/TeeInputStream.class
+new file mode 100644
+index 0000000..43cf66b
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/TeeInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/UnixLineEndingInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/UnixLineEndingInputStream.class
+new file mode 100644
+index 0000000..746cd43
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/UnixLineEndingInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/WindowsLineEndingInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/WindowsLineEndingInputStream.class
+new file mode 100644
+index 0000000..6eb328f
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/WindowsLineEndingInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReader.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReader.class
+new file mode 100644
+index 0000000..c37ebb5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReader.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReaderException.class b/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReaderException.class
+new file mode 100644
+index 0000000..bd6b0f8
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/input/XmlStreamReaderException.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListener.class b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListener.class
+new file mode 100644
+index 0000000..b9cb738
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListener.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListenerAdaptor.class b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListenerAdaptor.class
+new file mode 100644
+index 0000000..5b89788
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationListenerAdaptor.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationMonitor.class b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationMonitor.class
+new file mode 100644
+index 0000000..6be46c7
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationMonitor.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationObserver.class b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationObserver.class
+new file mode 100644
+index 0000000..d6fe065
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileAlterationObserver.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileEntry.class b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileEntry.class
+new file mode 100644
+index 0000000..6f404be
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/monitor/FileEntry.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/AppendableOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/AppendableOutputStream.class
+new file mode 100644
+index 0000000..ca488c7
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/AppendableOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/BrokenOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/BrokenOutputStream.class
+new file mode 100644
+index 0000000..8a3cc05
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/BrokenOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ByteArrayOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ByteArrayOutputStream.class
+new file mode 100644
+index 0000000..cd2ef3a
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ByteArrayOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedOutputStream.class
+new file mode 100644
+index 0000000..c1de926
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedWriter.class
+new file mode 100644
+index 0000000..2429cc5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ChunkedWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/CloseShieldOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/CloseShieldOutputStream.class
+new file mode 100644
+index 0000000..99650b3
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/CloseShieldOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ClosedOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ClosedOutputStream.class
+new file mode 100644
+index 0000000..d0ba1f8
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ClosedOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/CountingOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/CountingOutputStream.class
+new file mode 100644
+index 0000000..d70a43c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/CountingOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/DeferredFileOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/DeferredFileOutputStream.class
+new file mode 100644
+index 0000000..a808674
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/DeferredFileOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/DemuxOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/DemuxOutputStream.class
+new file mode 100644
+index 0000000..91f4d7c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/DemuxOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/FileWriterWithEncoding.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/FileWriterWithEncoding.class
+new file mode 100644
+index 0000000..49920b3
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/FileWriterWithEncoding.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/LockableFileWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/LockableFileWriter.class
+new file mode 100644
+index 0000000..c075bd7
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/LockableFileWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/NullOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/NullOutputStream.class
+new file mode 100644
+index 0000000..2ffe552
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/NullOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/NullWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/NullWriter.class
+new file mode 100644
+index 0000000..a7275e5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/NullWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyOutputStream.class
+new file mode 100644
+index 0000000..841970a
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyWriter.class
+new file mode 100644
+index 0000000..8453a6e
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ProxyWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/StringBuilderWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/StringBuilderWriter.class
+new file mode 100644
+index 0000000..37421e5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/StringBuilderWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/TaggedOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/TaggedOutputStream.class
+new file mode 100644
+index 0000000..25f5e79
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/TaggedOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/TeeOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/TeeOutputStream.class
+new file mode 100644
+index 0000000..eb0f3bf
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/TeeOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/ThresholdingOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/ThresholdingOutputStream.class
+new file mode 100644
+index 0000000..d5fcd8c
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/ThresholdingOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/WriterOutputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/WriterOutputStream.class
+new file mode 100644
+index 0000000..23708d5
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/WriterOutputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/output/XmlStreamWriter.class b/.security-pipeline/pov/classes/org/apache/commons/io/output/XmlStreamWriter.class
+new file mode 100644
+index 0000000..69995f0
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/output/XmlStreamWriter.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ClassNameMatcher.class b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ClassNameMatcher.class
+new file mode 100644
+index 0000000..201a1fe
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ClassNameMatcher.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/serialization/FullClassNameMatcher.class b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/FullClassNameMatcher.class
+new file mode 100644
+index 0000000..78a8ec4
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/FullClassNameMatcher.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/serialization/RegexpClassNameMatcher.class b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/RegexpClassNameMatcher.class
+new file mode 100644
+index 0000000..138c159
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/RegexpClassNameMatcher.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ValidatingObjectInputStream.class b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ValidatingObjectInputStream.class
+new file mode 100644
+index 0000000..017c7bc
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/ValidatingObjectInputStream.class differ
+diff --git a/.security-pipeline/pov/classes/org/apache/commons/io/serialization/WildcardClassNameMatcher.class b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/WildcardClassNameMatcher.class
+new file mode 100644
+index 0000000..f792b43
+Binary files /dev/null and b/.security-pipeline/pov/classes/org/apache/commons/io/serialization/WildcardClassNameMatcher.class differ
+diff --git a/.security-pipeline/pov/classes/security/pipeline/pov/PathTraversalPOV.class b/.security-pipeline/pov/classes/security/pipeline/pov/PathTraversalPOV.class
+new file mode 100644
+index 0000000..2347d6b
+Binary files /dev/null and b/.security-pipeline/pov/classes/security/pipeline/pov/PathTraversalPOV.class differ

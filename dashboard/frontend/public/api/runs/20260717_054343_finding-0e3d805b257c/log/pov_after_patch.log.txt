@@ -1,0 +1,21 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_054343_finding-0e3d805b257c/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-0e3d805b257c:2dfd255be568 bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+JUnit version 3.8.1
+.E
+Time: 0.052
+There was 1 failure:
+1) namedScriptResourceCollectorEscapesResourceTypeScriptTreeViaDotDot(org.apache.sling.servlets.resolver.internal.helper.PathTraversalScriptResolutionPovTest)
+java.lang.AssertionError: Expected NamedScriptResourceCollector to resolve a script OUTSIDE the resource's own resourceType script tree (/apps/myapp/comp) via the scriptName '../../../secret/admin/leak' (CWE-22 path traversal). found=[]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.apache.sling.servlets.resolver.internal.helper.PathTraversalScriptResolutionPovTest.namedScriptResourceCollectorEscapesResourceTypeScriptTreeViaDotDot(PathTraversalScriptResolutionPovTest.java:134)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+--- stderr ---
+

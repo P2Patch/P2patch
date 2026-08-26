@@ -1,0 +1,45 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2012-2806",
+  "note": "jpeglib.h declares `jpeg_component_info * cur_comp_info[MAX_COMPS_IN_SCAN]` (a fixed 4-element array). cinfo->num_components is read directly from the SOF marker's component-count byte with only a `<= 0` check, no upper bound against MAX_COMPS_IN_SCAN. get_sos() in jdmarker.c then uses it as a loop bound in two places: to zero cur_comp_info (a write) and to search it (a read), both indexing past the array's fixed size when num_components exceeds 4.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "INPUT_BYTE(cinfo, cinfo->num_components, ...) : untrusted byte from the SOF marker, only checked for <= 0, never bounded against MAX_COMPS_IN_SCAN",
+            "uri": "jdmarker.c",
+            "line": 254
+          },
+          {
+            "message": "for (i = 0; i < cinfo->num_components; i++) : loop bound is the unbounded component count",
+            "uri": "jdmarker.c",
+            "line": 326
+          },
+          {
+            "message": "cinfo->cur_comp_info[i] = NULL; : written for i up to num_components, past the array's fixed MAX_COMPS_IN_SCAN(4) size",
+            "uri": "jdmarker.c",
+            "line": 327
+          }
+        ],
+        [
+          {
+            "message": "INPUT_BYTE(cinfo, cinfo->num_components, ...) : untrusted byte from the SOF marker, only checked for <= 0, never bounded against MAX_COMPS_IN_SCAN",
+            "uri": "jdmarker.c",
+            "line": 254
+          },
+          {
+            "message": "for (ci = 0, ...; ci < cinfo->num_components; ci++, ...) : loop bound is the unbounded component count",
+            "uri": "jdmarker.c",
+            "line": 333
+          },
+          {
+            "message": "cinfo->cur_comp_info[ci] : read for ci up to num_components, past the array's fixed MAX_COMPS_IN_SCAN(4) size",
+            "uri": "jdmarker.c",
+            "line": 335
+          }
+        ]
+      ]
+    }
+  ]
+}

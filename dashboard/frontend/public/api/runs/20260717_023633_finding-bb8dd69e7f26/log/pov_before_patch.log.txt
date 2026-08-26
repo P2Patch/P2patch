@@ -1,0 +1,14 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_023633_finding-bb8dd69e7f26/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-bb8dd69e7f26:fe18e8aa9aae bash -lc mvn -q -B -DskipTests compile && mvn -q -B org.apache.maven.plugins:maven-dependency-plugin:3.1.1:build-classpath -Dmdep.outputFile=/tmp/pov_cp.txt -Dmdep.includeScope=test && mkdir -p /tmp/pov_build && javac -cp "target/classes:$(cat /tmp/pov_cp.txt)" -d /tmp/pov_build .security-pipeline/pov/PathTraversalPovTest.java && java -cp "/tmp/pov_build:target/classes:$(cat /tmp/pov_cp.txt)" org.junit.runner.JUnitCore PathTraversalPovTest
+exit_code=0
+timed_out=false
+
+--- stdout ---
+JUnit version 4.12
+.
+Time: 0.071
+
+OK (1 test)
+
+
+--- stderr ---
+

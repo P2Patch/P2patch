@@ -1,0 +1,96 @@
+{
+  "finding_id": "finding-b5cb9a960ea8",
+  "cve_id": "CVE-2018-12036",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "jeremylong__DependencyCheck_CVE-2018-12036_3.1.2",
+  "alert_file": "JEREMYLONG_DEPENDENCYCHECK_CVE_2018_12036.json",
+  "github_url": "https://github.com/jeremylong/DependencyCheck",
+  "repo": "jeremylong/DependencyCheck",
+  "github_tag": "3.1.2",
+  "advisory_id": "GHSA-hcwx-7q5v-vc67",
+  "buggy_commit_id": "c3b5b3c0d7fe7283b4cd421149d6fb620476f67d",
+  "fix_commit_ids": [
+    "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "file": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+      "class": "ArchiveAnalyzer",
+      "class_start": "67.0",
+      "class_end": "615.0",
+      "method": "extractFiles",
+      "method_start": "380.0",
+      "method_end": "442.0",
+      "signature": "void extractFiles(File,File,Engine)",
+      "is_test": false
+    },
+    {
+      "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "file": "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+      "class": "ArchiveAnalyzer",
+      "class_start": "67.0",
+      "class_end": "615.0",
+      "method": "extractArchive",
+      "method_start": "512.0",
+      "method_end": "529.0",
+      "signature": "void extractArchive(ArchiveInputStream,File,Engine)",
+      "is_test": false
+    },
+    {
+      "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+      "class": "ExtractionUtil",
+      "class_start": "48.0",
+      "class_end": "244.0",
+      "method": "extractFiles",
+      "method_start": "85.0",
+      "method_end": "121.0",
+      "signature": "void extractFiles(File,File,Engine)",
+      "is_test": false
+    },
+    {
+      "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+      "class": "ExtractionUtil",
+      "class_start": "48.0",
+      "class_end": "244.0",
+      "method": "extractGzip",
+      "method_start": "244.0",
+      "method_end": "262.0",
+      "signature": "void extractGzip(File)",
+      "is_test": false
+    },
+    {
+      "commit": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "file": "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java",
+      "class": "ExtractionUtil",
+      "class_start": "48.0",
+      "class_end": "244.0",
+      "method": "extractArchive",
+      "method_start": "161.0",
+      "method_end": "182.0",
+      "signature": "void extractArchive(ArchiveInputStream,File,FilenameFilter)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java",
+    "core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-12036",
+    "advisory": "https://github.com/advisories/GHSA-hcwx-7q5v-vc67",
+    "repo": "https://github.com/jeremylong/DependencyCheck",
+    "buggy_commit": "https://github.com/jeremylong/DependencyCheck/commit/c3b5b3c0d7fe7283b4cd421149d6fb620476f67d"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "c106ca919aa343b95cca0ffff0a0b5dc20b2baf7",
+      "url": "https://github.com/jeremylong/DependencyCheck/commit/c106ca919aa343b95cca0ffff0a0b5dc20b2baf7.diff",
+      "diff": "diff --git a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java\nindex 338bccf160..53e9dd4304 100644\n--- a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java\n+++ b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java\n@@ -412,6 +412,11 @@ private void extractFiles(File archive, File destination, Engine engine) throws\n                     final String uncompressedName = GzipUtils.getUncompressedFilename(archive.getName());\n                     final File f = new File(destination, uncompressedName);\n                     if (engine.accept(f)) {\n+                        final String destPath = destination.getCanonicalPath();\n+                        if (!f.getCanonicalPath().startsWith(destPath)) {\n+                            final String msg = String.format(\"Archive (%s) contains a file that would be written outside of the destination directory\", archive.getPath());\n+                            throw new AnalysisException(msg);\n+                        }\n                         in = new BufferedInputStream(fis);\n                         gin = new GzipCompressorInputStream(in);\n                         decompressFile(gin, f);\n@@ -420,6 +425,11 @@ private void extractFiles(File archive, File destination, Engine engine) throws\n                     final String uncompressedName = BZip2Utils.getUncompressedFilename(archive.getName());\n                     final File f = new File(destination, uncompressedName);\n                     if (engine.accept(f)) {\n+                        final String destPath = destination.getCanonicalPath();\n+                        if (!f.getCanonicalPath().startsWith(destPath)) {\n+                            final String msg = String.format(\"Archive (%s) contains a file that would be written outside of the destination directory\", archive.getPath());\n+                            throw new AnalysisException(msg);\n+                        }\n                         in = new BufferedInputStream(fis);\n                         bzin = new BZip2CompressorInputStream(in);\n                         decompressFile(bzin, f);\n@@ -512,8 +522,15 @@ private void ensureReadableJar(final String archiveExt, BufferedInputStream in)\n     private void extractArchive(ArchiveInputStream input, File destination, Engine engine) throws ArchiveExtractionException {\n         ArchiveEntry entry;\n         try {\n+            final String destPath = destination.getCanonicalPath();\n             while ((entry = input.getNextEntry()) != null) {\n                 final File file = new File(destination, entry.getName());\n+                if (!file.getCanonicalPath().startsWith(destPath)) {\n+                    final String msg = String.format(\n+                            \"Archive contains a file (%s) that would be extracted outside of the target directory.\",\n+                            file.getName());\n+                    throw new ArchiveExtractionException(msg);\n+                }\n                 if (entry.isDirectory()) {\n                     if (!file.exists() && !file.mkdirs()) {\n                         final String msg = String.format(\"Unable to create directory '%s'.\", file.getAbsolutePath());\ndiff --git a/core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java b/core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java\nindex 626ca00201..d0a6fd7b21 100644\n--- a/core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java\n+++ b/core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java\n@@ -86,7 +86,12 @@ public static void extractFiles(File archive, File extractTo, Engine engine) thr\n         if (archive == null || extractTo == null) {\n             return;\n         }\n-\n+        final String destPath;\n+        try {\n+            destPath = extractTo.getCanonicalPath();\n+        } catch (IOException ex) {\n+            throw new ExtractionException(\"Unable to extract files to destination path\", ex);\n+        }\n         ZipEntry entry;\n         try (FileInputStream fis = new FileInputStream(archive);\n                 BufferedInputStream bis = new BufferedInputStream(fis);\n@@ -94,6 +99,12 @@ public static void extractFiles(File archive, File extractTo, Engine engine) thr\n             while ((entry = zis.getNextEntry()) != null) {\n                 if (entry.isDirectory()) {\n                     final File d = new File(extractTo, entry.getName());\n+                    if (!d.getCanonicalPath().startsWith(destPath)) {\n+                        final String msg = String.format(\n+                                \"Archive (%s) contains a path that would be extracted outside of the target directory.\",\n+                                archive.getAbsolutePath());\n+                        throw new ExtractionException(msg);\n+                    }\n                     if (!d.exists() && !d.mkdirs()) {\n                         final String msg = String.format(\"Unable to create '%s'.\", d.getAbsolutePath());\n                         throw new ExtractionException(msg);\n@@ -101,6 +112,12 @@ public static void extractFiles(File archive, File extractTo, Engine engine) thr\n                 } else {\n                     final File file = new File(extractTo, entry.getName());\n                     if (engine == null || engine.accept(file)) {\n+                        if (!file.getCanonicalPath().startsWith(destPath)) {\n+                            final String msg = String.format(\n+                                    \"Archive (%s) contains a file that would be extracted outside of the target directory.\",\n+                                    archive.getAbsolutePath());\n+                            throw new ExtractionException(msg);\n+                        }\n                         try (FileOutputStream fos = new FileOutputStream(file)) {\n                             IOUtils.copy(zis, fos);\n                         } catch (FileNotFoundException ex) {\n@@ -136,8 +153,7 @@ public static void extractFilesUsingFilter(File archive, File destination, Filen\n         }\n \n         try (FileInputStream fis = new FileInputStream(archive)) {\n-            extractArchive(new ZipArchiveInputStream(new BufferedInputStream(\n-                    fis)), destination, filter);\n+            extractArchive(new ZipArchiveInputStream(new BufferedInputStream(fis)), destination, filter);\n         } catch (FileNotFoundException ex) {\n             final String msg = String.format(\"Error extracting file `%s` with filter: %s\", archive.getAbsolutePath(), ex.getMessage());\n             LOGGER.debug(msg, ex);\n@@ -163,9 +179,17 @@ private static void extractArchive(ArchiveInputStream input,\n             throws ArchiveExtractionException {\n         ArchiveEntry entry;\n         try {\n+            String destPath = destination.getCanonicalPath();\n+\n             while ((entry = input.getNextEntry()) != null) {\n                 if (entry.isDirectory()) {\n                     final File dir = new File(destination, entry.getName());\n+                    if (!dir.getCanonicalPath().startsWith(destPath)) {\n+                        final String msg = String.format(\n+                                \"Archive contains a path (%s) that would be extracted outside of the target directory.\",\n+                                dir.getAbsolutePath());\n+                        throw new AnalysisException(msg);\n+                    }\n                     if (!dir.exists() && !dir.mkdirs()) {\n                         final String msg = String.format(\n                                 \"Unable to create directory '%s'.\",\n@@ -197,21 +221,30 @@ private static void extractArchive(ArchiveInputStream input,\n     private static void extractFile(ArchiveInputStream input, File destination,\n             FilenameFilter filter, ArchiveEntry entry) throws ExtractionException {\n         final File file = new File(destination, entry.getName());\n-        if (filter.accept(file.getParentFile(), file.getName())) {\n-            LOGGER.debug(\"Extracting '{}'\", file.getPath());\n-            createParentFile(file);\n+        try {\n+            if (filter.accept(file.getParentFile(), file.getName())) {\n+                final String destPath = destination.getCanonicalPath();\n+                if (!file.getCanonicalPath().startsWith(destPath)) {\n+                    final String msg = String.format(\n+                            \"Archive contains a file (%s) that would be extracted outside of the target directory.\",\n+                            file.getAbsolutePath());\n+                    throw new ExtractionException(msg);\n+                }\n+                LOGGER.debug(\"Extracting '{}'\", file.getPath());\n+                createParentFile(file);\n \n-            try (FileOutputStream fos = new FileOutputStream(file)) {\n-                IOUtils.copy(input, fos);\n-            } catch (FileNotFoundException ex) {\n-                LOGGER.debug(\"\", ex);\n-                final String msg = String.format(\"Unable to find file '%s'.\", file.getName());\n-                throw new ExtractionException(msg, ex);\n-            } catch (IOException ex) {\n-                LOGGER.debug(\"\", ex);\n-                final String msg = String.format(\"IO Exception while parsing file '%s'.\", file.getName());\n-                throw new ExtractionException(msg, ex);\n+                try (FileOutputStream fos = new FileOutputStream(file)) {\n+                    IOUtils.copy(input, fos);\n+                } catch (FileNotFoundException ex) {\n+                    LOGGER.debug(\"\", ex);\n+                    final String msg = String.format(\"Unable to find file '%s'.\", file.getName());\n+                    throw new ExtractionException(msg, ex);\n+                }\n             }\n+        } catch (IOException ex) {\n+            LOGGER.debug(\"\", ex);\n+            final String msg = String.format(\"IO Exception while parsing file '%s'.\", file.getName());\n+            throw new ExtractionException(msg, ex);\n         }\n     }\n \ndiff --git a/core/src/test/java/org/owasp/dependencycheck/utils/ExtractionUtilTest.java b/core/src/test/java/org/owasp/dependencycheck/utils/ExtractionUtilTest.java\nnew file mode 100644\nindex 0000000000..359947f652\n--- /dev/null\n+++ b/core/src/test/java/org/owasp/dependencycheck/utils/ExtractionUtilTest.java\n@@ -0,0 +1,65 @@\n+/*\n+ * This file is part of dependency-check-core.\n+ *\n+ * Licensed under the Apache License, Version 2.0 (the \"License\");\n+ * you may not use this file except in compliance with the License.\n+ * You may obtain a copy of the License at\n+ *\n+ *     http://www.apache.org/licenses/LICENSE-2.0\n+ *\n+ * Unless required by applicable law or agreed to in writing, software\n+ * distributed under the License is distributed on an \"AS IS\" BASIS,\n+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n+ * See the License for the specific language governing permissions and\n+ * limitations under the License.\n+ *\n+ * Copyright (c) 2018 Jeremy Long. All Rights Reserved.\n+ */\n+package org.owasp.dependencycheck.utils;\n+\n+import java.io.File;\n+import java.io.FilenameFilter;\n+import org.apache.commons.io.filefilter.NameFileFilter;\n+import org.junit.Test;\n+import org.owasp.dependencycheck.BaseTest;\n+import org.owasp.dependencycheck.Engine;\n+\n+/**\n+ *\n+ * @author Jeremy Long\n+ */\n+public class ExtractionUtilTest extends BaseTest {\n+\n+    /**\n+     * Test of extractFiles method, of class ExtractionUtil.\n+     */\n+    @Test(expected = org.owasp.dependencycheck.utils.ExtractionException.class)\n+    public void testExtractFiles_File_File() throws Exception {\n+        File destination = getSettings().getTempDirectory();\n+        File archive = BaseTest.getResourceAsFile(this, \"evil.zip\");\n+        ExtractionUtil.extractFiles(archive, destination);\n+    }\n+\n+    /**\n+     * Test of extractFiles method, of class ExtractionUtil.\n+     */\n+    @Test(expected = org.owasp.dependencycheck.utils.ExtractionException.class)\n+    public void testExtractFiles_3args() throws Exception {\n+        File destination = getSettings().getTempDirectory();\n+        File archive = BaseTest.getResourceAsFile(this, \"evil.zip\");\n+        Engine engine = null;\n+        ExtractionUtil.extractFiles(archive, destination, engine);\n+    }\n+\n+    /**\n+     * Test of extractFilesUsingFilter method, of class ExtractionUtil.\n+     */\n+    @Test(expected = org.owasp.dependencycheck.utils.ExtractionException.class)\n+    public void testExtractFilesUsingFilter() throws Exception {\n+        File destination = getSettings().getTempDirectory();\n+        File archive = BaseTest.getResourceAsFile(this, \"evil.zip\");\n+        ExtractionUtil.extractFiles(archive, destination);\n+        FilenameFilter filter = new NameFileFilter(\"evil.txt\");\n+        ExtractionUtil.extractFilesUsingFilter(archive, destination, filter);\n+    }\n+}\ndiff --git a/core/src/test/resources/evil.zip b/core/src/test/resources/evil.zip\nnew file mode 100644\nindex 0000000000..437706de7f\nBinary files /dev/null and b/core/src/test/resources/evil.zip differ\n",
+      "cached": true
+    }
+  ]
+}

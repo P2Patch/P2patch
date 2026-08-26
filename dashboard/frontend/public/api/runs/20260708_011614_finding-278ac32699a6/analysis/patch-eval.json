@@ -1,0 +1,277 @@
+{
+  "status": {
+    "state": "done",
+    "finished_at": "2026-07-10T19:46:47.757602+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch replaces the weak `startsWith(folder)` prefix test in DirectoryTraversal with a segment-boundary `isWithin` check, closing the sibling-directory-prefix bypass (e.g. \"base\" vs \"base_secret\") on both the external and classpath guards, and the external POV no longer reproduces with regressions passing. However, it does not perform true filesystem canonicalization (no getCanonicalPath / symlink resolution) and relies on upstream string-based cleanPath to have already resolved `../`, so it is a string-comparison hardening rather than the CWE-022 defense-of-record. It also diverges entirely from the official fix, which added path validation (WEB-INF/META-INF/file:/`../`) in ClassPathResource and does not touch the external route our patch strengthens.",
+    "root_cause": "A weak prefix-based containment check for static-file paths that fails to enforce a path-segment boundary and does not canonicalize the resolved path (including symlinks) against the configured base directory before serving.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 3,
+        "rationale": "Observed external POV no longer reproduces and the sibling-prefix class is closed, but no canonicalization means symlink/upstream-dependent variants aren't provably blocked.",
+        "evidence": "isWithin() adds `resolvedPath.startsWith(configuredFolder + \"/\")` boundary; pov_after_still_reproduces=false",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 3,
+        "rationale": "Fixes the real weak-prefix flaw at the DirectoryTraversal guard (the static-file trust boundary) but stops at string comparison rather than canonical containment.",
+        "evidence": "protectAgainstForExternal/protectAgainstInClassPath now call isWithin() instead of raw startsWith()",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 3,
+        "rationale": "Both external and classpath guards updated, but no `..`/symlink canonicalization and none of the official ClassPathResource validations (WEB-INF/META-INF/file:) are added.",
+        "evidence": "isWithin applied in both methods; external still uses Paths.get(path).toAbsolutePath() without normalize()",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same high-level goal but different file, route, and mechanism than the official fix; jaccard 0.0 and no overlap with ClassPathResource validation logic.",
+        "evidence": "ours_only=[DirectoryTraversal.java]; official_only=[ClassPathResource.java, pom.xml]",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 5,
+        "rationale": "Segment-boundary check preserves legitimate in-folder access; equals/startsWith(+\"/\") handles the folder itself; regressions pass and new tests added.",
+        "evidence": "regressions_ran=2, regressions_passed=true; isWithin returns true on equals or `+ \"/\"` descendant",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Safe string operations with a null guard; no new injection, ReDoS, or crash introduced.",
+        "evidence": "isWithin null-checks configuredFolder and uses plain equals/startsWith",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change: one private helper plus two call-site substitutions and a focused test.",
+        "evidence": "patch_only.diff adds isWithin() and swaps two conditions in DirectoryTraversal.java",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "CWE-022 defense-of-record is canonicalize-to-real-path then verify within base (resolving symlinks); this is a string prefix + toAbsolutePath without normalize/getCanonicalPath, i.e. fragile.",
+        "evidence": "Paths.get(path).toAbsolutePath() (no normalize/toRealPath); isWithin is pure String comparison",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "different_valid",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "No filesystem canonicalization or symlink resolution (uses toAbsolutePath and string startsWith, not getCanonicalPath/toRealPath). A symlink inside the configured folder pointing outside it could still escape the base directory."
+      },
+      {
+        "severity": "medium",
+        "description": "Does not cover the classpath-resource validation the official fix adds in ClassPathResource (WEB-INF/META-INF/file:/`../` rejection). The classpath route protections remain weaker than the reference fix, and the two patches touch disjoint files (jaccard 0)."
+      },
+      {
+        "severity": "low",
+        "description": "External check depends on upstream StringUtils.cleanPath to have resolved `../` before the guard; toAbsolutePath() alone does not normalize, so correctness against dot-segment payloads is implicit rather than enforced at the guard."
+      }
+    ],
+    "overall": {
+      "mean": 3.5,
+      "score": 70,
+      "band": "acceptable",
+      "gates_passed": true
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 70,
+        "score_mean": 71.7,
+        "score_min": 65,
+        "score_max": 80,
+        "score_stdev": 6.24,
+        "mean_median": 3.5,
+        "band_mode": "acceptable",
+        "band_agreement": 0.67,
+        "mean_dim_stdev": 0.35
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 3,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            2,
+            3
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            2,
+            3
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 5,
+          "min": 4,
+          "max": 5,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            5,
+            4,
+            5
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 5,
+          "min": 5,
+          "max": 5,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            5,
+            5,
+            5
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 2,
+          "max": 3,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            2,
+            2,
+            3
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.67,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 70,
+          "band": "acceptable",
+          "gates_passed": true
+        },
+        {
+          "score": 65,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 80,
+          "band": "acceptable",
+          "gates_passed": true
+        }
+      ],
+      "confidence": "medium",
+      "medoid_index": 0,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "DirectoryTraversal.java"
+      ],
+      "official_only": [
+        "ClassPathResource.java",
+        "pom.xml"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "pom.xml",
+        "src/main/java/spark/resource/ClassPathResource.java"
+      ],
+      "commits": [
+        "030e9d00125cbd1ad759668f85488aba1019c668",
+        "a221a864db28eb736d36041df2fa6eb8839fc5cd",
+        "ce9e11517eca69e58ed4378d1e47a02bd06863cc"
+      ]
+    }
+  }
+}

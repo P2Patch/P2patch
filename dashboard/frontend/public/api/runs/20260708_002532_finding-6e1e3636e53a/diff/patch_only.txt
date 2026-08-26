@@ -1,0 +1,57 @@
+diff --git a/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java b/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
+index ad3c6b2..c179198 100644
+--- a/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
++++ b/ff4j-core/src/main/java/org/ff4j/property/PropertyClass.java
+@@ -74,7 +74,15 @@ public class PropertyClass extends Property< Class<?> > {
+     @Override
+     public Class<?> fromString(String v) {
+         try {
+-            return Class.forName(v);
++            // Resolve the class WITHOUT initializing it. Passing untrusted input to the
++            // single-argument Class.forName(v) triggers static initializer execution of an
++            // attacker-controlled class (CWE-094 / RCE). Using initialize=false returns the
++            // Class token for legitimate use while preventing arbitrary code execution.
++            ClassLoader loader = Thread.currentThread().getContextClassLoader();
++            if (loader == null) {
++                loader = PropertyClass.class.getClassLoader();
++            }
++            return Class.forName(v, false, loader);
+         } catch (ClassNotFoundException e) {
+             throw new IllegalArgumentException("The target class has not been found", e);
+         }
+diff --git a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
+index 6359307..9c8df1d 100644
+--- a/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
++++ b/ff4j-core/src/test/java/org/ff4j/test/property/PropertyTest.java
+@@ -352,5 +352,31 @@ public class PropertyTest {
+         Assert.assertNotNull(jb.toString());
+     }
+ 
++    /** Flag toggled by {@link StaticInitCanary}'s static initializer. */
++    static volatile boolean canaryInitialized = false;
++
++    /** Helper whose static initializer must NOT run when resolved by PropertyClass. */
++    static class StaticInitCanary {
++        static {
++            canaryInitialized = true;
++        }
++    }
++
++    /**
++     * Regression test for CWE-094: {@link PropertyClass#fromString(String)} must resolve the
++     * class token without executing the target class's static initializer, otherwise an
++     * attacker-controlled class name leads to arbitrary code execution.
++     */
++    @Test
++    public void tesPropertyClassFromStringDoesNotInitialize() {
++        canaryInitialized = false;
++        PropertyClass pc = new PropertyClass();
++        Class<?> resolved = pc.fromString(StaticInitCanary.class.getName());
++        // The correct class token is still returned...
++        Assert.assertEquals(StaticInitCanary.class.getName(), resolved.getName());
++        // ...but its static initializer must not have run (no code execution).
++        Assert.assertFalse("static initializer must not run during fromString", canaryInitialized);
++    }
++
+ }
+ 

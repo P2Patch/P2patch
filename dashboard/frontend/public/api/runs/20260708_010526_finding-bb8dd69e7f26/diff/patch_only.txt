@@ -1,0 +1,43 @@
+diff --git a/src/main/java/spark/resource/ExternalResourceHandler.java b/src/main/java/spark/resource/ExternalResourceHandler.java
+index 7556f41..8963362 100644
+--- a/src/main/java/spark/resource/ExternalResourceHandler.java
++++ b/src/main/java/spark/resource/ExternalResourceHandler.java
+@@ -62,7 +62,16 @@ public class ExternalResourceHandler extends AbstractResourceHandler {
+         }
+ 
+         try {
+-            path = UriPath.canonical(path);
++            // Normalize backslashes to forward slashes before canonicalization.
++            // UriPath.canonical() only treats '/' as a path separator, so backslash-based
++            // traversal (e.g. "/..\secret.txt") would otherwise pass through unchanged and
++            // later be collapsed by StringUtils.cleanPath(), escaping the base directory.
++            path = UriPath.canonical(path.replace('\\', '/'));
++
++            // canonical() returns null when the path traverses above its root ("too many ..").
++            if (path == null) {
++                return null;
++            }
+ 
+             final String addedPath = addPaths(baseResource, path);
+ 
+diff --git a/src/test/java/spark/resource/ExternalResourceHandlerTest.java b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+index f516969..f29e783 100644
+--- a/src/test/java/spark/resource/ExternalResourceHandlerTest.java
++++ b/src/test/java/spark/resource/ExternalResourceHandlerTest.java
+@@ -100,6 +100,16 @@ public class ExternalResourceHandlerTest {
+ 
+     }
+ 
++    @Test
++    public void testGetResource_whenPathUsesBackslashTraversal_thenReturnNull() throws Exception {
++        // Regression test for CWE-022: a backslash-based traversal such as "/..\secret.txt"
++        // must not escape the configured base directory.
++        ExternalResourceHandler externalResourceHandler = new ExternalResourceHandler("/public", null);
++
++        assertNull("Should return null because the backslash traversal is blocked",
++                   externalResourceHandler.getResource("/..\\secret.txt"));
++    }
++
+     @Test
+     public void testGetResource_whenResourcePathExists_andResourcePathIsNotADirectory_thenReturnResourcePathObject() throws
+                                                                                                                      Exception {

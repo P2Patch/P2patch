@@ -1,0 +1,120 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:21.267785+00:00",
+    "finished_at": "2026-07-17T08:46:02.314489+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "The '\\' → '/' normalization is applied before HttpUtils.removeDots(), so backslash-separated dot segments are now canonicalized away for the whole class, not just the observed payload; POV no longer reproduces.",
+        "evidence": "StaticHandlerImpl.handle():131 — `HttpUtils.removeDots(URIDecoder.decodeURIComponent(context.normalisedPath(), false).replace('\\\\', '/'))`; execution: pov_after_still_reproduces=false. Verified removeDots (vertx-core 3.9.3 HttpUtils) is an RFC 3986 §5.2.4 canonicalizer that cannot leave '..' segments once '\\' is folded to '/'. Double-encoding (%255c) decodes to the literal chars '%5c', never a separator.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Fixed at the same normalization boundary the official fix chose — before the dot-segment remover and well upstream of the getFile()/FileSystem sink — rather than blocking the trigger downstream.",
+        "evidence": "Change is on the exact line the official commit b12f7c4c changes (StaticHandlerImpl.handle:131), i.e. the point where the tainted `normalisedPath()` from RoutingContextImpl:220 is first canonicalized before flowing to getFile→Utils.pathOffset→FileSystem (trace lines 189/610/613/292).",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "handle() is the single funnel for every tainted path into sendStatic/getFile, so all traced paths to the sink are covered; official fix touches nothing else.",
+        "evidence": "All trace variants pass through StaticHandlerImpl:131 before reaching lines 145/149/189/610-613/292. overlap_files=[StaticHandlerImpl.java], official_only=[] (jaccard 1.0).",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 4,
+        "rationale": "Same strategy, same mechanism, same line as the official fix, but it omits the null-guard reordering the official fix deliberately introduced alongside the replace().",
+        "evidence": "Official: `String uriDecodedPath = URIDecoder.decodeURIComponent(...); if (uriDecodedPath == null) {...return;} String path = HttpUtils.removeDots(uriDecodedPath.replace('\\\\','/'));` vs ours: replace() chained onto the decode result with the null check left after removeDots(). Official's unrelated `private static final int NUM_SERVES_TUNING_FS_ACCESS` change is cosmetic and correctly omitted.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Regressions pass and the behavior change (backslash treated as separator) matches upstream, but evidence is thin (only 2 regression tests) and Linux filenames containing a literal '\\' become unreachable — an intentional upstream trade-off, not a new one.",
+        "evidence": "regressions_ran=2, regressions_passed=true; added tests assert `/somedir%5cotherpage.html`→200 and `/..%5csecret.txt`→404, consistent with the official semantics (\"will normalize and handle all paths as UNIX paths\").",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "Calling .replace() directly on the decode result reintroduces an NPE edge that the official fix explicitly engineered around; unreachable via RoutingContextImpl but reachable through any other RoutingContext implementation.",
+        "evidence": "URIDecoder.decodeURIComponent (vertx-core 3.9.3) starts `if (s == null) return null;`. Ours dereferences that result at StaticHandlerImpl:131 before the `if (path == null)` guard at :133, so a null `normalisedPath()` yields NPE→500 instead of the pre-existing log-and-`context.next()`→404. RoutingContextImpl:216-224 maps a null request.path() to \"/\", so in-tree exploitability is nil; StaticHandlerImpl.handle(RoutingContext) is public API over an interface, so it is not provably unreachable.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "One-line production change at exactly the right place, plus two focused regression tests; no unrelated edits.",
+        "evidence": "patch_only.diff touches only StaticHandlerImpl.java:131 (single expression) and adds two tests to StaticHandlerTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "Uses real canonicalization (separator normalization + RFC 3986 dot-segment removal), not a '../' blocklist — this is the codebase's defense-of-record and matches upstream — but it stops short of resolve-to-real-path + base-dir containment, the strongest CWE-022 anchor.",
+        "evidence": "`removeDots(...replace('\\\\','/'))` at StaticHandlerImpl:131 canonicalizes rather than filters; no `File.getCanonicalPath().startsWith(webRoot)` check exists at the sink (getFile:610-613 → Utils.pathOffset), same as the official fix. Symlinks/absolute escapes are still governed only by path-string normalization.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "medium",
+        "description": "Lost null guard / NPE regression: ours chains `.replace('\\\\','/')` directly onto `URIDecoder.decodeURIComponent(context.normalisedPath(), false)`, which returns null for null input (vertx-core 3.9.3 URIDecoder). The official fix restructured precisely for this — it binds `uriDecodedPath`, checks it for null, and only then calls replace(). With ours, a null normalisedPath() throws NPE at StaticHandlerImpl:131 (→ 500) instead of the intended `log.warn(\"Invalid path\"); context.next();` (→ 404). Not reachable via RoutingContextImpl (it maps null request.path() to \"/\"), but handle() accepts the RoutingContext interface, so third-party/decorator implementations can hit it. Fix: hoist the decode into a local and move the existing null check above the replace, mirroring the official diff."
+      },
+      {
+        "severity": "low",
+        "description": "The code comment and both test comments attribute the flaw to \"CVE-2023-24815 class path traversal\", but the vulnerability under fix is CVE-2019-17640 (upstream commit b12f7c4c). Misleading provenance in a permanent code comment; the described mechanism is nonetheless correct."
+      },
+      {
+        "severity": "low",
+        "description": "Verification evidence is thin: only 2 regression tests ran. The behavior change makes any legitimate path containing an encoded literal backslash (valid on POSIX filesystems) unservable. This matches upstream intent (\"handle all paths as UNIX paths\") and is not a defect, but no broader StaticHandler suite result is presented to confirm no other assertions depend on the old behavior."
+      }
+    ],
+    "root_cause": "StaticHandlerImpl fed the URI-decoded request path to HttpUtils.removeDots(), which per RFC 3986 §5.2.4 only recognises '/' as a segment separator, so a percent-encoded backslash (\"/..%5c…\" → \"/..\\…\") passed dot-segment canonicalization untouched and reached the FileSystem sink with an intact \"..\" on platforms that honour '\\' as a separator; a correct fix must fold '\\' to '/' before canonicalization so the whole path is normalized as a UNIX path.",
+    "summary": "Our patch is essentially the official fix: it folds '\\' to '/' before HttpUtils.removeDots() on the exact line upstream changed, closing the backslash-separator bypass for the whole class (any encoding of '\\' decodes to the same char and is normalized; double-encoding yields literal, non-separator chars), not just the POV payload. POV no longer reproduces, regressions pass, and the file set matches the official fix exactly. The one substantive divergence is that the official fix deliberately hoisted the decode into a local and moved the null check above the replace(); ours chains .replace() onto a value that URIDecoder.decodeURIComponent can return null for, converting a graceful \"Invalid path\"→next() into an NPE→500 — unreachable through RoutingContextImpl in-tree, but a real loss of a defensive guard on a public interface-typed API. Security-equivalent to the reference fix, marginally less robust on the null edge.",
+    "overall": {
+      "mean": 4.38,
+      "score": 88,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "StaticHandlerImpl.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "vertx-web/src/main/java/io/vertx/ext/web/handler/impl/StaticHandlerImpl.java"
+      ],
+      "commits": [
+        "b12f7c4c6576a8adc3f683b2899de4b0e7d099e4"
+      ]
+    }
+  }
+}

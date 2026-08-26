@@ -1,0 +1,114 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T15:41:33.678136+00:00",
+    "finished_at": "2026-07-17T15:42:17.803623+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is byte-for-byte equivalent to the official reference fix in both production files: it adds the identical `isInvalidPath` helper to SlingServletResolver, guards `resolveServletInternal` with it, and restructures `SlingScriptResolverImpl.findScript` to reject invalid paths before resolution. The only differences are a slightly longer Javadoc comment and an added unit test — no behavioral divergence. This closes the consecutive-dots traversal class (e.g. \"...\", \"....\") that ResourceUtil.normalize leaves intact, at the same trust boundaries the maintainers chose. Structural overlap is 1.0 and it covers all official fix files.",
+    "root_cause": "Path segments of 3+ consecutive dots bypass ResourceUtil.normalize yet can be resolved as parent-directory references, letting untrusted paths traverse outside allowed execution paths at the resource-resolver sink.",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Adds the same isInvalidPath guard at both resolution entry points, rejecting any all-dots segment >2 chars, closing the class not just the payload.",
+        "evidence": "SlingServletResolver.isInvalidPath + guard at resolveServletInternal (line ~455); SlingScriptResolverImpl.findScript wraps resolution in !isInvalidPath(name)",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "Neutralizes the flaw at the path-validation boundary before getResource is reached, exactly mirroring the official strategy, rather than patching a downstream symptom.",
+        "evidence": "guard placed before charAt(0)=='/' dispatch in resolveServletInternal and before normalize/getResource in findScript",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "Both tainted entry paths (servlet resolution and script findScript, absolute + relative-search-path branches) are covered, matching every official production file.",
+        "evidence": "overlap covers_all_official=true; findScript both branches gated; resolveServletInternal early-returns null",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Production code is semantically identical to the official fix, same mechanism, same locations, same progress-tracker log message.",
+        "evidence": "diff of SlingServletResolver.java and SlingScriptResolverImpl.java matches reference b54d4e6693 line-for-line",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Code equals the upstream-shipped fix so legitimate paths (dots not forming an all-dot segment) are preserved, but the pipeline ran 0 regressions and the POV did not reproduce pre-patch, so execution is unverified.",
+        "evidence": "isInvalidPath allows 'aa/b...b/', 'aa/b.c.d...e.f/'; regressions_ran=0, pov_before_reproduced=false",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Pure O(n) single-pass string scan with no regex, no I/O, no state; no ReDoS/TOCTOU/crash risk (empty path returns false safely).",
+        "evidence": "isInvalidPath while-loop over path.length(); resolveServletInternal null-checks request before logging",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Tight, localized change confined to the two official files plus one added test; no unrelated edits.",
+        "evidence": "only isInvalidPath helper + two guard insertions + SlingServletResolverTest.java",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 4,
+        "rationale": "The isInvalidPath dot-counting is a blocklist rather than pure canonicalize-and-verify, but it is the maintainers' chosen defense-of-record layered on the existing normalize + isPathAllowed base-dir check, so combined it is sound.",
+        "evidence": "isPathAllowed(path, executionPaths) retained; isInvalidPath supplements normalize which misses >2-dot segments",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "Pipeline reports pov_before_reproduced=false and regressions_ran=0, so functional/POV behavior was not empirically confirmed; the verdict rests on exact code equivalence to the official fix rather than executed validation."
+      }
+    ],
+    "overall": {
+      "mean": 4.75,
+      "score": 95,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "SlingScriptResolverImpl.java",
+        "SlingServletResolver.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/apache/sling/servlets/resolver/internal/SlingScriptResolverImpl.java",
+        "src/main/java/org/apache/sling/servlets/resolver/internal/SlingServletResolver.java"
+      ],
+      "commits": [
+        "b54d4e6693e0bcd63a97a0328f4f065b8a81b75e"
+      ]
+    }
+  }
+}

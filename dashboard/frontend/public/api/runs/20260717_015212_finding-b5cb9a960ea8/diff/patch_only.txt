@@ -1,0 +1,107 @@
+diff --git a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+index 338bccf..f1ff2cb 100644
+--- a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
++++ b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+@@ -514,6 +514,7 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         try {
+             while ((entry = input.getNextEntry()) != null) {
+                 final File file = new File(destination, entry.getName());
++                validateExtractionTarget(destination, file, entry.getName());
+                 if (entry.isDirectory()) {
+                     if (!file.exists() && !file.mkdirs()) {
+                         final String msg = String.format("Unable to create directory '%s'.", file.getAbsolutePath());
+@@ -530,6 +531,36 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         }
+     }
+ 
++    /**
++     * Validates that the given extraction target resides within the
++     * expected destination directory. This guards against maliciously
++     * crafted archive entry names (e.g. containing {@code ../}) that
++     * would otherwise allow files to be written outside of the intended
++     * extraction directory (a "Zip Slip" / path traversal attack).
++     *
++     * @param destination the directory files are expected to be extracted
++     * into
++     * @param file the resolved extraction target for an archive entry
++     * @param entryName the raw archive entry name, used for error
++     * reporting
++     * @throws AnalysisException thrown if the resolved extraction target
++     * falls outside of the destination directory
++     */
++    private static void validateExtractionTarget(File destination, File file, String entryName) throws AnalysisException {
++        final String destinationPath;
++        final String filePath;
++        try {
++            destinationPath = destination.getCanonicalPath();
++            filePath = file.getCanonicalPath();
++        } catch (IOException ex) {
++            throw new AnalysisException(String.format("Unable to validate the extraction path for entry '%s'.", entryName), ex);
++        }
++        if (!filePath.equals(destinationPath) && !filePath.startsWith(destinationPath + File.separator)) {
++            throw new AnalysisException(String.format(
++                    "Archive entry '%s' attempts to extract outside of the target directory; extraction blocked.", entryName));
++        }
++    }
++
+     /**
+      * Extracts a file from an archive.
+      *
+diff --git a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+index 6d8f9d0..c567062 100644
+--- a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
++++ b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+@@ -27,6 +27,7 @@ import static org.junit.Assert.*;
+ import static org.junit.Assume.assumeFalse;
+ 
+ import org.owasp.dependencycheck.BaseTest;
++import org.owasp.dependencycheck.analyzer.exception.AnalysisException;
+ import org.owasp.dependencycheck.utils.Settings;
+ 
+ /**
+@@ -56,6 +57,45 @@ public class ArchiveAnalyzerTest extends BaseTest {
+         assertFalse(instance.getFileFilter().accept(new File("c:/test.z4")));
+     }
+ 
++    /**
++     * Ensures that an archive entry name that resolves outside of the
++     * extraction destination (a "Zip Slip" / path traversal payload, e.g.
++     * {@code ../../evil.sh}) is rejected rather than silently extracted
++     * outside of the intended directory.
++     */
++    @Test
++    public void testValidateExtractionTargetRejectsPathTraversal() throws Exception {
++        final File destination = new File(getSettings().getTempDirectory(), "extract-dest");
++        destination.mkdirs();
++        final File maliciousTarget = new File(destination, "../../evil.sh");
++
++        final Method validate = ArchiveAnalyzer.class.getDeclaredMethod(
++                "validateExtractionTarget", File.class, File.class, String.class);
++        validate.setAccessible(true);
++        try {
++            validate.invoke(null, destination, maliciousTarget, "../../evil.sh");
++            fail("Expected an AnalysisException to be thrown for a path traversal archive entry");
++        } catch (InvocationTargetException ex) {
++            assertTrue(ex.getCause() instanceof AnalysisException);
++        }
++    }
++
++    /**
++     * Ensures that a normal, well-behaved archive entry name that resolves
++     * inside of the extraction destination is accepted.
++     */
++    @Test
++    public void testValidateExtractionTargetAllowsNormalEntry() throws Exception {
++        final File destination = new File(getSettings().getTempDirectory(), "extract-dest");
++        destination.mkdirs();
++        final File validTarget = new File(destination, "some/nested/file.txt");
++
++        final Method validate = ArchiveAnalyzer.class.getDeclaredMethod(
++                "validateExtractionTarget", File.class, File.class, String.class);
++        validate.setAccessible(true);
++        validate.invoke(null, destination, validTarget, "some/nested/file.txt");
++    }
++
+     private boolean isPreviouslyLoaded(String className) {
+         try {
+             Method m = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);

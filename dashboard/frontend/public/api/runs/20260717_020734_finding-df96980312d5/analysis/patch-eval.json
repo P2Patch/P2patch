@@ -1,0 +1,120 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-17T08:40:24.914979+00:00",
+    "finished_at": "2026-07-17T08:43:12.025733+00:00",
+    "error": null
+  },
+  "result": {
+    "summary": "Our patch is a correct, canonicalization-based zip-slip fix at the same sink as the official fix (InputStreamHelper.processZipStream, at the new File(dir, entry.getName()) construction site). It canonicalizes both the extraction directory and the resolved entry path and rejects anything not under canonicalDir + File.separator, closing the whole traversal class (../ chains, absolute paths, symlink-resolved escapes) rather than a single payload, and it uses the trailing-separator form so sibling-prefix directories (/tmp/dir-evil vs /tmp/dir) are not accepted. It is semantically equivalent to the official fix, refactored into a helper and marginally more permissive only in the harmless file==dir case. The main weakness is evidentiary, not structural: the POV never reproduced before the patch and 0 regression tests ran, so behavior preservation rests on code analysis.",
+    "root_cause": "processZipStream built the output path with new File(dir, entry.getName()) and wrote/mkdir'd it without verifying that the attacker-controlled zip entry name resolved to a location inside the temp extraction directory, letting a crafted entry escape via ../ segments or an absolute path (zip slip).",
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 5,
+        "rationale": "Every entry path is canonicalized and containment-checked before any mkdirs/write, so the sink is safe for the entire traversal class, not just the observed payload.",
+        "evidence": "InputStreamHelper.java: File file = validateZipEntryPath(dir, entry.getName()); replacing new File(dir, entry.getName()); helper throws IOException unless (canonicalFilePath + File.separator).startsWith(canonicalDirPath + File.separator).",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 5,
+        "rationale": "The guard sits at the sink/trust boundary (path construction inside processZipStream), not at a caller, symptom, or error message.",
+        "evidence": "validateZipEntryPath() is invoked at the single construction point feeding lines 129 (mkdirsQuietly), 133-136 (getParentFile -> FileHelper) and 139 (write) of the taint traces.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 5,
+        "rationale": "All three tainted traces derive from the same file object, now validated once before any branch; ../ and absolute-path variants are both covered because getCanonicalPath() normalizes and resolves symlinks.",
+        "evidence": "Traces at InputStreamHelper.java:129, :133/136 (-> FileHelper.java:95/99) and :139 all consume the validated file; no unvalidated construction site of the entry path remains in processZipStream.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 5,
+        "rationale": "Same defensive strategy (canonical path + prefix containment), same file/method, same failure mode (IOException naming the offending entry) as the official fix; only extracted into a private helper.",
+        "evidence": "Official: if (!canonicalDestinationFile.startsWith(canonicalDestinationDirPath + File.separator)) throw new IOException(\"Entry is outside of the target dir: \"...); ours: same predicate (separator-normalized on both sides) plus a redundant equals-dir allowance.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "The acceptance set is a superset of the official fix's for legitimate entries and an added unit test exercises normal extraction, but 0 regression tests ran and the POV never reproduced pre-patch, so preservation is inferred from code rather than observed.",
+        "evidence": "Execution results: pov_before_reproduced=false, pov_after_present=false, regressions_ran=0, regressions_passed=null; test testNormalZipEntryIsExtracted asserts subdir/file.txt still extracts.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 5,
+        "rationale": "Uses the safe JDK canonicalization primitive correctly; no realistic TOCTOU since java.util.zip extraction cannot create symlinks first; the extra boolean clause is dead logic, not a defect.",
+        "evidence": "String canonicalDirPath = dir.getCanonicalPath(); File file = new File(dir, entryName); String canonicalFilePath = file.getCanonicalPath(); then prefix check; helper declares throws IOException, already on the enclosing method's signature.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 5,
+        "rationale": "Production change is one call-site substitution plus a small private helper in the same class; the rest of the diff is an additive security regression test.",
+        "evidence": "patch_only.diff touches only src/main/java/net/sf/mpxj/common/InputStreamHelper.java (1-line swap + 24-line helper) and adds src/test/java/net/sf/mpxj/junit/InputStreamHelperTest.java.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 5,
+        "rationale": "Exactly the CWE-022 defense-of-record: canonicalize to the real absolute path (resolving symlinks and ..), then verify containment under the base dir with a separator-terminated prefix; no ../ blocklisting.",
+        "evidence": "if (!(canonicalFilePath + File.separator).startsWith(canonicalDirPath + File.separator) && !canonicalFilePath.equals(canonicalDirPath)) throw new IOException(...) - the trailing separator also blocks the /tmp/dir vs /tmp/dir-evil sibling-prefix bypass.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "equivalent",
+    "gates": {
+      "vulnerability_eliminated": true,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "low",
+        "description": "No execution evidence backs the verdict: pov_before_reproduced=false (the POV never reproduced even on unpatched code) and regressions_ran=0 / regressions_passed=null. Both gates rest on code analysis and equivalence to the official fix rather than observed behavior."
+      },
+      {
+        "severity": "low",
+        "description": "The clause && !canonicalFilePath.equals(canonicalDirPath) is dead code: when the paths are equal, (canonicalFilePath + File.separator).startsWith(canonicalDirPath + File.separator) is already true, so the throw never fires. It also makes the check marginally more permissive than upstream (an entry resolving to the extraction dir itself, e.g. \".\", is accepted rather than rejected) - not exploitable, since writing to a directory path fails, but a behavioral divergence from the official fix."
+      },
+      {
+        "severity": "low",
+        "description": "Test hygiene only: the zip-slip tests leave the created temp extraction directory behind when writeZipStreamToTempDir throws, and testZipSlipDeepTraversalToAbsolutePathIsRejected embeds an OS-specific path shape (drive-letter paths on Windows). No production impact."
+      }
+    ],
+    "overall": {
+      "mean": 4.88,
+      "score": 98,
+      "band": "good",
+      "gates_passed": true
+    },
+    "structural_overlap": {
+      "overlap_files": [
+        "InputStreamHelper.java"
+      ],
+      "ours_only": [],
+      "official_only": [],
+      "jaccard": 1.0,
+      "covers_all_official": true
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": false,
+      "pov_after_present": false,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 0,
+      "regressions_passed": null
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/net/sf/mpxj/common/InputStreamHelper.java"
+      ],
+      "commits": [
+        "8eaf4225048ea5ba7e59ef4556dab2098fcc4a1d"
+      ]
+    }
+  }
+}

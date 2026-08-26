@@ -1,0 +1,315 @@
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+index f6e23f0..4fc9232 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+@@ -31,6 +31,9 @@ import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
+ import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
+ import org.apache.dolphinscheduler.remote.processor.NettyRequestProcessor;
+ import org.apache.dolphinscheduler.remote.utils.Constants;
++import org.apache.dolphinscheduler.server.utils.LogUtils;
++
++import org.apache.commons.lang.StringUtils;
+ 
+ import java.io.ByteArrayOutputStream;
+ import java.io.File;
+@@ -38,6 +41,7 @@ import java.io.FileInputStream;
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.nio.file.Files;
++import java.nio.file.Path;
+ import java.nio.file.Paths;
+ import java.util.Collections;
+ import java.util.List;
+@@ -76,21 +80,21 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case GET_LOG_BYTES_REQUEST:
+                 GetLogBytesRequestCommand getLogRequest = JSONUtils.parseObject(
+                         command.getBody(), GetLogBytesRequestCommand.class);
+-                byte[] bytes = getFileContentBytes(getLogRequest.getPath());
++                byte[] bytes = isLogPathIllegal(getLogRequest.getPath()) ? new byte[0] : getFileContentBytes(getLogRequest.getPath());
+                 GetLogBytesResponseCommand getLogResponse = new GetLogBytesResponseCommand(bytes);
+                 channel.writeAndFlush(getLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case VIEW_WHOLE_LOG_REQUEST:
+                 ViewLogRequestCommand viewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), ViewLogRequestCommand.class);
+-                String msg = LoggerUtils.readWholeFileContent(viewLogRequest.getPath());
++                String msg = isLogPathIllegal(viewLogRequest.getPath()) ? "" : LoggerUtils.readWholeFileContent(viewLogRequest.getPath());
+                 ViewLogResponseCommand viewLogResponse = new ViewLogResponseCommand(msg);
+                 channel.writeAndFlush(viewLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case ROLL_VIEW_LOG_REQUEST:
+                 RollViewLogRequestCommand rollViewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), RollViewLogRequestCommand.class);
+-                List<String> lines = readPartFileContent(rollViewLogRequest.getPath(),
++                List<String> lines = isLogPathIllegal(rollViewLogRequest.getPath()) ? Collections.emptyList() : readPartFileContent(rollViewLogRequest.getPath(),
+                         rollViewLogRequest.getSkipLineNum(), rollViewLogRequest.getLimit());
+                 StringBuilder builder = new StringBuilder();
+                 for (String line : lines) {
+@@ -105,14 +109,19 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+ 
+                 String taskLogPath = removeTaskLogRequest.getPath();
+ 
+-                File taskLogFile = new File(taskLogPath);
+-                Boolean status = true;
+-                try {
+-                    if (taskLogFile.exists()) {
+-                        status = taskLogFile.delete();
++                Boolean status = false;
++                if (!isLogPathIllegal(taskLogPath)) {
++                    File taskLogFile = new File(taskLogPath);
++                    status = true;
++                    try {
++                        if (taskLogFile.exists()) {
++                            status = taskLogFile.delete();
++                        }
++                    } catch (Exception e) {
++                        status = false;
+                     }
+-                } catch (Exception e) {
+-                    status = false;
++                } else {
++                    logger.warn("Task log path: {} is illegal, deny to remove", taskLogPath);
+                 }
+ 
+                 RemoveTaskLogResponseCommand removeTaskLogResponse = new RemoveTaskLogResponseCommand(status);
+@@ -127,6 +136,38 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+         return this.executor;
+     }
+ 
++    /**
++     * Verify that an externally supplied log file path is confined to the configured
++     * task log root directory. This guards against path traversal (e.g. "../../etc/passwd",
++     * absolute paths outside of the log root, or symlink-based escapes) since these paths
++     * are taken directly from remote {@link Command} payloads and are otherwise untrusted.
++     *
++     * @param filePath externally supplied file path
++     * @return true if the path is missing or resolves outside of the log root, i.e. illegal
++     */
++    private boolean isLogPathIllegal(String filePath) {
++        if (StringUtils.isBlank(filePath)) {
++            return true;
++        }
++        String logBasePath = LogUtils.getTaskLogBasePath();
++        if (StringUtils.isBlank(logBasePath)) {
++            logger.warn("Log base path is not configured, deny log path request: {}", filePath);
++            return true;
++        }
++        try {
++            Path base = Paths.get(logBasePath).toAbsolutePath().normalize();
++            Path target = Paths.get(filePath).toAbsolutePath().normalize();
++            if (!target.startsWith(base)) {
++                logger.warn("Log path: {} is outside of the log base path: {}, deny request", filePath, logBasePath);
++                return true;
++            }
++            return false;
++        } catch (Exception e) {
++            logger.warn("Failed to validate log path: {}", filePath, e);
++            return true;
++        }
++    }
++
+     /**
+      * get files content bytes，for down load file
+      *
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
+index bffb380..4c77820 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/utils/LogUtils.java
+@@ -65,4 +65,21 @@ public class LogUtils {
+                 taskExecutionContext.getTaskInstanceId());
+     }
+ 
++    /**
++     * get the root directory that all task logs are written under.
++     * used to confine externally supplied log paths (e.g. from remote log view/download
++     * requests) so that they cannot escape outside of the configured log directory.
++     */
++    public static String getTaskLogBasePath() {
++        // Optional.map will be skipped if null
++        return Optional.of(LoggerFactory.getILoggerFactory())
++                .map(e -> (AppenderAttachable<ILoggingEvent>) (e.getLogger("ROOT")))
++                .map(e -> (SiftingAppender) (e.getAppender("TASKLOGFILE")))
++                .map(e -> ((TaskLogDiscriminator) (e.getDiscriminator())))
++                .map(TaskLogDiscriminator::getLogBase)
++                .map(e -> Paths.get(e).toAbsolutePath().normalize())
++                .map(Path::toString)
++                .orElse("");
++    }
++
+ }
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+index e245395..6d3fb8f 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+@@ -21,11 +21,26 @@ import org.apache.dolphinscheduler.common.utils.JSONUtils;
+ import org.apache.dolphinscheduler.common.utils.LoggerUtils;
+ import org.apache.dolphinscheduler.remote.command.Command;
+ import org.apache.dolphinscheduler.remote.command.CommandType;
++import org.apache.dolphinscheduler.remote.command.log.GetLogBytesRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.GetLogBytesResponseCommand;
++import org.apache.dolphinscheduler.remote.command.log.RollViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.RollViewLogResponseCommand;
+ import org.apache.dolphinscheduler.remote.command.log.ViewLogRequestCommand;
++import org.apache.dolphinscheduler.remote.command.log.ViewLogResponseCommand;
++import org.apache.dolphinscheduler.server.utils.LogUtils;
+ 
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import org.junit.Assert;
++import org.junit.Rule;
+ import org.junit.Test;
+ import org.junit.Test.None;
++import org.junit.rules.TemporaryFolder;
+ import org.junit.runner.RunWith;
++import org.mockito.ArgumentCaptor;
+ import org.mockito.Mockito;
+ import org.powermock.api.mockito.PowerMockito;
+ import org.powermock.core.classloader.annotations.PrepareForTest;
+@@ -34,9 +49,12 @@ import org.powermock.modules.junit4.PowerMockRunner;
+ import io.netty.channel.Channel;
+ 
+ @RunWith(PowerMockRunner.class)
+-@PrepareForTest({LoggerUtils.class})
++@PrepareForTest({LoggerUtils.class, LogUtils.class})
+ public class LoggerRequestProcessorTest {
+ 
++    @Rule
++    public TemporaryFolder temporaryFolder = new TemporaryFolder();
++
+     @Test(expected = None.class)
+     public void testProcessViewWholeLogRequest() {
+         Channel channel = PowerMockito.mock(Channel.class);
+@@ -53,4 +71,128 @@ public class LoggerRequestProcessorTest {
+         LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
+         loggerRequestProcessor.process(channel, command);
+     }
+-}
+\ No newline at end of file
++
++    /**
++     * A VIEW_WHOLE_LOG_REQUEST whose path escapes the configured log base directory
++     * (e.g. via "../" traversal) must be rejected: no file content outside of the
++     * log root should ever be returned to the caller.
++     */
++    @Test
++    public void testProcessViewWholeLogRequestDeniesPathOutsideLogBase() throws IOException {
++        Path logBase = temporaryFolder.newFolder("logs").toPath();
++        Path secret = temporaryFolder.newFile("secret.txt").toPath();
++        Files.write(secret, "top-secret".getBytes(StandardCharsets.UTF_8));
++
++        PowerMockito.mockStatic(LogUtils.class);
++        PowerMockito.when(LogUtils.getTaskLogBasePath()).thenReturn(logBase.toString());
++
++        Channel channel = PowerMockito.mock(Channel.class);
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++        PowerMockito.when(channel.writeAndFlush(captor.capture())).thenReturn(null);
++
++        String traversalPath = logBase.resolve("..").resolve(secret.getFileName().toString()).toString();
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand(traversalPath);
++
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(logRequestCommand));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++
++        ViewLogResponseCommand response = JSONUtils.parseObject(captor.getValue().getBody(), ViewLogResponseCommand.class);
++        Assert.assertEquals("", response.getMsg());
++    }
++
++    /**
++     * A legitimate path that resolves inside the configured log base directory
++     * should continue to be served normally.
++     */
++    @Test
++    public void testProcessViewWholeLogRequestAllowsPathInsideLogBase() throws IOException {
++        Path logBase = temporaryFolder.newFolder("logs-ok").toPath();
++        Path logFile = logBase.resolve("task.log");
++        Files.write(logFile, "hello".getBytes(StandardCharsets.UTF_8));
++
++        PowerMockito.mockStatic(LogUtils.class);
++        PowerMockito.when(LogUtils.getTaskLogBasePath()).thenReturn(logBase.toString());
++
++        Channel channel = PowerMockito.mock(Channel.class);
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++        PowerMockito.when(channel.writeAndFlush(captor.capture())).thenReturn(null);
++
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand(logFile.toString());
++
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(logRequestCommand));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++
++        ViewLogResponseCommand response = JSONUtils.parseObject(captor.getValue().getBody(), ViewLogResponseCommand.class);
++        Assert.assertEquals("hello\r\n", response.getMsg());
++    }
++
++    /**
++     * GET_LOG_BYTES_REQUEST is the same class of vulnerability as VIEW_WHOLE_LOG_REQUEST:
++     * an externally supplied path must not be able to read files outside of the log root.
++     */
++    @Test
++    public void testProcessGetLogBytesRequestDeniesPathOutsideLogBase() throws IOException {
++        Path logBase = temporaryFolder.newFolder("logs2").toPath();
++        Path secret = temporaryFolder.newFile("secret2.txt").toPath();
++        Files.write(secret, "top-secret".getBytes(StandardCharsets.UTF_8));
++
++        PowerMockito.mockStatic(LogUtils.class);
++        PowerMockito.when(LogUtils.getTaskLogBasePath()).thenReturn(logBase.toString());
++
++        Channel channel = PowerMockito.mock(Channel.class);
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++        PowerMockito.when(channel.writeAndFlush(captor.capture())).thenReturn(null);
++
++        String traversalPath = logBase.resolve("..").resolve(secret.getFileName().toString()).toString();
++        GetLogBytesRequestCommand getLogRequest = new GetLogBytesRequestCommand(traversalPath);
++
++        Command command = new Command();
++        command.setType(CommandType.GET_LOG_BYTES_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(getLogRequest));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++
++        GetLogBytesResponseCommand response = JSONUtils.parseObject(captor.getValue().getBody(), GetLogBytesResponseCommand.class);
++        Assert.assertEquals(0, response.getData().length);
++    }
++
++    /**
++     * ROLL_VIEW_LOG_REQUEST is the same class of vulnerability: an externally supplied
++     * path must not be able to page through file content outside of the log root.
++     */
++    @Test
++    public void testProcessRollViewLogRequestDeniesPathOutsideLogBase() throws IOException {
++        Path logBase = temporaryFolder.newFolder("logs3").toPath();
++        Path secret = temporaryFolder.newFile("secret3.txt").toPath();
++        Files.write(secret, "top-secret".getBytes(StandardCharsets.UTF_8));
++
++        PowerMockito.mockStatic(LogUtils.class);
++        PowerMockito.when(LogUtils.getTaskLogBasePath()).thenReturn(logBase.toString());
++
++        Channel channel = PowerMockito.mock(Channel.class);
++        ArgumentCaptor<Command> captor = ArgumentCaptor.forClass(Command.class);
++        PowerMockito.when(channel.writeAndFlush(captor.capture())).thenReturn(null);
++
++        String traversalPath = logBase.resolve("..").resolve(secret.getFileName().toString()).toString();
++        RollViewLogRequestCommand rollViewLogRequest = new RollViewLogRequestCommand(traversalPath, 0, 100);
++
++        Command command = new Command();
++        command.setType(CommandType.ROLL_VIEW_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(rollViewLogRequest));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        loggerRequestProcessor.process(channel, command);
++
++        RollViewLogResponseCommand response = JSONUtils.parseObject(captor.getValue().getBody(), RollViewLogResponseCommand.class);
++        Assert.assertEquals("", response.getMsg());
++    }
++}

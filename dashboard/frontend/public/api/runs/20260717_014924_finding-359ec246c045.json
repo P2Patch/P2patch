@@ -1,0 +1,330 @@
+{
+  "run_id": "20260717_014924_finding-359ec246c045",
+  "finding_id": "finding-359ec246c045",
+  "timestamp": "2026-07-17T01:49:24",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_014924_finding-359ec246c045",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-359ec246c045",
+    "cve_id": "CVE-2018-1002202",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2",
+    "alert_file": "SRIKANTH_LINGALA_ZIP4J_CVE_2018_1002202.json",
+    "github_url": "https://github.com/iris-sast/zip4j",
+    "repo": "iris-sast/zip4j",
+    "github_tag": "1.3.2",
+    "advisory_id": "GHSA-2rpm-4x8c-pvqg",
+    "buggy_commit_id": "d87ffa2d64ffb3a0a1cf0c7a69c7b19d7015bfde",
+    "fix_commit_ids": [
+      "59aeea594ff885e06c25751dc6334dfea1bed8c6"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "59aeea594ff885e06c25751dc6334dfea1bed8c6",
+        "file": "src/main/java/net/lingala/zip4j/unzip/Unzip.java",
+        "class": "Unzip",
+        "class_start": "32.0",
+        "class_end": "237.0",
+        "method": "initExtractFile",
+        "method_start": "123.0",
+        "method_end": "179.0",
+        "signature": "void initExtractFile(FileHeader,String,UnzipParameters,String,ProgressMonitor)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/net/lingala/zip4j/unzip/Unzip.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1002202",
+      "advisory": "https://github.com/advisories/GHSA-2rpm-4x8c-pvqg",
+      "repo": "https://github.com/iris-sast/zip4j",
+      "buggy_commit": "https://github.com/iris-sast/zip4j/commit/d87ffa2d64ffb3a0a1cf0c7a69c7b19d7015bfde"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 422,
+              "message": "getOutputFileNameWithPath(...) : String",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 422,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 424,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 432,
+              "message": "file",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            }
+          ],
+          [
+            {
+              "line": 422,
+              "message": "getOutputFileNameWithPath(...) : String",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 422,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 424,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 425,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 432,
+              "message": "file",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 422,
+              "message": "getOutputFileNameWithPath(...) : String",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 422,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 424,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 425,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 425,
+              "message": "getParentFile(...)",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            }
+          ]
+        ]
+      },
+      {
+        "traces": [
+          [
+            {
+              "line": 422,
+              "message": "getOutputFileNameWithPath(...) : String",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 422,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 424,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 429,
+              "message": "file",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            }
+          ],
+          [
+            {
+              "line": 422,
+              "message": "getOutputFileNameWithPath(...) : String",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 422,
+              "message": "new File(...) : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 424,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 425,
+              "message": "file : File",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            },
+            {
+              "line": 429,
+              "message": "file",
+              "uri": "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-359ec246c045",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_014924_finding-359ec246c045/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-359ec246c045:9e95644bb5c7",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/srikanth-lingala__zip4j_[redacted]_1.3.2/25/Dockerfile",
+        "-t",
+        "simpleautosec-finding-359ec246c045:9e95644bb5c7",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/srikanth-lingala__zip4j_[redacted]_1.3.2/25"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 407890,
+        "duration_api_ms": 385570,
+        "num_turns": 52,
+        "cost_usd": 1.9633784999999997,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 100,
+          "output": 31808,
+          "cache_read": 3339255,
+          "cache_creation": 80697
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/net/lingala/zip4j/util/Zip4jUtil.java",
+          "src/main/java/net/lingala/zip4j/unzip/UnzipEngine.java",
+          "src/main/java/net/lingala/zip4j/unzip/Unzip.java",
+          "pom.xml",
+          "src/test/java/net/lingala/zip4j/unzip/ZipSlipTest.java"
+        ],
+        "patch_notes": "Root cause: outPath + entryFileName were concatenated with plain string concatenation (no canonicalization/containment check) at three sink locations: UnzipEngine.getOutputFileNameWithPath (feeds getOutputStream's mkdirs/delete/FileOutputStream and unzipFile's applyFileAttributes call), Unzip.initExtractFile's directory-entry mkdirs branch, and Unzip.checkOutputDirectoryStructure's parent-dir mkdirs. Added Zip4jUtil.getSanitizedOutputFile(outPath, fileName): builds the candidate File via new File(outPath, fileName), takes its canonical path and the canonical path of outPath, and throws ZipException unless the target's canonical path equals or is nested under the canonical outPath. Replaced the raw string-concatenation/`new File(...)` construction at all three sink locations with calls to this helper, so any entry name that resolves outside the extraction root (via \"../\" sequences, absolute paths, etc.) is rejected before any filesystem mutation occurs, for both file and directory entries. Added JUnit (test-scope) to pom.xml (project previously had no test infra) and a new regression test class ZipSlipTest with three cases: (1) a single-level \"../evil.txt\" file entry — confirmed to actually escape and write outside the extraction dir on the pre-patch code (FileOutputStream succeeds), and now throws ZipException with no file created; (2) a \"../evil-dir/\" directory entry — confirmed to actually create a directory outside the extraction dir via File.mkdirs() canonical-resolution behavior on pre-patch code, now blocked; (3) a well-behaved nested entry, to confirm normal extraction still works post-patch. (A third traversal variant using literal non-existent intermediate directories before \"../\" was deliberately not used as a regression case: Java's File.mkdirs()/exists() resolve \"..\" via the OS canonical stat, so that specific shape happens to fail with FileNotFoundException even pre-patch for unrelated reasons — it would not have been a reliable regression witness.)",
+        "regression_commands": [
+          "mvn -B test",
+          "mvn -B -DskipTests package"
+        ],
+        "risk_notes": "Low risk. The change only tightens validation at existing sinks; it does not alter behavior for entries that legitimately resolve under the extraction root (verified by the \"still works for well-behaved entries\" test and by re-running the pre-existing packaging build). newFileName (caller-supplied rename target passed to extractFile) is now also validated to stay under outPath — this is intentional defense-in-depth per the alert's guidance to cover sibling call sites/parameters, and should not affect legitimate callers since a rename target is expected to land inside the extraction directory. No dependency version changes to production code; JUnit was added strictly as a test-scope dependency to support the new regression test, since the project previously had no test source tree at all.",
+        "status": "patched",
+        "summary": "Fixed the zip-slip / path traversal vulnerability (CWE-022) in zip4j's unzip code path. Archive entry names were concatenated directly onto the extraction output path with no validation, so a crafted entry name (e.g. containing \"../\" sequences) could cause zip4j to write files, create parent directories, or overwrite/delete files outside the intended extraction root — reachable via UnzipEngine.getOutputFileNameWithPath (used by both the file-write/delete sink in getOutputStream and the file-attribute sink in unzipFile), and via the sibling call sites in Unzip.java (the directory-entry mkdirs branch and checkOutputDirectoryStructure's parent-dir mkdirs). Added a single reusable guard, Zip4jUtil.getSanitizedOutputFile(outPath, fileName), which resolves the candidate output file's canonical path and throws a ZipException if it falls outside the canonical extraction root. Wired this guard into all three affected sinks so every code path that turns an archive-entry name into a filesystem path is validated before any write/mkdir/delete happens."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 1.9634,
+    "num_turns": 52,
+    "agent_duration_ms": 407890
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

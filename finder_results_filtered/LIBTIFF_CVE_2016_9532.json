@@ -1,0 +1,33 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2016-9532",
+  "note": "tools/tiffcrop.c's writeBufferToSeparateStrips() computes `rowstripsize = rowsperstrip * bytes_per_sample * (width + 1);` at line 1168 and immediately passes it to `_TIFFmalloc(rowstripsize)` at line 1170 as the allocation size. `rowsperstrip` comes from `TIFFGetFieldDefaulted(out, TIFFTAG_ROWSPERSTRIP, &rowsperstrip)` (line 1164), `bytes_per_sample` is derived from `TIFFGetField(out, TIFFTAG_BITSPERSAMPLE, &bps)` (line 1165), and `width` is the image width -- all attacker-controlled via the input TIFF's tags, all plain uint32 here, with no check that their product fits in 32 bits before this multiplication. For large enough values the product wraps, _TIFFmalloc() returns a buffer far smaller than the code believes it owns, and the row-copy loop that follows reads/writes past it.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "(void) TIFFGetFieldDefaulted(out, TIFFTAG_ROWSPERSTRIP, &rowsperstrip) : untrusted TIFF tag value read with no upper-bound check",
+            "uri": "tools/tiffcrop.c",
+            "line": 1164
+          },
+          {
+            "message": "(void) TIFFGetField(out, TIFFTAG_BITSPERSAMPLE, &bps) : untrusted TIFF tag value feeding bytes_per_sample = (bps + 7) / 8 on the next line, also unchecked",
+            "uri": "tools/tiffcrop.c",
+            "line": 1165
+          },
+          {
+            "message": "rowstripsize = rowsperstrip * bytes_per_sample * (width + 1) : plain uint32 multiplication of three attacker-influenced values, no overflow guard",
+            "uri": "tools/tiffcrop.c",
+            "line": 1168
+          },
+          {
+            "message": "obuf = _TIFFmalloc(rowstripsize) : the wrapped, undersized value sizes the heap allocation that the row-copy loop below then reads/writes past -- CWE-190 root cause producing a CWE-125 out-of-bounds read",
+            "uri": "tools/tiffcrop.c",
+            "line": 1170
+          }
+        ]
+      ]
+    }
+  ]
+}

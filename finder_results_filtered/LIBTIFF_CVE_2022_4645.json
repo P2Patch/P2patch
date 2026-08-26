@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2022-4645",
+  "note": "tiffcp's InkNames-copy block (tools/tiffcp.c) reads `ninks` directly from the attacker-controlled TIFFTAG_NUMBEROFINKS directory tag via `TIFFGetField(in, TIFFTAG_NUMBEROFINKS, &ninks)` (line 764), then `while (ninks > 1) { cp = strchr(cp, '\\0'); cp++; inknameslen += (strlen(cp) + 1); ninks--; }` (lines 769-773) walks `cp` through the TIFFTAG_INKNAMES buffer exactly `ninks - 1` times, with no check anywhere between the TIFFGetField() read and the loop that `ninks` actually matches the number of NUL-separated strings present in that buffer. A NumberOfInks value larger than the true InkNames string count walks `cp`/`strchr`/`strlen` past the end of the buffer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "ninks read directly from TIFFGetField(in, TIFFTAG_NUMBEROFINKS, &ninks) -- attacker-controlled NumberOfInks tag, no validation against the actual InkNames buffer content",
+            "uri": "tools/tiffcp.c",
+            "line": 764
+          },
+          {
+            "message": "while (ninks > 1) { cp = strchr(cp, '\\0'); cp++; ... } walks cp through inknames ninks-1 times with no bounds check against the buffer's real length -- CWE-125 out-of-bounds read",
+            "uri": "tools/tiffcp.c",
+            "line": 770
+          }
+        ]
+      ]
+    }
+  ]
+}

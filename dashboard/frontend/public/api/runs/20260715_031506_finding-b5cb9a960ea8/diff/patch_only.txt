@@ -1,0 +1,134 @@
+diff --git a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+index 338bccf..5e83f51 100644
+--- a/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
++++ b/core/src/main/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzer.java
+@@ -514,6 +514,15 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         try {
+             while ((entry = input.getNextEntry()) != null) {
+                 final File file = new File(destination, entry.getName());
++                //bug fix #5464 - protect against Zip Slip (CWE-22) path traversal
++                if (!isInsideDestination(file, destination)) {
++                    final String msg = String.format(
++                            "Archive (%s) contains an entry '%s' that would extract outside of the target directory; "
++                            + "this could indicate a malicious archive.",
++                            input, entry.getName());
++                    LOGGER.debug(msg);
++                    throw new ArchiveExtractionException(msg);
++                }
+                 if (entry.isDirectory()) {
+                     if (!file.exists() && !file.mkdirs()) {
+                         final String msg = String.format("Unable to create directory '%s'.", file.getAbsolutePath());
+@@ -530,6 +539,29 @@ public class ArchiveAnalyzer extends AbstractFileTypeAnalyzer {
+         }
+     }
+ 
++    /**
++     * Determines whether the resolved extraction target is contained within the
++     * destination directory. This guards against Zip Slip / path traversal
++     * (CWE-22) where a crafted archive entry name (e.g. containing {@code ../})
++     * would otherwise write outside of the intended extraction directory.
++     *
++     * @param file the file that would be written for the archive entry
++     * @param destination the intended extraction directory
++     * @return {@code true} if the file resolves to a location inside the
++     * destination directory; otherwise {@code false}
++     */
++    private static boolean isInsideDestination(File file, File destination) {
++        try {
++            final String canonicalDest = destination.getCanonicalPath();
++            final String canonicalFile = file.getCanonicalPath();
++            return canonicalFile.equals(canonicalDest)
++                    || canonicalFile.startsWith(canonicalDest + File.separator);
++        } catch (IOException ex) {
++            LOGGER.debug("Unable to canonicalize extraction path", ex);
++            return false;
++        }
++    }
++
+     /**
+      * Extracts a file from an archive.
+      *
+diff --git a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+index 6d8f9d0..b4456c9 100644
+--- a/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
++++ b/core/src/test/java/org/owasp/dependencycheck/analyzer/ArchiveAnalyzerTest.java
+@@ -16,16 +16,21 @@
+ package org.owasp.dependencycheck.analyzer;
+ 
+ import java.io.File;
++import java.io.FileOutputStream;
+ import java.lang.reflect.InvocationTargetException;
+ import java.lang.reflect.Method;
++import java.nio.file.Files;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
+ 
+ import org.junit.Before;
+ import org.junit.Test;
+ import static org.junit.Assert.*;
+ import static org.junit.Assume.assumeFalse;
+ 
++import org.owasp.dependencycheck.Engine;
+ import org.owasp.dependencycheck.BaseTest;
+ import org.owasp.dependencycheck.utils.Settings;
+ 
+@@ -56,6 +61,57 @@ public class ArchiveAnalyzerTest extends BaseTest {
+         assertFalse(instance.getFileFilter().accept(new File("c:/test.z4")));
+     }
+ 
++    /**
++     * Regression test for CWE-022 (Zip Slip / path traversal). A crafted archive
++     * entry whose name escapes the extraction directory (via {@code ../}) must be
++     * rejected and must not result in a file being written outside of the
++     * destination directory.
++     */
++    @Test
++    public void testZipSlipIsBlocked() throws Exception {
++        assumeFalse(isPreviouslyLoaded("org.owasp.dependencycheck.analyzer.ArchiveAnalyzer"));
++
++        final File sandbox = Files.createTempDirectory("dc-zipslip-test").toFile();
++        final File destination = new File(sandbox, "extract-here");
++        assertTrue(destination.mkdirs());
++
++        final File escapedTarget = new File(sandbox, "PWNED_outside_destination.txt");
++        final String maliciousEntryName = "../" + escapedTarget.getName();
++
++        final File maliciousZip = new File(sandbox, "malicious.zip");
++        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(maliciousZip))) {
++            final ZipEntry entry = new ZipEntry(maliciousEntryName);
++            zos.putNextEntry(entry);
++            zos.write("owned-by-zip-slip".getBytes("UTF-8"));
++            zos.closeEntry();
++        }
++
++        final ArchiveAnalyzer analyzer = new ArchiveAnalyzer();
++        analyzer.initialize(getSettings());
++
++        final Engine engine = new Engine(Engine.Mode.EVIDENCE_COLLECTION, getSettings()) {
++            @Override
++            public boolean accept(File file) {
++                return true;
++            }
++        };
++
++        final Method extractFiles = ArchiveAnalyzer.class.getDeclaredMethod(
++                "extractFiles", File.class, File.class, Engine.class);
++        extractFiles.setAccessible(true);
++
++        try {
++            // extractFiles logs and swallows the ArchiveExtractionException; the
++            // security guarantee is that the traversing entry is never written.
++            extractFiles.invoke(analyzer, maliciousZip, destination, engine);
++        } finally {
++            engine.close();
++        }
++
++        assertFalse("A file was written outside of the extraction directory (Zip Slip)",
++                escapedTarget.exists());
++    }
++
+     private boolean isPreviouslyLoaded(String className) {
+         try {
+             Method m = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);

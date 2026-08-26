@@ -1,0 +1,297 @@
+diff --git a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+index 75a4b6c..58b75cb 100644
+--- a/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
++++ b/tapestry-core/src/main/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.java
+@@ -52,7 +52,18 @@ public class ContextAssetRequestHandler implements AssetRequestHandler
+             return false;
+         }
+ 
+-        return path.stream(rootContextResource.forFile(path.resourcePath));
++        Resource resource = rootContextResource.forFile(path.resourcePath);
++
++        // TAP5-2530: forFile() normalizes any ".." segments in the requested path, so an
++        // attacker can craft a path such as "foo/../WEB-INF/web.xml" that slips past the
++        // check above (it doesn't literally start with a protected prefix) yet resolves to a
++        // protected resource. Re-check the fully normalized resource path before streaming.
++        if (illegal.matcher(resource.getPath()).matches())
++        {
++            return false;
++        }
++
++        return path.stream(resource);
+     }
+ 
+ }
+diff --git a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+index 767ed12..033642e 100644
+--- a/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
++++ b/tapestry-core/src/test/java/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandlerTest.java
+@@ -14,11 +14,17 @@
+ 
+ package org.apache.tapestry5.internal.services.assets;
+ 
++import org.apache.tapestry5.internal.services.ResourceStreamer;
++import org.apache.tapestry5.ioc.Resource;
++import org.apache.tapestry5.ioc.internal.util.AbstractResource;
+ import org.apache.tapestry5.ioc.test.TestBase;
++import org.apache.tapestry5.services.assets.StreamableResource;
+ import org.testng.annotations.DataProvider;
+ import org.testng.annotations.Test;
+ 
+ import java.io.IOException;
++import java.net.URL;
++import java.util.Set;
+ 
+ public class ContextAssetRequestHandlerTest extends TestBase
+ {
+@@ -41,4 +47,91 @@ public class ContextAssetRequestHandlerTest extends TestBase
+         assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
+                 "Handler should return false for invalid path.");
+     }
++
++    @DataProvider
++    public Object[][] traversal_paths()
++    {
++        return new Object[][]
++                {
++                        {"foo/../WEB-INF/web.xml"},
++                        {"a/b/../../WEB-INF/classes/hibernate.cfg.xml"},
++                        {"x/../META-INF/MANIFEST.MF"},
++                        {"assets/../Index.tml"}};
++    }
++
++    /**
++     * TAP5-2530: a path such as "foo/../WEB-INF/web.xml" does not literally start with a
++     * protected prefix, so it slips past the initial check, but forFile() normalizes the ".."
++     * segments and resolves to a protected resource. The handler must re-check the normalized
++     * path and reject the request. The root resource here always reports that it exists and the
++     * streamer always succeeds, so the only thing preventing the protected resource from being
++     * streamed is the normalized-path check.
++     */
++    @Test(dataProvider = "traversal_paths")
++    public void ensure_traversal_assets_are_rejected(String path) throws IOException
++    {
++        RecordingResourceStreamer streamer = new RecordingResourceStreamer();
++        Resource root = new AlwaysExistingResource("");
++
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(streamer, root);
++
++        assertFalse(handler.handleAssetRequest(null, null, "fake-checksum/" + path),
++                "Handler should return false for a path that normalizes into a protected folder.");
++
++        assertNull(streamer.streamed,
++                "The protected resource must not be streamed to the client.");
++    }
++
++    /**
++     * A resource whose folder navigation ({@link AbstractResource#forFile(String)}) behaves like the
++     * real context resources, but which always reports that it exists so that the traversal test does
++     * not depend on the presence of an actual file on the classpath.
++     */
++    private static class AlwaysExistingResource extends AbstractResource
++    {
++        AlwaysExistingResource(String path)
++        {
++            super(path);
++        }
++
++        @Override
++        protected Resource newResource(String path)
++        {
++            return new AlwaysExistingResource(path);
++        }
++
++        @Override
++        public URL toURL()
++        {
++            return null;
++        }
++
++        @Override
++        public boolean exists()
++        {
++            return true;
++        }
++
++        @Override
++        public String toString()
++        {
++            return "AlwaysExistingResource[" + getPath() + "]";
++        }
++    }
++
++    private static class RecordingResourceStreamer implements ResourceStreamer
++    {
++        Resource streamed;
++
++        public boolean streamResource(Resource resource, String providedChecksum, Set<Options> options)
++        {
++            this.streamed = resource;
++            return true;
++        }
++
++        public boolean streamResource(StreamableResource resource, String providedChecksum, Set<Options> options)
++        {
++            return true;
++        }
++    }
+ }
+diff --git a/.security-pipeline/pov/ContextAssetTraversalPov.java b/.security-pipeline/pov/ContextAssetTraversalPov.java
+new file mode 100644
+index 0000000..64a98a7
+--- /dev/null
++++ b/.security-pipeline/pov/ContextAssetTraversalPov.java
+@@ -0,0 +1,121 @@
++// Proof-of-Vulnerability for CWE-022 (Path Traversal) in Apache Tapestry's
++// context asset request handling.
++//
++// The vulnerable flow:
++//   ContextAssetRequestHandler.handleAssetRequest() builds a ChecksumPath and
++//   applies the `illegal` regex ("^((web|meta)-inf.*)|(.*\.tml$)") to the RAW,
++//   un-normalized resource path. It then calls rootContextResource.forFile(path),
++//   which collapses ".." segments (AbstractResource.forFile) BEFORE the resource
++//   is resolved to a real file (ContextResource.getRealFile -> new File(...)).
++//
++//   An attacker can therefore smuggle a request for a protected resource such as
++//   "WEB-INF/web.xml" by sending  "<checksum>/x/../WEB-INF/web.xml".
++//   The raw path "x/../WEB-INF/web.xml" does NOT match the illegal regex (it
++//   starts with "x"), so the guard is bypassed; forFile() then normalizes it to
++//   "WEB-INF/web.xml", and the handler streams the protected resource.
++//
++// This POV drives the REAL project code (ContextAssetRequestHandler ->
++// ChecksumPath -> AbstractResource.forFile -> ContextResource) and asserts that
++// a WEB-INF resource was actually reached and streamed.
++//
++// Exit 0  => vulnerable (protected WEB-INF resource was streamed via traversal).
++// Exit 1  => not vulnerable (a correct patch blocks the traversal/filter bypass).
++
++import org.apache.tapestry5.internal.services.ContextResource;
++import org.apache.tapestry5.internal.services.ResourceStreamer;
++import org.apache.tapestry5.internal.services.assets.ContextAssetRequestHandler;
++import org.apache.tapestry5.ioc.Resource;
++import org.apache.tapestry5.services.Context;
++import org.apache.tapestry5.services.assets.StreamableResource;
++
++import java.io.File;
++import java.net.URL;
++import java.util.List;
++import java.util.Set;
++
++public class ContextAssetTraversalPov
++{
++    // Records the path of the resource the framework tried to stream.
++    static String streamedPath = null;
++
++    public static void main(String[] args) throws Exception
++    {
++        // 1. Build a temporary web context root containing a "protected" file
++        //    under WEB-INF that the illegal-path filter is supposed to guard.
++        File webRoot = File.createTempFile("tapestry-pov-root", "");
++        webRoot.delete();
++        File webInf = new File(webRoot, "WEB-INF");
++        webInf.mkdirs();
++        File secret = new File(webInf, "web.xml");
++        try (java.io.FileWriter w = new java.io.FileWriter(secret))
++        {
++            w.write("<web-app>SECRET-CONTEXT-DESCRIPTOR</web-app>");
++        }
++
++        // 2. A Context backed by that root. getRealFile resolves paths under it,
++        //    exactly like ContextImpl over a servlet container.
++        final File root = webRoot;
++        Context context = new Context()
++        {
++            public URL getResource(String path) { return null; }
++
++            public File getRealFile(String path)
++            {
++                String p = path.startsWith("/") ? path.substring(1) : path;
++                return new File(root, p);
++            }
++
++            public String getInitParameter(String name) { return null; }
++            public List<String> getResourcePaths(String path) { return null; }
++            public Object getAttribute(String name) { return null; }
++            public List<String> getAttributeNames() { return null; }
++            public String getMimeType(String file) { return null; }
++        };
++
++        // 3. The application's root context resource (path "").
++        Resource rootContextResource = new ContextResource(context, "");
++
++        // 4. A ResourceStreamer that records what the handler decided to stream.
++        ResourceStreamer streamer = new ResourceStreamer()
++        {
++            public boolean streamResource(Resource resource, String providedChecksum, Set<Options> options)
++            {
++                streamedPath = resource.getPath();
++                return true;
++            }
++
++            public boolean streamResource(StreamableResource resource, String providedChecksum, Set<Options> options)
++            {
++                return true;
++            }
++        };
++
++        ContextAssetRequestHandler handler = new ContextAssetRequestHandler(streamer, rootContextResource);
++
++        // 5. Malicious asset request: "<checksum>/x/../WEB-INF/web.xml".
++        //    Raw resource path is "x/../WEB-INF/web.xml" (bypasses the filter),
++        //    normalized by forFile() to "WEB-INF/web.xml".
++        String extraPath = "0000checksum/x/../WEB-INF/web.xml";
++
++        boolean handled = handler.handleAssetRequest(null, null, extraPath);
++
++        System.out.println("[pov] handleAssetRequest returned: " + handled);
++        System.out.println("[pov] streamed resource path:     " + streamedPath);
++
++        boolean traversed =
++                handled
++                && streamedPath != null
++                && streamedPath.toLowerCase().startsWith("web-inf");
++
++        if (traversed)
++        {
++            System.out.println("[pov] VULNERABLE: protected WEB-INF resource reached via path traversal / filter bypass.");
++            System.exit(0);
++        }
++        else
++        {
++            System.out.println("[pov] NOT VULNERABLE: traversal to WEB-INF was blocked.");
++            System.exit(1);
++        }
++    }
++}
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100644
+index 0000000..06d71fc
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,26 @@
++#!/usr/bin/env bash
++# Builds the project's main classes (if needed), compiles the POV against the
++# real Tapestry classes, and runs it. Exit 0 == vulnerable, non-zero == patched.
++set -eu
++
++cd "$(dirname "$0")/../.."   # -> /workspace/repo
++
++POV_DIR=".security-pipeline/pov"
++OUT="$POV_DIR/out"
++mkdir -p "$OUT"
++
++# Ensure the vulnerable module (and its deps) are compiled.
++if [ ! -e "tapestry-core/build/classes/main/org/apache/tapestry5/internal/services/assets/ContextAssetRequestHandler.class" ]; then
++  ./gradlew --no-daemon :tapestry-core:compileJava -q
++fi
++
++# Classpath: every module's compiled main classes (module layouts differ:
++# some use build/classes/main, commons uses target/gradle-build/classes/main)
++# plus the servlet-api jar.
++CP="$(find . -type d -path '*/classes/main' 2>/dev/null | tr '\n' ':')"
++SERVLET_JAR="$(find "$HOME/.gradle/caches" -name 'servlet-api-*.jar' 2>/dev/null | head -n1)"
++CP="$CP$SERVLET_JAR"
++
++javac -cp "$CP" -d "$OUT" "$POV_DIR/ContextAssetTraversalPov.java"
++
++java -cp "$OUT:$CP" ContextAssetTraversalPov

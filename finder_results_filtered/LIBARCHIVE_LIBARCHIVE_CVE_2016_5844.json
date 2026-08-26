@@ -1,0 +1,79 @@
+{
+  "cwe_id": "cwe-190",
+  "cve_id": "CVE-2016-5844",
+  "note": "the ISO9660 volume-descriptor `location` field is decoded from raw untrusted archive bytes via archive_le32dec(p + DR_extent_offset) and later multiplied by LOGICAL_BLOCK_SIZE in choose_volume(), overflowing a 32-bit int.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "archive_le32dec(p + DR_extent_offset) : uint32_t",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 717
+          },
+          {
+            "message": "iso9660->joliet.location = ... : untrusted 32-bit field",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 717
+          },
+          {
+            "message": "LOGICAL_BLOCK_SIZE * vd->location : signed integer overflow",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 1094
+          }
+        ],
+        [
+          {
+            "message": "archive_le32dec(p + DR_extent_offset) : uint32_t",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 947
+          },
+          {
+            "message": "iso9660->primary.location = ... : untrusted 32-bit field",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 947
+          },
+          {
+            "message": "LOGICAL_BLOCK_SIZE * vd->location : signed integer overflow",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 1094
+          }
+        ],
+        [
+          {
+            "message": "archive_le32dec(p + DR_extent_offset) : uint32_t",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 717
+          },
+          {
+            "message": "iso9660->joliet.location = ... : untrusted 32-bit field",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 717
+          },
+          {
+            "message": "LOGICAL_BLOCK_SIZE * vd->location : signed integer overflow",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 1132
+          }
+        ],
+        [
+          {
+            "message": "archive_le32dec(p + DR_extent_offset) : uint32_t",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 947
+          },
+          {
+            "message": "iso9660->primary.location = ... : untrusted 32-bit field",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 947
+          },
+          {
+            "message": "LOGICAL_BLOCK_SIZE * vd->location : signed integer overflow",
+            "uri": "libarchive/archive_read_support_format_iso9660.c",
+            "line": 1132
+          }
+        ]
+      ]
+    }
+  ]
+}

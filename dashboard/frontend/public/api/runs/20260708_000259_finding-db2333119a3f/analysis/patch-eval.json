@@ -1,0 +1,282 @@
+{
+  "status": {
+    "state": "done",
+    "started_at": "2026-07-11T23:23:37.153501+00:00",
+    "finished_at": "2026-07-11T23:25:46.491505+00:00",
+    "error": null
+  },
+  "result": {
+    "dimensions": [
+      {
+        "key": "vulnerability_elimination",
+        "score": 2,
+        "rationale": "POV no longer reproduces, but only the observed already-quoted single-quote payload branch is neutralized; the fallthrough escaping is itself questionable.",
+        "evidence": "StringUtils.java quoteAndEscape: added `quoteChar != '\\'' || source.indexOf(quoteChar,1)==len-1` only forces the single-quote already-wrapped input to fall through; the executable double-quote path and other sinks are untouched.",
+        "label": "Vulnerability elimination"
+      },
+      {
+        "key": "root_cause",
+        "score": 2,
+        "rationale": "Patches one bypass branch in a string helper rather than the shell's flawed conditional-quoting strategy that the official fix rewrites.",
+        "evidence": "Official fix reworks BourneShell.quoteOneItem/Shell.getRawCommandLine/Commandline.getLiteralExecutable (unconditional POSIX quoting); ours only edits StringUtils.quoteAndEscape verbatim-return guard.",
+        "label": "Root cause vs symptom"
+      },
+      {
+        "key": "completeness",
+        "score": 2,
+        "rationale": "Only the single-quote delimiter, only the already-wrapped verbatim branch; executable (double-quote) path, CmdShell, and non-force call paths remain.",
+        "evidence": "`quoteChar != '\\''` keeps prior behavior for '\"' executable delimiter; no changes to Shell/BourneShell/Commandline where the official fix acts.",
+        "label": "Completeness / variants"
+      },
+      {
+        "key": "developer_intent",
+        "score": 2,
+        "rationale": "Same general goal (safe quoting) but different location and a different, weaker mechanism than the official unconditional `'\"'\"'` wrapping.",
+        "evidence": "overlap_files=[] , jaccard=0.0; official uses setUnconditionalQuoting(true) + path.replace(\"'\",\"'\\\"'\\\"'\"), ours uses backslash escaping in StringUtils.",
+        "label": "Developer-intent alignment"
+      },
+      {
+        "key": "functional_correctness",
+        "score": 4,
+        "rationale": "Regressions (2) and existing tests pass; adds a regression test; small behavioral change to verbatim-return could marginally over-restrict legit pre-quoted single-quoted paths.",
+        "evidence": "regressions_ran=2, regressions_passed=true; new testQuote_EscapeBrokenPreQuotedArgument added.",
+        "label": "Functional correctness"
+      },
+      {
+        "key": "no_new_defects",
+        "score": 3,
+        "rationale": "No crash introduced, but backslash-escaping of single quotes yields shell strings that are not sound POSIX, giving a false sense of safety.",
+        "evidence": "Asserted output `'\\'a\\' ; touch /tmp/marker ; \\'b\\''` — backslash inside sh single quotes is literal, so the wrapping is broken and `;` can still separate commands.",
+        "label": "No new defects"
+      },
+      {
+        "key": "minimality",
+        "score": 3,
+        "rationale": "Very small, localized diff, but placed in a string utility rather than the shell trust boundary where the fix belongs.",
+        "evidence": "Single hunk in StringUtils.java quoteAndEscape.",
+        "label": "Minimality"
+      },
+      {
+        "key": "mitigation_soundness",
+        "score": 2,
+        "rationale": "Still shell-based with ad-hoc backslash escaping (fragile), not the no-shell parameterized arg-array defense; escaping is even unsound for POSIX single quotes.",
+        "evidence": "escapeChar '\\\\' escaping vs official correct `'\"'\"'` sequence; no ProcessBuilder arg allowlist.",
+        "label": "Mitigation soundness"
+      }
+    ],
+    "equivalence_verdict": "subset_weaker",
+    "gates": {
+      "vulnerability_eliminated": false,
+      "no_regressions": true
+    },
+    "issues": [
+      {
+        "severity": "high",
+        "description": "Backslash-escaping of single quotes is not valid POSIX: the produced string `'\\'a\\' ; touch /tmp/marker ; \\'b\\''` breaks out of the outer single quotes (backslash is literal inside sh single quotes), so the interior `;` can still act as a command separator — the injection class is not provably closed. The POV likely asserts on the generated string rather than real shell execution."
+      },
+      {
+        "severity": "high",
+        "description": "Root cause untouched: the fix targets only the already-wrapped verbatim-return branch of StringUtils.quoteAndEscape for the single-quote delimiter. The executable path (double-quote delimiter), CmdShell, and the shell-level conditional quoting that the official fix rewrites (unconditional quoting via BourneShell.quoteOneItem/Shell/Commandline) remain unaddressed."
+      },
+      {
+        "severity": "medium",
+        "description": "Zero overlap with official fix files (jaccard 0.0); mechanism diverges from the CWE-078 defense-of-record (parameterized ProcessBuilder arg array / correct POSIX quoting) and relies on a fragile ad-hoc escape."
+      },
+      {
+        "severity": "low",
+        "description": "Changes verbatim-return semantics for single-quote-delimited inputs, which could alter handling of legitimately pre-quoted single-quoted paths."
+      }
+    ],
+    "root_cause": "The Bourne/Shell command-assembly path performs conditional, incorrect shell quoting of the executable and arguments, so attacker-controlled tokens reach the shell sink without being safely neutralized as literal POSIX single-quoted strings.",
+    "summary": "Our patch only tightens one branch of StringUtils.quoteAndEscape so a single-quote-wrapped token with interior single quotes is no longer returned verbatim, causing the observed POV to fall through to escaping. It does not touch the shell classes the official fix rewrites, leaves the executable/double-quote path and other sinks unaddressed, and relies on backslash escaping that is unsound inside POSIX single quotes — meaning the injection class is likely still reachable despite the POV passing. This is a narrow, fragile, symptom-level fix at the wrong trust boundary rather than a root-cause correction.",
+    "overall": {
+      "mean": 2.5,
+      "score": 50,
+      "band": "incomplete",
+      "gates_passed": false
+    },
+    "ensemble": {
+      "samples": 3,
+      "overall": {
+        "score_median": 50,
+        "score_mean": 50.0,
+        "score_min": 48,
+        "score_max": 52,
+        "score_stdev": 1.63,
+        "mean_median": 2.5,
+        "band_mode": "incomplete",
+        "band_agreement": 1.0,
+        "mean_dim_stdev": 0.12
+      },
+      "dimensions": [
+        {
+          "key": "vulnerability_elimination",
+          "label": "Vulnerability elimination",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "root_cause",
+          "label": "Root cause vs symptom",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "completeness",
+          "label": "Completeness / variants",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "developer_intent",
+          "label": "Developer-intent alignment",
+          "median": 2,
+          "min": 2,
+          "max": 2,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            2,
+            2,
+            2
+          ]
+        },
+        {
+          "key": "functional_correctness",
+          "label": "Functional correctness",
+          "median": 4,
+          "min": 4,
+          "max": 4,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            4,
+            4,
+            4
+          ]
+        },
+        {
+          "key": "no_new_defects",
+          "label": "No new defects",
+          "median": 3,
+          "min": 3,
+          "max": 3,
+          "stdev": 0.0,
+          "agreement": 1.0,
+          "samples": [
+            3,
+            3,
+            3
+          ]
+        },
+        {
+          "key": "minimality",
+          "label": "Minimality",
+          "median": 3,
+          "min": 3,
+          "max": 4,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            3,
+            3,
+            4
+          ]
+        },
+        {
+          "key": "mitigation_soundness",
+          "label": "Mitigation soundness",
+          "median": 2,
+          "min": 1,
+          "max": 2,
+          "stdev": 0.47,
+          "agreement": 0.67,
+          "samples": [
+            1,
+            2,
+            2
+          ]
+        }
+      ],
+      "gate_agreement": {
+        "vulnerability_eliminated": 0.0,
+        "no_regressions": 1.0
+      },
+      "per_sample": [
+        {
+          "score": 48,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 50,
+          "band": "incomplete",
+          "gates_passed": false
+        },
+        {
+          "score": 52,
+          "band": "incomplete",
+          "gates_passed": false
+        }
+      ],
+      "confidence": "high",
+      "medoid_index": 1,
+      "samples_attempted": 3
+    },
+    "structural_overlap": {
+      "overlap_files": [],
+      "ours_only": [
+        "StringUtils.java"
+      ],
+      "official_only": [
+        "BourneShell.java",
+        "Commandline.java",
+        "Shell.java"
+      ],
+      "jaccard": 0.0,
+      "covers_all_official": false
+    },
+    "execution_signals": {
+      "run_status": "accepted",
+      "pov_before_reproduced": true,
+      "pov_after_present": true,
+      "pov_after_still_reproduces": false,
+      "regressions_ran": 2,
+      "regressions_passed": true
+    },
+    "reference": {
+      "production_files": [
+        "src/main/java/org/codehaus/plexus/util/cli/Commandline.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/BourneShell.java",
+        "src/main/java/org/codehaus/plexus/util/cli/shell/Shell.java"
+      ],
+      "commits": [
+        "b38a1b3a4352303e4312b2bb601a0d7ec6e28f41"
+      ]
+    }
+  }
+}

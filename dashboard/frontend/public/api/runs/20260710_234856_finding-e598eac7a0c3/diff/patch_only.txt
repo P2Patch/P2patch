@@ -1,0 +1,96 @@
+diff --git a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+index f6e23f0..89c56db 100644
+--- a/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
++++ b/dolphinscheduler-server/src/main/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessor.java
+@@ -76,21 +76,27 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+             case GET_LOG_BYTES_REQUEST:
+                 GetLogBytesRequestCommand getLogRequest = JSONUtils.parseObject(
+                         command.getBody(), GetLogBytesRequestCommand.class);
+-                byte[] bytes = getFileContentBytes(getLogRequest.getPath());
++                String getLogPath = getLogRequest.getPath();
++                checkPathSecurity(getLogPath);
++                byte[] bytes = getFileContentBytes(getLogPath);
+                 GetLogBytesResponseCommand getLogResponse = new GetLogBytesResponseCommand(bytes);
+                 channel.writeAndFlush(getLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case VIEW_WHOLE_LOG_REQUEST:
+                 ViewLogRequestCommand viewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), ViewLogRequestCommand.class);
+-                String msg = LoggerUtils.readWholeFileContent(viewLogRequest.getPath());
++                String viewLogPath = viewLogRequest.getPath();
++                checkPathSecurity(viewLogPath);
++                String msg = LoggerUtils.readWholeFileContent(viewLogPath);
+                 ViewLogResponseCommand viewLogResponse = new ViewLogResponseCommand(msg);
+                 channel.writeAndFlush(viewLogResponse.convert2Command(command.getOpaque()));
+                 break;
+             case ROLL_VIEW_LOG_REQUEST:
+                 RollViewLogRequestCommand rollViewLogRequest = JSONUtils.parseObject(
+                         command.getBody(), RollViewLogRequestCommand.class);
+-                List<String> lines = readPartFileContent(rollViewLogRequest.getPath(),
++                String rollViewLogPath = rollViewLogRequest.getPath();
++                checkPathSecurity(rollViewLogPath);
++                List<String> lines = readPartFileContent(rollViewLogPath,
+                         rollViewLogRequest.getSkipLineNum(), rollViewLogRequest.getLimit());
+                 StringBuilder builder = new StringBuilder();
+                 for (String line : lines) {
+@@ -104,6 +110,7 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+                         command.getBody(), RemoveTaskLogRequestCommand.class);
+ 
+                 String taskLogPath = removeTaskLogRequest.getPath();
++                checkPathSecurity(taskLogPath);
+ 
+                 File taskLogFile = new File(taskLogPath);
+                 Boolean status = true;
+@@ -127,6 +134,24 @@ public class LoggerRequestProcessor implements NettyRequestProcessor {
+         return this.executor;
+     }
+ 
++    /**
++     * Guard against path traversal in attacker-controlled log paths.
++     * The request path must be an absolute path that does not contain any
++     * parent-directory ("..") segment, otherwise the request is rejected.
++     *
++     * @param path the requested log file path
++     */
++    private void checkPathSecurity(String path) {
++        if (path == null || path.trim().isEmpty()) {
++            throw new IllegalArgumentException("Illegal file path: path is empty");
++        }
++        String normalized = Paths.get(path).normalize().toString();
++        if (normalized.contains("..") || path.contains("..")) {
++            logger.error("Illegal file path, path traversal detected: {}", path);
++            throw new IllegalArgumentException("Illegal file path: " + path);
++        }
++    }
++
+     /**
+      * get files content bytes，for down load file
+      *
+diff --git a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+index e245395..786aa25 100644
+--- a/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
++++ b/dolphinscheduler-server/src/test/java/org/apache/dolphinscheduler/server/log/LoggerRequestProcessorTest.java
+@@ -53,4 +53,22 @@ public class LoggerRequestProcessorTest {
+         LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
+         loggerRequestProcessor.process(channel, command);
+     }
++
++    @Test(expected = IllegalArgumentException.class)
++    public void testProcessViewWholeLogRequestPathTraversal() {
++        Channel channel = PowerMockito.mock(Channel.class);
++        PowerMockito.when(channel.writeAndFlush(Mockito.any(Command.class))).thenReturn(null);
++        PowerMockito.mockStatic(LoggerUtils.class);
++        PowerMockito.when(LoggerUtils.readWholeFileContent(Mockito.anyString())).thenReturn("secret");
++
++        ViewLogRequestCommand logRequestCommand = new ViewLogRequestCommand("/log/path/logs/../../etc/passwd");
++
++        Command command = new Command();
++        command.setType(CommandType.VIEW_WHOLE_LOG_REQUEST);
++        command.setBody(JSONUtils.toJsonByteArray(logRequestCommand));
++
++        LoggerRequestProcessor loggerRequestProcessor = new LoggerRequestProcessor();
++        // A path containing a parent-directory segment must be rejected before any file is read.
++        loggerRequestProcessor.process(channel, command);
++    }
+ }
+\ No newline at end of file

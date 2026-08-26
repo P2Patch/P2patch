@@ -1,0 +1,297 @@
+{
+  "run_id": "20260717_022512_finding-8b1319a81d0f",
+  "finding_id": "finding-8b1319a81d0f",
+  "timestamp": "2026-07-17T02:25:12",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v2.0",
+  "model": "claude-sonnet-5",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260717_022512_finding-8b1319a81d0f",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-8b1319a81d0f",
+    "cve_id": "CVE-2023-37460",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "codehaus-plexus__plexus-archiver_CVE-2023-37460_4.7.1",
+    "alert_file": "CODEHAUS_PLEXUS_PLEXUS_ARCHIVER_CVE_2023_37460.json",
+    "github_url": "https://github.com/codehaus-plexus/plexus-archiver",
+    "repo": "codehaus-plexus/plexus-archiver",
+    "github_tag": "4.7.1",
+    "advisory_id": "GHSA-wh3p-fphp-9h2m",
+    "buggy_commit_id": "e7cbadba1b5c78192677da95b355dd790f3a4535",
+    "fix_commit_ids": [
+      "54759839fbdf85caf8442076f001d5fd64e0dcb2"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+        "class": "AbstractUnArchiver",
+        "class_start": "48.0",
+        "class_end": "391.0",
+        "method": "extractFile",
+        "method_start": "274.0",
+        "method_end": "331.0",
+        "signature": "void extractFile(File,File,InputStream,String,Date,boolean,Integer,String,FileMapper)",
+        "is_test": false
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkTar",
+        "method_start": "50.0",
+        "method_end": "64.0",
+        "signature": "void testSymlinkTar()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkDirArchiver",
+        "method_start": "88.0",
+        "method_end": "104.0",
+        "signature": "void testSymlinkDirArchiver()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/SymlinkTest.java",
+        "class": "SymlinkTest",
+        "class_start": "23.0",
+        "class_end": "88.0",
+        "method": "testSymlinkZip",
+        "method_start": "68.0",
+        "method_end": "83.0",
+        "signature": "void testSymlinkZip()",
+        "is_test": true
+      },
+      {
+        "commit": "54759839fbdf85caf8442076f001d5fd64e0dcb2",
+        "file": "src/test/java/org/codehaus/plexus/archiver/zip/ZipArchiverTest.java",
+        "class": "ZipArchiverTest",
+        "class_start": "95.0",
+        "class_end": "825.0",
+        "method": "toLocalTimeZone",
+        "method_start": "825.0",
+        "method_end": "837.0",
+        "signature": "long toLocalTimeZone(long)",
+        "is_test": true
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2023-37460",
+      "advisory": "https://github.com/advisories/GHSA-wh3p-fphp-9h2m",
+      "repo": "https://github.com/codehaus-plexus/plexus-archiver",
+      "buggy_commit": "https://github.com/codehaus-plexus/plexus-archiver/commit/e7cbadba1b5c78192677da95b355dd790f3a4535"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 118,
+              "message": "getLinkName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java"
+            },
+            {
+              "line": 120,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java"
+            },
+            {
+              "line": 330,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "new File(...)",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ],
+          [
+            {
+              "line": 173,
+              "message": "getUnixSymlink(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 209,
+              "message": "resolveSymlink(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 330,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "symlinkDestination : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 371,
+              "message": "new File(...)",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-8b1319a81d0f",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_022512_finding-8b1319a81d0f/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_4.7.1/50/Dockerfile",
+        "-t",
+        "simpleautosec-finding-8b1319a81d0f:020d2af46e6b",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_4.7.1/50"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 919880,
+        "duration_api_ms": 793839,
+        "num_turns": 73,
+        "cost_usd": 3.7023159000000008,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-sonnet-5",
+        "tokens": {
+          "input": 140,
+          "output": 70625,
+          "cache_read": 6324103,
+          "cache_creation": 124215
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+          "src/test/java/org/codehaus/plexus/archiver/AbstractUnArchiverTest.java"
+        ],
+        "patch_notes": "AbstractUnArchiver.extractFile(): after the existing canonical-path escape check, added a second check via a new private static helper resolveAgainstExistingSymlinks(canonicalDirPath, entryName, dereferenceLastSegment). It resolves the entry path segment-by-segment against the destination directory, dereferencing any symlink already materialized on disk (from an earlier entry of the same extraction) at each ancestor segment, and at the final segment too unless the current entry is itself (re)creating a symlink there (StringUtils.isEmpty(symlinkDestination) == dereferenceLastSegment). Symlink targets are read via Files.readSymbolicLink (works for dangling links) and resolved as absolute or relative-to-parent, then normalized; if the resolved path ever leaves canonicalDirPath, extraction of that entry throws the same ArchiverException as the existing check ('Entry is outside of the target directory'). Added 5 new tests to AbstractUnArchiverTest covering: (1) creating a dangling symlink pointing outside the destination is still allowed in isolation, (2) a later nested entry writing through that dangling symlink is rejected, (3) a later plain-file entry with the exact same name as the dangling symlink is rejected, (4) re-extracting the identical symlink entry twice (simulating a re-run without cleaning output) still succeeds, and (5) a symlink whose target stays inside the destination still extracts normally. Verified the fix does not regress the pre-existing SymlinkTest (which intentionally extracts symlinks pointing outside the archived source tree) across a clean run and two consecutive re-runs without `mvn clean`.",
+        "regression_commands": [
+          "mvn -B -DskipTests package",
+          "mvn -B test -Dtest=AbstractUnArchiverTest,SymlinkTest,ZipUnArchiverTest,TarUnArchiverTest",
+          "mvn -B test"
+        ],
+        "risk_notes": "The added check only tightens validation (it can newly reject entries that were previously silently accepted and could write outside the destination); it cannot cause previously-successful, benign extractions to fail unless an entry path genuinely resolves through an escaping symlink. The helper resolves only one level of symlink indirection per encountered link (it doesn't recursively re-canonicalize a symlink target's own ancestor chain for further symlinks), which is a strict improvement over the prior behavior and sufficient to close the described CWE-022 class; extremely deep/chained symlink obfuscation across multiple hops is a theoretical residual but each hop is still validated as it's traversed by the same per-segment loop on subsequent entries. Full existing test suite (326 tests) passes with 0 failures/errors, including three consecutive `mvn test` runs (one clean, two without cleaning target/) to specifically validate the re-extraction/idempotency edge case that an earlier draft of this fix had broken.",
+        "status": "patched",
+        "summary": "Fixed a CWE-022 path-traversal-via-symlink vulnerability shared by TarUnArchiver and AbstractZipUnArchiver at their common sink, AbstractUnArchiver.extractFile(). The existing anti-zip-slip check canonicalized the target path with File#getCanonicalFile() and verified it stayed inside the destination directory. That check silently failed to catch escapes through a 'dangling' symlink (one whose target does not yet exist on disk): Java's canonicalization cannot resolve a dangling symlink and falls back to the raw, unresolved path, which then looks like it stays inside the destination even though the OS will still faithfully follow the real, already-extracted symlink at actual I/O time (Files.newOutputStream/mkdirs). A malicious tar/zip archive could exploit this with an entry creating a symlink pointing outside the destination (e.g. an absolute or '../'-relative path that doesn't exist yet) followed by a second entry - either a nested path under that symlink, or even an entry with the exact same name as a plain file/directory - that gets written through the escaping symlink, landing content outside the extraction directory. The fix adds a second, symlink-aware resolution (resolveAgainstExistingSymlinks) that walks the entry path one segment at a time using Files.isSymbolicLink/readSymbolicLink (which work regardless of whether the link target exists) and rejects the entry if the resolved location escapes the destination. Ancestor segments are always dereferenced; the final segment is only dereferenced when the current entry is not itself defining a new symlink there, so intentionally re-extracting the same archive twice (an existing, tested, supported behavior where a symlink entry may legitimately point anywhere, including outside the destination) keeps working."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 3.7023,
+    "num_turns": 73,
+    "agent_duration_ms": 919880
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

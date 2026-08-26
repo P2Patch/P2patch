@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-9556c92f6b12",
+  "cve_id": "CVE-2022-4244",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "codehaus-plexus__plexus-utils_CVE-2022-4244_3.0.23",
+  "alert_file": "CODEHAUS_PLEXUS_PLEXUS_UTILS_CVE_2022_4244.json",
+  "github_url": "https://github.com/codehaus-plexus/plexus-utils",
+  "repo": "codehaus-plexus/plexus-utils",
+  "github_tag": "3.0.23",
+  "advisory_id": "GHSA-g6ph-x5wf-g337",
+  "buggy_commit_id": "6176f91bb843eecddac857591ed20bda38e01470",
+  "fix_commit_ids": [
+    "33a2853df8185b4519b1b8bfae284f03392618ef"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "33a2853df8185b4519b1b8bfae284f03392618ef",
+      "file": "src/main/java/org/codehaus/plexus/util/Expand.java",
+      "class": "Expand",
+      "class_start": "77.0",
+      "class_end": "209.0",
+      "method": "extractFile",
+      "method_start": "134.0",
+      "method_end": "179.0",
+      "signature": "void extractFile(File,File,InputStream,String,Date,boolean)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "src/main/java/org/codehaus/plexus/util/Expand.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2022-4244",
+    "advisory": "https://github.com/advisories/GHSA-g6ph-x5wf-g337",
+    "repo": "https://github.com/codehaus-plexus/plexus-utils",
+    "buggy_commit": "https://github.com/codehaus-plexus/plexus-utils/commit/6176f91bb843eecddac857591ed20bda38e01470"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "33a2853df8185b4519b1b8bfae284f03392618ef",
+      "url": "https://github.com/codehaus-plexus/plexus-utils/commit/33a2853df8185b4519b1b8bfae284f03392618ef.diff",
+      "diff": "diff --git a/src/main/java/org/codehaus/plexus/util/Expand.java b/src/main/java/org/codehaus/plexus/util/Expand.java\nindex 0f1449c1..e84c4b27 100644\n--- a/src/main/java/org/codehaus/plexus/util/Expand.java\n+++ b/src/main/java/org/codehaus/plexus/util/Expand.java\n@@ -136,6 +136,12 @@ protected void extractFile( File srcF, File dir, InputStream compressedInputStre\n         throws Exception\n     {\n         File f = FileUtils.resolveFile( dir, entryName );\n+\n+        if ( !f.getAbsolutePath().startsWith( dir.getAbsolutePath() ) )\n+        {\n+            throw new IOException( \"Entry '\" + entryName + \"' outside the target directory.\" );\n+        }\n+\n         try\n         {\n             if ( !overwrite && f.exists() && f.lastModified() >= entryDate.getTime() )\n",
+      "cached": true
+    }
+  ]
+}

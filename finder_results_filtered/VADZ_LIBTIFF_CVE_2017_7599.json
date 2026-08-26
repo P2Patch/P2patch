@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-20",
+  "cve_id": "CVE-2017-7599",
+  "note": "tiffcp copies every input directory tag listed in its `tags[]` table -- including TIFFTAG_SMINSAMPLEVALUE (TIFF_DOUBLE, tools/tiffcp.c:577) -- from the untrusted input TIFF straight to the output TIFF's in-memory directory (td->td_sminsamplevalue, a double array), with no range validation. When the output directory is written, TIFFWriteDirectorySec() (libtiff/tif_dirwrite.c:589) calls TIFFWriteDirectoryTagSampleformatArray(tif,&ndir,dir,TIFFTAG_SMINSAMPLEVALUE,td_samplesperpixel,td->td_sminsamplevalue) with that attacker-controlled double array as `value`. For the SAMPLEFORMAT_INT / bitspersample<=16 case, each element is narrowed with a bare `(int16)value[i]` C-style cast and no range check -- a double outside int16's representable range ([-32768,32767]) is undefined behavior (UBSan: \"outside the range of representable values of type 'short'\").",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "TIFFTAG_SMINSAMPLEVALUE declared TIFF_DOUBLE in tiffcp's generic tag-copy table -- copied verbatim from the untrusted input TIFF's directory to the output TIFF's td->td_sminsamplevalue with no range validation",
+            "uri": "tools/tiffcp.c",
+            "line": 577
+          },
+          {
+            "message": "TIFFWriteDirectorySec() passes td->td_sminsamplevalue (the untrusted double array) as `value` to TIFFWriteDirectoryTagSampleformatArray()",
+            "uri": "libtiff/tif_dirwrite.c",
+            "line": 589
+          },
+          {
+            "message": "((int16*)conv)[i] = (int16)value[i] -- bare C-style cast narrows the attacker-controlled double with no range check; a value outside int16's range is undefined behavior",
+            "uri": "libtiff/tif_dirwrite.c",
+            "line": 980
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "all_hardened": false,
+  "base_build": "ok",
+  "base_revision_matches_dataset": true,
+  "conclusive": 1,
+  "cve_id": "bugzilla-2611",
+  "cwe_id": "CWE-369",
+  "dataset_revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+  "errored": 0,
+  "evaluation_mode": "reconstructed",
+  "evaluation_revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+  "hardened_beyond_fix": 0,
+  "matches_official_fix": 1,
+  "patched_build": "ok",
+  "povs": [
+    {
+      "command": "bash .security-pipeline/respov/run.sh r1_readheader",
+      "description": "A crafted OJPEG TIFF (Compression=6, Photometric=10 ITULAB, SamplesPerPixel=3, PlanarConfig=1, BitsPerSample=8,8,8, ImageWidth=16, ImageLength=32, RowsPerStrip=8, YCbCrSubsampling=(2,0), strip payload = 64 bytes of 0xAA). Read via the libtiff public API: TIFFOpen -> TIFFReadScanline(row 0) -> OJPEGPreDecode -> OJPEGSubsamplingCorrect (ITULAB+SPP=3 path calls OJPEGReadHeaderInfoSec, which bails on the garbage JPEG before the SOF component parse, so the tag's subsampling_ver=0 survives) -> OJPEGReadHeaderInfo: strile_length(8) < image_length(32) is true, so 'sp->strile_length % (sp->subsampling_ver*8)' = 8 % (0*8) = 8 % 0 traps (tif_ojpeg.c:1079). Built with -fsanitize=integer-divide-by-zero so the trap is observed as 'runtime error: division by zero'.",
+      "exit_code": 0,
+      "exploit_path": "crafted OJPEG TIFF, YCbCrSubsampling=(2,0), Photometric=ITULAB -> TIFFOpen/TIFFReadScanline -> OJPEGPreDecode (tif_ojpeg.c:670) -> OJPEGReadHeaderInfo (tif_ojpeg.c:674) -> 'sp->strile_length%(sp->subsampling_ver*8)' (tif_ojpeg.c:1079) divides by subsampling_ver*8 == 0",
+      "gap_summary": "The 2016 decoder_ok fix guards OJPEGDecode() only; the earlier OJPEGReadHeaderInfo divide 'strile_length % (subsampling_ver*8)' (tif_ojpeg.c:1079) still divides by zero when YCbCrSubsampling vertical factor is 0. Upstream fixed it only in 4.1.0 (43908ce15e8b).",
+      "id": "ojpeg_readheaderinfo_zero_subsampling_fpe",
+      "outcome": "reproduced",
+      "patched_tail": "[respov] reproduced: UBSan division-by-zero (OJPEGReadHeaderInfo strile_length % (subsampling_ver*8), tif_ojpeg.c:1079)\nOJPEGSetupDecode: Warning, Depreciated and troublesome old-style JPEG compression mode, please convert to new-style JPEG compression and notify vendor of writing software.\ntif_ojpeg.c:1084:24: runtime error: division by zero\n",
+      "reproduces_on_base": true
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2611_9a72a69e035e",
+  "residual_of": "43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec",
+  "score": 0.0,
+  "scored_by": "patchagent-runs/povscore15 (build-and-replay, no LLM calls)",
+  "total": 1,
+  "wall_clock_s": 81
+}

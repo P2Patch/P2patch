@@ -1,0 +1,59 @@
+diff --git a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
+index 7725d58..13562ce 100644
+--- a/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
++++ b/obr/src/main/java/org/apache/karaf/obr/command/util/FileUtil.java
+@@ -110,7 +110,10 @@ public class FileUtil
+             }
+ 
+             File target = new File(dir, je.getName());
+-            if (!target.getCanonicalPath().startsWith(dir.getCanonicalPath())) {
++            String canonicalDir = dir.getCanonicalPath();
++            String canonicalTarget = target.getCanonicalPath();
++            if (!canonicalTarget.equals(canonicalDir)
++                && !canonicalTarget.startsWith(canonicalDir + File.separator)) {
+                 throw new IOException("JAR resource cannot contain paths with .. characters");
+             }
+ 
+diff --git a/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java b/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
+index 71ee7cb..3b90147 100644
+--- a/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
++++ b/obr/src/test/java/org/apache/karaf/obr/command/util/FileUtilTest.java
+@@ -76,4 +76,38 @@ public class FileUtilTest {
+         badKarFile.delete();
+     }
+ 
++    @Test
++    public void siblingPrefixEscapeTest() throws Exception {
++        File base = new File("target/test");
++        base.mkdirs();
++        // Sibling directory sharing the canonical-path string prefix of base.
++        File siblingEscape = new File("target/test_evil/pwned.txt");
++        siblingEscape.delete();
++
++        File badKarFile = new File(base, "sibling.kar");
++        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(badKarFile));
++        ZipEntry entry = new ZipEntry("../test_evil/pwned.txt");
++        zos.putNextEntry(entry);
++
++        byte[] data = "Test Data".getBytes();
++        zos.write(data, 0, data.length);
++        zos.closeEntry();
++        zos.close();
++
++        JarInputStream jis = new JarInputStream(new FileInputStream(badKarFile));
++        try {
++            FileUtil.unjar(jis, base);
++            fail("Failure expected on extracting a jar escaping to a sibling directory");
++        } catch (Exception ex) {
++            // expected
++        }
++
++        if (siblingEscape.exists()) {
++            siblingEscape.delete();
++            fail("JAR entry escaped the extraction directory into a sibling directory");
++        }
++
++        badKarFile.delete();
++    }
++
+ }

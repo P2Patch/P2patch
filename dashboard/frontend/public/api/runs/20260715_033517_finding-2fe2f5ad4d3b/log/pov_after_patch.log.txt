@@ -1,0 +1,16 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260715_033517_finding-2fe2f5ad4d3b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+INPUT      : <style/>b<![cdata[</style><a href=javascript:alert(1)>test
+CLEAN HTML : <style><![CDATA[b {
+}
+]]></style>
+SAFE: smuggled payload was neutralized by AntiSamy (patched).
+
+--- stderr ---
+[main] INFO org.owasp.validator.html.Policy - Attempting to load AntiSamy policy from URL: file:/workspace/repo/target/classes/antisamy.xml
+[main] WARN org.owasp.validator.html.Policy - The directive "noopenerAndNoreferrerAnchors" is not enabled by default. It is recommended to enable it to prevent reverse tabnabbing attacks.
+[main] WARN org.owasp.validator.html.Policy - The directive "noopenerAndNoreferrerAnchors" is not enabled by default. It is recommended to enable it to prevent reverse tabnabbing attacks.
+

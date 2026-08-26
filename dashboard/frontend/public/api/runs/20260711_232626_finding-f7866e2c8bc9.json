@@ -1,0 +1,345 @@
+{
+  "run_id": "20260711_232626_finding-f7866e2c8bc9",
+  "finding_id": "finding-f7866e2c8bc9",
+  "timestamp": "2026-07-11T23:26:26",
+  "status": "accepted",
+  "profile": "baseline",
+  "label": "v1_single-trace",
+  "model": "claude-opus-4-8[1m]",
+  "reason": "Patcher produced a patch from the alert (baseline: no exploit evidence, POV, or verifier gate).",
+  "project": {
+    "build_command": "mvn -B -DskipTests package",
+    "build_system": "maven",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "finding_id": "20260711_232626_finding-f7866e2c8bc9",
+    "gradle_version": "",
+    "jdk_version": "8",
+    "mvn_version": "3.5.0",
+    "test_command": "mvn -B test",
+    "use_gradlew": ""
+  },
+  "ground_truth": {
+    "finding_id": "finding-f7866e2c8bc9",
+    "cve_id": "CVE-2018-1002200",
+    "cwe_id": "CWE-022",
+    "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+    "project_slug": "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5",
+    "alert_file": "CODEHAUS_CVE_2018_1002200.json",
+    "github_url": "https://github.com/codehaus-plexus/plexus-archiver",
+    "repo": "codehaus-plexus/plexus-archiver",
+    "github_tag": "3.5",
+    "advisory_id": "GHSA-hcxq-x77q-3469",
+    "buggy_commit_id": "b9f9a425865eb47fb3665b3144ee4ca11f402704",
+    "fix_commit_ids": [
+      "f8f4233508193b70df33759ae9dc6154d69c2ea8"
+    ],
+    "fix_localizations": [
+      {
+        "commit": "f8f4233508193b70df33759ae9dc6154d69c2ea8",
+        "file": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+        "class": "AbstractUnArchiver",
+        "class_start": "41.0",
+        "class_end": "303.0",
+        "method": "extractFile",
+        "method_start": "303.0",
+        "method_end": "359.0",
+        "signature": "void extractFile(File,File,InputStream,String,Date,boolean,Integer,String)",
+        "is_test": false
+      }
+    ],
+    "fix_files": [
+      "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+    ],
+    "links": {
+      "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2018-1002200",
+      "advisory": "https://github.com/advisories/GHSA-hcxq-x77q-3469",
+      "repo": "https://github.com/codehaus-plexus/plexus-archiver",
+      "buggy_commit": "https://github.com/codehaus-plexus/plexus-archiver/commit/b9f9a425865eb47fb3665b3144ee4ca11f402704"
+    }
+  },
+  "alert_trace": {
+    "cwe_id": "cwe-022",
+    "vulnerabilities": [
+      {
+        "traces": [
+          [
+            {
+              "line": 113,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/tar/TarUnArchiver.java"
+            },
+            {
+              "line": 304,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "getParentFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 322,
+              "message": "dirF",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ],
+          [
+            {
+              "line": 94,
+              "message": "new String(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 93,
+              "message": "...?...:... : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 178,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 218,
+              "message": "name : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 222,
+              "message": "name : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 304,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "getParentFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 322,
+              "message": "dirF",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ],
+          [
+            {
+              "line": 95,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 93,
+              "message": "...?...:... : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 178,
+              "message": "getName(...) : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 218,
+              "message": "name : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 222,
+              "message": "name : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/zip/AbstractZipUnArchiver.java"
+            },
+            {
+              "line": 304,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "entryName : String",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 309,
+              "message": "resolveFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "f : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 319,
+              "message": "getParentFile(...) : File",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            },
+            {
+              "line": 322,
+              "message": "dirF",
+              "uri": "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java"
+            }
+          ]
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "key": "metadata",
+      "label": "Metadata",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "worktree",
+      "label": "Worktree",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "docker_build",
+      "label": "Docker build",
+      "kind": "step",
+      "status": "pass",
+      "detail": null
+    },
+    {
+      "key": "patcher",
+      "label": "Patcher",
+      "kind": "agent",
+      "status": "pass",
+      "detail": "patched"
+    }
+  ],
+  "steps": [
+    {
+      "cwe_id": "CWE-022",
+      "finding_id": "finding-f7866e2c8bc9",
+      "name": "metadata",
+      "status": "ok"
+    },
+    {
+      "name": "worktree",
+      "path": "/Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260711_232626_finding-f7866e2c8bc9/worktree",
+      "status": "ok"
+    },
+    {
+      "image": "simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb",
+      "name": "docker_build",
+      "status": "ok"
+    },
+    {
+      "name": "completed",
+      "status": "accepted"
+    }
+  ],
+  "commands": [
+    {
+      "name": "docker_build",
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "builder",
+        "-f",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_3.5/30/Dockerfile",
+        "-t",
+        "simpleautosec-finding-f7866e2c8bc9:0ba37c6110eb",
+        "/Users/mohsen/dev/personal/autosec/Finder/data/Dockerfiles/codehaus-plexus__plexus-archiver_[redacted]_3.5/30"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "log": "docker_build.log"
+    }
+  ],
+  "agents": [
+    {
+      "name": "patcher",
+      "exit_code": 0,
+      "parse_error": null,
+      "ok": true,
+      "status_field": "patched",
+      "meta": {
+        "duration_ms": 129990,
+        "duration_api_ms": 83950,
+        "num_turns": 14,
+        "cost_usd": 0.6183730000000001,
+        "stop_reason": "tool_use",
+        "is_error": false,
+        "model": "claude-opus-4-8[1m]",
+        "tokens": {
+          "input": 21,
+          "output": 6078,
+          "cache_read": 382208,
+          "cache_creation": 27226
+        }
+      },
+      "parsed_output": {
+        "files_changed": [
+          "src/main/java/org/codehaus/plexus/archiver/AbstractUnArchiver.java",
+          "src/test/java/org/codehaus/plexus/archiver/tar/TarUnArchiverPathTraversalTest.java"
+        ],
+        "patch_notes": "In AbstractUnArchiver.extractFile, immediately after `final File f = FileUtils.resolveFile( dir, entryName )`, added a guard that compares canonical paths: it computes `dir.getCanonicalPath() + File.separator` and `f.getCanonicalPath()`, and throws `ArchiverException(\"Entry is outside of the target directory (\" + entryName + \")\")` unless the resolved file's canonical path starts with the destination directory's canonical path. This is the single shared extraction sink for both the tar path (TarUnArchiver -> extractFile) and the zip path (AbstractZipUnArchiver -> extractFileIfIncluded -> extractFile) reported in the alert, so one change covers all traces. The separator is appended to the directory prefix to avoid sibling-prefix false negatives (e.g. /tmp/dest vs /tmp/dest-evil). getCanonicalPath throws IOException, which extractFile already declares. Added TarUnArchiverPathTraversalTest which builds a tar containing a \"../evil.txt\" entry, asserts extraction throws ArchiverException, and asserts the file is not written outside the destination directory.",
+        "regression_commands": [
+          "mvn -B -Dtest=TarUnArchiverPathTraversalTest test",
+          "mvn -B -Dtest=TarUnArchiverTest,ZipUnArchiverTest test"
+        ],
+        "risk_notes": "The check uses canonical paths, which resolve symlinks; legitimate extractions (including existing symlink tests) still pass — full suite is 150 tests, 0 failures, 1 pre-existing skip. Malicious entries now throw ArchiverException instead of silently escaping, which is the intended hardening.",
+        "status": "patched",
+        "summary": "Fixed a \"Zip Slip\" path traversal (CWE-022) in plexus-archiver. Archive entry names (from tar/zip) were passed unchecked to FileUtils.resolveFile in AbstractUnArchiver.extractFile, so an entry like \"../evil.txt\" would resolve outside the destination directory and be written/created there (mkdirs, FileOutputStream, symlink). Added a canonical-path containment check that rejects any entry resolving outside the destination directory before any filesystem write."
+      }
+    }
+  ],
+  "totals": {
+    "cost_usd": 0.6184,
+    "num_turns": 14,
+    "agent_duration_ms": 129990
+  },
+  "artifacts": {
+    "diffs": {
+      "full": true,
+      "patch_only": true,
+      "pov": true
+    },
+    "logs": [
+      "docker_build.log"
+    ]
+  }
+}

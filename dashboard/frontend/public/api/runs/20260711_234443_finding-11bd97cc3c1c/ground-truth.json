@@ -1,0 +1,47 @@
+{
+  "finding_id": "finding-11bd97cc3c1c",
+  "cve_id": "CVE-2019-0207",
+  "cwe_id": "CWE-022",
+  "cwe_name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+  "project_slug": "asf__tapestry-5_CVE-2019-0207_5.4.4",
+  "alert_file": "ASF_TAPESTRY_CVE-2019-0207_post_filter.json",
+  "github_url": "https://github.com/apache/tapestry-5",
+  "repo": "apache/tapestry-5",
+  "github_tag": "5.4.4",
+  "advisory_id": "GHSA-89r3-rcpj-h7w6",
+  "buggy_commit_id": "d29cc6778eb0c75e45139274005bba1c4f58907f",
+  "fix_commit_ids": [
+    "6dd7219fd4707467a36091e2f7f5f6460c619099"
+  ],
+  "fix_localizations": [
+    {
+      "commit": "6dd7219fd4707467a36091e2f7f5f6460c619099",
+      "file": "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java",
+      "class": "AbstractResource",
+      "class_start": "31.0",
+      "class_end": "380.0",
+      "method": "forFile",
+      "method_start": "93.0",
+      "method_end": "142.0",
+      "signature": "Resource forFile(String)",
+      "is_test": false
+    }
+  ],
+  "fix_files": [
+    "tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java"
+  ],
+  "links": {
+    "nvd": "https://nvd.nist.gov/vuln/detail/CVE-2019-0207",
+    "advisory": "https://github.com/advisories/GHSA-89r3-rcpj-h7w6",
+    "repo": "https://github.com/apache/tapestry-5",
+    "buggy_commit": "https://github.com/apache/tapestry-5/commit/d29cc6778eb0c75e45139274005bba1c4f58907f"
+  },
+  "official_fix_diffs": [
+    {
+      "sha": "6dd7219fd4707467a36091e2f7f5f6460c619099",
+      "url": "https://github.com/apache/tapestry-5/commit/6dd7219fd4707467a36091e2f7f5f6460c619099.diff",
+      "diff": "diff --git a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java\nindex 2ead75eee8..d47b7a3e07 100644\n--- a/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java\n+++ b/tapestry-ioc/src/main/java/org/apache/tapestry5/ioc/internal/util/AbstractResource.java\n@@ -101,6 +101,9 @@ public final Resource forFile(String relativePath)\n             terms.add(term);\n         }\n \n+        // Handling systems using backslash as the path separator, such as Windows\n+        relativePath = relativePath.replace('\\\\', '/');\n+        \n         for (String term : relativePath.split(\"/\"))\n         {\n             // This will occur if the relative path contains sequential slashes\n",
+      "cached": true
+    }
+  ]
+}

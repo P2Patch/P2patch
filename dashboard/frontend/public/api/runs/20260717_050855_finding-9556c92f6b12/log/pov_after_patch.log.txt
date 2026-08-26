@@ -1,0 +1,10 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_050855_finding-9556c92f6b12/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-9556c92f6b12:66b0ccbb42f3 bash -lc mvn -B -q -DskipTests package && rm -rf target/pov-classes && mkdir -p target/pov-classes && javac -cp target/classes -d target/pov-classes .security-pipeline/pov/ZipSlipPov.java && java -cp target/classes:target/pov-classes ZipSlipPov
+exit_code=1
+timed_out=false
+
+--- stdout ---
+Expand.execute() threw: java.lang.Exception: Error while expanding /tmp/zipslip-pov1489139428696657685/evil.zip
+SAFE: path traversal was blocked (threw=true), no file was written outside the destination directory.
+
+--- stderr ---
+

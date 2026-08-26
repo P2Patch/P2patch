@@ -1,0 +1,21 @@
+$ docker run --rm -v /Users/mohsen/dev/personal/autosec/security_pipeline_runs/20260717_043113_finding-2fe2f5ad4d3b/worktree:/workspace/repo -w /workspace/repo simpleautosec-finding-2fe2f5ad4d3b:b06a43857cee bash -lc bash .security-pipeline/pov/run_pov.sh
+exit_code=1
+timed_out=false
+
+--- stdout ---
+[check 1] getCleanHTML() (serialized string): <div style="font-family: a&amp;#34;b;">test</div>
+[check 1] raw DOM style Attr.getValue():       [font-family: a&#34;b;]
+[check 1] raw DOM attribute contains an unescaped '"' from CSS: false
+[check 2] getCleanHTML() (serialized string): <div style="font-family: &amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;;">test</div>
+[check 2] raw DOM style Attr.getValue():       [font-family: &lt;script&gt;alert(1)&lt;/script&gt;;]
+[check 2] raw DOM attribute contains a literal, un-neutralized <script> tag: false
+NOT VULNERABLE: the DOM sink now appears to neutralize CSS-derived content before it is stored in the DOM tree.
+
+--- stderr ---
+warning: Supported source version 'RELEASE_6' from annotation processor 'org.eclipse.sisu.scanners.index.SisuIndexAPT6' less than -source '1.8'
+1 warning
+[main] INFO org.owasp.validator.html.Policy - Attempting to load AntiSamy policy from URL: file:/workspace/repo/src/main/resources/antisamy.xml
+[main] WARN org.owasp.validator.html.Policy - The directive "noopenerAndNoreferrerAnchors" is not enabled by default. It is recommended to enable it to prevent reverse tabnabbing attacks.
+[main] INFO org.owasp.validator.html.Policy - Attempting to load AntiSamy policy from URL: file:/workspace/repo/.security-pipeline/pov/permissive-policy.xml
+[main] WARN org.owasp.validator.html.Policy - The directive "noopenerAndNoreferrerAnchors" is not enabled by default. It is recommended to enable it to prevent reverse tabnabbing attacks.
+

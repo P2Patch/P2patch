@@ -1,0 +1,91 @@
+diff --git a/src/main/java/spark/staticfiles/DirectoryTraversal.java b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+index 080fbe4..bcad2a0 100644
+--- a/src/main/java/spark/staticfiles/DirectoryTraversal.java
++++ b/src/main/java/spark/staticfiles/DirectoryTraversal.java
+@@ -10,18 +10,31 @@ import static spark.utils.StringUtils.removeLeadingAndTrailingSlashesFrom;
+ public class DirectoryTraversal {
+ 
+     public static void protectAgainstInClassPath(String path) {
+-        if (!removeLeadingAndTrailingSlashesFrom(path).startsWith(StaticFilesFolder.local())) {
++        if (!isWithin(removeLeadingAndTrailingSlashesFrom(path), StaticFilesFolder.local())) {
+             throw new DirectoryTraversalDetection("classpath");
+         }
+     }
+ 
+     public static void protectAgainstForExternal(String path) {
+         String nixLikePath = Paths.get(path).toAbsolutePath().toString().replace("\\", "/");
+-        if (!removeLeadingAndTrailingSlashesFrom(nixLikePath).startsWith(StaticFilesFolder.external())) {
++        if (!isWithin(removeLeadingAndTrailingSlashesFrom(nixLikePath), StaticFilesFolder.external())) {
+             throw new DirectoryTraversalDetection("external");
+         }
+     }
+ 
++    /**
++     * Checks that the resolved path is the configured folder itself or a descendant of it,
++     * enforcing a path-segment boundary so that a sibling directory sharing the configured
++     * folder's name as a prefix (e.g. "base" vs "base_secret") cannot escape the folder.
++     */
++    private static boolean isWithin(String resolvedPath, String configuredFolder) {
++        if (configuredFolder == null) {
++            return false;
++        }
++        return resolvedPath.equals(configuredFolder)
++                || resolvedPath.startsWith(configuredFolder + "/");
++    }
++
+     public static final class DirectoryTraversalDetection extends RuntimeException {
+         private static final long serialVersionUID = 1L;
+ 
+diff --git a/src/test/java/spark/staticfiles/DirectoryTraversalTest.java b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+new file mode 100644
+index 0000000..05fd03f
+--- /dev/null
++++ b/src/test/java/spark/staticfiles/DirectoryTraversalTest.java
+@@ -0,0 +1,47 @@
++package spark.staticfiles;
++
++import org.junit.Test;
++
++import java.io.File;
++import java.nio.file.Files;
++import java.nio.file.Path;
++
++import static org.junit.Assert.assertTrue;
++import static org.junit.Assert.fail;
++
++/**
++ * Regression tests for {@link DirectoryTraversal} ensuring the external static files
++ * folder boundary check rejects sibling directories that merely share the configured
++ * folder's name as a prefix (CWE-022 path traversal).
++ */
++public class DirectoryTraversalTest {
++
++    @Test
++    public void siblingDirectorySharingPrefixIsRejected() throws Exception {
++        Path base = Files.createTempDirectory("dt_base");
++        // Sibling directory whose absolute path starts with the configured folder's path.
++        File sibling = new File(base.toAbsolutePath() + "_secret");
++        assertTrue(sibling.mkdirs() || sibling.isDirectory());
++        File secret = new File(sibling, "secret.txt");
++
++        StaticFilesFolder.externalConfiguredTo(base.toAbsolutePath().toString());
++
++        try {
++            DirectoryTraversal.protectAgainstForExternal(secret.getAbsolutePath());
++            fail("Expected DirectoryTraversalDetection for path outside the configured folder");
++        } catch (DirectoryTraversal.DirectoryTraversalDetection expected) {
++            // expected
++        }
++    }
++
++    @Test
++    public void fileInsideConfiguredFolderIsAllowed() throws Exception {
++        Path base = Files.createTempDirectory("dt_base_allow");
++        File inside = new File(base.toFile(), "index.html");
++
++        StaticFilesFolder.externalConfiguredTo(base.toAbsolutePath().toString());
++
++        // Should not throw.
++        DirectoryTraversal.protectAgainstForExternal(inside.getAbsolutePath());
++    }
++}

@@ -1,0 +1,222 @@
+diff --git a/util/src/main/java/io/kubernetes/client/Copy.java b/util/src/main/java/io/kubernetes/client/Copy.java
+index 72e02bc..348835d 100644
+--- a/util/src/main/java/io/kubernetes/client/Copy.java
++++ b/util/src/main/java/io/kubernetes/client/Copy.java
+@@ -137,7 +137,7 @@ public class Copy extends Exec {
+           log.error("Can't read: " + entry);
+           continue;
+         }
+-        File f = new File(destination.toFile(), entry.getName());
++        File f = resolveEntry(destination.toFile(), entry.getName());
+         if (entry.isDirectory()) {
+           if (!f.isDirectory() && !f.mkdirs()) {
+             throw new IOException("create directory failed: " + f);
+@@ -164,6 +164,34 @@ public class Copy extends Exec {
+     }
+   }
+ 
++  /**
++   * Resolves a tar entry name against the extraction destination, guaranteeing that the
++   * resolved path is equal to, or a descendant of, the canonical destination path. This
++   * guards against "tar slip"/zip-slip path traversal (CWE-22) where a malicious or
++   * compromised container returns archive entries with names such as
++   * "../../etc/cron.d/evil" or an absolute path, which would otherwise let the extraction
++   * loop create directories or write files outside of {@code destinationDir}.
++   *
++   * @throws IOException if the entry name resolves to a path outside of destinationDir
++   */
++  private static File resolveEntry(File destinationDir, String entryName) throws IOException {
++    File f = new File(destinationDir, entryName);
++    String destinationCanonicalPath = destinationDir.getCanonicalPath();
++    String targetCanonicalPath = f.getCanonicalPath();
++    if (!targetCanonicalPath.equals(destinationCanonicalPath)
++        && !targetCanonicalPath.startsWith(destinationCanonicalPath + File.separator)) {
++      throw new IOException(
++          "Entry "
++              + entryName
++              + " is outside of the target destination directory "
++              + destinationCanonicalPath
++              + " (resolved to "
++              + targetCanonicalPath
++              + "); refusing to extract");
++    }
++    return f;
++  }
++
+   public static void copyFileFromPod(String namespace, String pod, String srcPath, Path dest)
+       throws ApiException, IOException {
+     Copy c = new Copy();
+diff --git a/util/src/test/java/io/kubernetes/client/CopyTest.java b/util/src/test/java/io/kubernetes/client/CopyTest.java
+index f7084d0..b05cdc7 100644
+--- a/util/src/test/java/io/kubernetes/client/CopyTest.java
++++ b/util/src/test/java/io/kubernetes/client/CopyTest.java
+@@ -19,6 +19,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+ import static com.github.tomakehurst.wiremock.client.WireMock.verify;
+ 
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++import static org.junit.Assert.fail;
++
+ import com.github.tomakehurst.wiremock.junit.WireMockRule;
+ import com.github.tomakehurst.wiremock.matching.AnythingPattern;
+ import io.kubernetes.client.openapi.ApiClient;
+@@ -26,10 +30,18 @@ import io.kubernetes.client.openapi.ApiException;
+ import io.kubernetes.client.openapi.models.V1ObjectMeta;
+ import io.kubernetes.client.openapi.models.V1Pod;
+ import io.kubernetes.client.util.ClientBuilder;
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.IOException;
+ import java.io.InputStream;
++import java.io.OutputStream;
++import java.nio.charset.StandardCharsets;
+ import java.nio.file.Paths;
++import java.util.Base64;
++import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
++import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
++import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+ import org.junit.Before;
+ import org.junit.Rule;
+ import org.junit.Test;
+@@ -139,4 +151,139 @@ public class CopyTest {
+             .withQueryParam("command", equalTo("-c"))
+             .withQueryParam("command", equalTo("base64 -d | tar -xmf - -C /")));
+   }
++
++  /**
++   * Regression test for CWE-22 "tar slip" path traversal in
++   * Copy#copyDirectoryFromPod. A malicious/compromised container can return
++   * tar entries with names such as "../pwned.txt" or "../pwned-dir/" from
++   * the `tar cz - <src> | base64` exec it controls. Copy must reject any
++   * entry whose resolved path escapes the caller-supplied destination
++   * directory, for both file entries (Copy.java:140/146/147) and directory
++   * entries (Copy.java:140/142), rather than writing/creating outside of it.
++   */
++  @Test
++  public void testCopyDirectoryFromPodRejectsTarSlipEntries() throws Exception {
++    File sandboxRoot = File.createTempFile("copy-tarslip-test", "");
++    assertTrue(sandboxRoot.delete());
++    assertTrue(sandboxRoot.mkdirs());
++    sandboxRoot.deleteOnExit();
++
++    File destination = new File(sandboxRoot, "safe-extract-target");
++    assertTrue(destination.mkdirs());
++
++    String escapeFileName = "../pwned-file.txt";
++    String escapeDirName = "../pwned-dir";
++    String marker = "TARSLIP-MARKER";
++
++    byte[] maliciousPayload = buildMaliciousTarGzBase64(escapeFileName, escapeDirName, marker);
++
++    TarSlipStubCopy copy = new TarSlipStubCopy(client, maliciousPayload);
++
++    File escapedFile = new File(destination, escapeFileName).getCanonicalFile();
++    File escapedDir = new File(destination, escapeDirName).getCanonicalFile();
++
++    try {
++      copy.copyDirectoryFromPod(namespace, podName, "container", "/some/src", destination.toPath());
++      fail("expected copyDirectoryFromPod to reject a path-traversing tar entry");
++    } catch (IOException expected) {
++      // Rejecting the malicious entry via IOException is the expected, safe behavior.
++    }
++
++    assertFalse("escaped file must not be created outside destination", escapedFile.exists());
++    assertFalse("escaped dir must not be created outside destination", escapedDir.exists());
++  }
++
++  private static byte[] buildMaliciousTarGzBase64(
++      String fileEntryName, String dirEntryName, String content) throws IOException {
++    ByteArrayOutputStream rawOut = new ByteArrayOutputStream();
++    try (GzipCompressorOutputStream gzOut = new GzipCompressorOutputStream(rawOut);
++        TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzOut)) {
++      tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
++
++      byte[] fileBytes = content.getBytes(StandardCharsets.UTF_8);
++      TarArchiveEntry fileEntry = new TarArchiveEntry(fileEntryName);
++      fileEntry.setSize(fileBytes.length);
++      tarOut.putArchiveEntry(fileEntry);
++      tarOut.write(fileBytes);
++      tarOut.closeArchiveEntry();
++
++      TarArchiveEntry dirEntry = new TarArchiveEntry(dirEntryName + "/");
++      tarOut.putArchiveEntry(dirEntry);
++      tarOut.closeArchiveEntry();
++    }
++    return Base64.getEncoder().encode(rawOut.toByteArray());
++  }
++
++  /**
++   * Subclass of Copy that fakes only the pod-exec transport (this.exec(...)),
++   * feeding back an attacker-controlled tar/gzip/base64 stream in place of a
++   * live pod exec response, so that the real extraction loop in
++   * copyDirectoryFromPod is exercised end to end.
++   */
++  private static class TarSlipStubCopy extends Copy {
++    private final byte[] maliciousBase64GzipTarPayload;
++
++    TarSlipStubCopy(ApiClient apiClient, byte[] maliciousBase64GzipTarPayload) {
++      super(apiClient);
++      this.maliciousBase64GzipTarPayload = maliciousBase64GzipTarPayload;
++    }
++
++    @Override
++    public Process exec(
++        String namespace,
++        String name,
++        String[] command,
++        String container,
++        boolean stdin,
++        boolean tty)
++        throws ApiException, IOException {
++      String joined = String.join(" ", command);
++      if (joined.contains("tar --version")) {
++        return new StubProcess(new ByteArrayInputStream(new byte[0]), 0);
++      }
++      if (joined.contains("tar cz")) {
++        return new StubProcess(new ByteArrayInputStream(maliciousBase64GzipTarPayload), 0);
++      }
++      throw new IOException("unexpected command in test stub: " + joined);
++    }
++  }
++
++  /** Minimal java.lang.Process stand-in used only to feed canned bytes to Copy's extraction loop. */
++  private static class StubProcess extends Process {
++    private final InputStream inputStream;
++    private final int exitCode;
++
++    StubProcess(InputStream inputStream, int exitCode) {
++      this.inputStream = inputStream;
++      this.exitCode = exitCode;
++    }
++
++    @Override
++    public OutputStream getOutputStream() {
++      return new ByteArrayOutputStream();
++    }
++
++    @Override
++    public InputStream getInputStream() {
++      return inputStream;
++    }
++
++    @Override
++    public InputStream getErrorStream() {
++      return new ByteArrayInputStream(new byte[0]);
++    }
++
++    @Override
++    public int waitFor() {
++      return exitCode;
++    }
++
++    @Override
++    public int exitValue() {
++      return exitCode;
++    }
++
++    @Override
++    public void destroy() {}
++  }
+ }

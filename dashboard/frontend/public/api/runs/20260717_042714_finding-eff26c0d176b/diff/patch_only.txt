@@ -1,0 +1,128 @@
+diff --git a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+index fb42dc1..50314bd 100644
+--- a/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
++++ b/one-java-agent-plugin/src/main/java/com/alibaba/oneagent/utils/IOUtils.java
+@@ -112,7 +112,9 @@ public class IOUtils {
+ 			zip = new ZipFile(file);
+ 			String newPath = extractFolder;
+ 
+-			new File(newPath).mkdir();
++			File destDir = new File(newPath);
++			destDir.mkdir();
++			String destDirCanonicalPath = destDir.getCanonicalPath();
+ 			Enumeration<? extends ZipEntry> zipFileEntries = zip.entries();
+ 
+ 			// Process each entry
+@@ -123,6 +125,15 @@ public class IOUtils {
+ 
+ 				File destFile = new File(newPath, currentEntry);
+ 				// destFile = new File(newPath, destFile.getName());
++
++				// Zip Slip protection: ensure the resolved entry stays within the
++				// intended extraction directory before touching the filesystem.
++				String destFileCanonicalPath = destFile.getCanonicalPath();
++				if (!destFileCanonicalPath.equals(destDirCanonicalPath)
++						&& !destFileCanonicalPath.startsWith(destDirCanonicalPath + File.separator)) {
++					throw new IOException("Zip entry is outside of the target dir: " + currentEntry);
++				}
++
+ 				File destinationParent = destFile.getParentFile();
+ 
+ 				// create the parent directory structure if needed
+diff --git a/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+new file mode 100644
+index 0000000..1f8b9c0
+--- /dev/null
++++ b/one-java-agent-plugin/src/test/java/com/alibaba/oneagent/utils/IOUtilsUnzipTest.java
+@@ -0,0 +1,91 @@
++package com.alibaba.oneagent.utils;
++
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipOutputStream;
++
++import org.junit.Assert;
++import org.junit.Test;
++
++/**
++ * Regression tests for CWE-22 (Zip Slip) in {@link IOUtils#unzip(String, String)}.
++ *
++ * A malicious zip entry name containing path traversal sequences must not be
++ * able to create files/directories outside of the requested extraction
++ * folder.
++ */
++public class IOUtilsUnzipTest {
++
++    private File newTempDir() throws IOException {
++        File dir = File.createTempFile("iounzip-test", "");
++        dir.delete();
++        dir.mkdirs();
++        return dir;
++    }
++
++    private String buildMaliciousZip(File zipFile, String entryName, boolean directoryEntry) throws IOException {
++        ZipOutputStream zos = null;
++        try {
++            zos = new ZipOutputStream(new FileOutputStream(zipFile));
++            String normalizedName = directoryEntry && !entryName.endsWith("/") ? entryName + "/" : entryName;
++            ZipEntry entry = new ZipEntry(normalizedName);
++            zos.putNextEntry(entry);
++            if (!directoryEntry) {
++                zos.write("pwned".getBytes("UTF-8"));
++            }
++            zos.closeEntry();
++        } finally {
++            IOUtils.close(zos);
++        }
++        return entryName;
++    }
++
++    @Test
++    public void testUnzipRejectsSimpleTraversalEntry() throws Exception {
++        assertRejected("../pov_zipslip_proof.txt", false);
++    }
++
++    @Test
++    public void testUnzipRejectsNestedTraversalEntry() throws Exception {
++        assertRejected("../../evil.txt", false);
++    }
++
++    @Test
++    public void testUnzipRejectsTraversalDirectoryEntry() throws Exception {
++        assertRejected("../evildir", true);
++    }
++
++    private void assertRejected(String entryName, boolean directoryEntry) throws Exception {
++        File workDir = newTempDir();
++        File zipFile = new File(workDir, "malicious.zip");
++        File extractDir = new File(workDir, "extract");
++        buildMaliciousZip(zipFile, entryName, directoryEntry);
++
++        try {
++            IOUtils.unzip(zipFile.getAbsolutePath(), extractDir.getAbsolutePath());
++            Assert.fail("Expected unzip() to reject a zip entry escaping the extraction folder: " + entryName);
++        } catch (IOException expected) {
++            // expected: traversal entry must be rejected before any filesystem mutation
++        }
++
++        File escaped = new File(workDir, new File(entryName).getName());
++        // The marker/target file must never land outside the extraction directory.
++        File outsideMarker = new File(workDir, "pov_zipslip_proof.txt");
++        Assert.assertFalse("Zip entry must not escape extraction directory", outsideMarker.exists());
++    }
++
++    @Test
++    public void testUnzipStillExtractsNormalEntries() throws Exception {
++        File workDir = newTempDir();
++        File zipFile = new File(workDir, "normal.zip");
++        File extractDir = new File(workDir, "extract");
++        buildMaliciousZip(zipFile, "safe/nested/file.txt", false);
++
++        IOUtils.unzip(zipFile.getAbsolutePath(), extractDir.getAbsolutePath());
++
++        File extracted = new File(extractDir, "safe/nested/file.txt");
++        Assert.assertTrue("Legitimate nested entries should still be extracted", extracted.exists());
++    }
++}

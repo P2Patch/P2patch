@@ -1,0 +1,116 @@
+diff --git a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+index e9adc3a..0934379 100755
+--- a/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
++++ b/agent/core/src/main/java/org/jolokia/http/AgentServlet.java
+@@ -495,6 +495,7 @@ public class AgentServlet extends HttpServlet {
+     private void sendAllJSON(HttpServletResponse pResp, String callback, JSONAware pJson) throws IOException {
+         OutputStream out = null;
+         try {
++            IoUtil.validateCallback(callback);
+             String json = pJson.toJSONString();
+             String content = callback == null ? json : callback + "(" + json + ");";
+             byte[] response = content.getBytes("UTF8");
+diff --git a/agent/core/src/main/java/org/jolokia/util/IoUtil.java b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+index eec9be6..12e2d9b 100644
+--- a/agent/core/src/main/java/org/jolokia/util/IoUtil.java
++++ b/agent/core/src/main/java/org/jolokia/util/IoUtil.java
+@@ -3,6 +3,7 @@ package org.jolokia.util;
+ import java.io.IOException;
+ import java.io.OutputStreamWriter;
+ import java.io.Writer;
++import java.util.regex.Pattern;
+ 
+ import org.json.simple.JSONStreamAware;
+ 
+@@ -15,8 +16,29 @@ public class IoUtil {
+     // Marker for the end of the stream
+     private final static char[] STREAM_END_MARKER = {};
+ 
++    // A JSONP callback must be a plain (optionally dotted) JavaScript identifier. This prevents
++    // reflecting arbitrary attacker controlled markup (e.g. "><script>...) into the response body
++    // which would otherwise lead to reflected cross-site scripting (CWE-79).
++    private final static Pattern CALLBACK_PATTERN =
++        Pattern.compile("^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*$");
++
+     private IoUtil() { }
+ 
++    /**
++     * Validate a JSONP callback name. A callback is only allowed to be a plain (optionally dotted)
++     * JavaScript identifier so that it can never be used to inject markup into a JSONP response.
++     *
++     * @param pCallback the callback name to check, may be <code>null</code> (which is allowed and
++     *                  simply means "no JSONP wrapping")
++     * @throws IllegalArgumentException if the callback is non-null and not a valid JavaScript identifier
++     */
++    public static void validateCallback(String pCallback) {
++        if (pCallback != null && !CALLBACK_PATTERN.matcher(pCallback).matches()) {
++            // Deliberately do not echo the offending value to avoid reflecting it into any error page
++            throw new IllegalArgumentException("Invalid JSONP callback name given");
++        }
++    }
++
+     /**
+      * Stream a JSON stream to a given writer, potentiall wrap it in a callback for a
+      * JSONP response and then flush & close the writer. The writer is closed in any case,
+@@ -29,6 +51,7 @@ public class IoUtil {
+      */
+     public static void streamResponseAndClose(Writer pWriter, JSONStreamAware pJson, String callback)
+         throws IOException {
++        validateCallback(callback);
+         try {
+             if (callback == null) {
+                 pJson.writeJSONString(pWriter);
+diff --git a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+index 4ab2efd..d718bd9 100644
+--- a/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
++++ b/agent/core/src/test/java/org/jolokia/util/IoUtilTest.java
+@@ -64,6 +64,37 @@ public class IoUtilTest {
+         assertWriterClosed(writer);
+     }
+ 
++    @Test
++    public void checkMaliciousCallbackRejected() throws IOException {
++        ByteArrayOutputStream out = new ByteArrayOutputStream();
++        OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8");
++
++        JSONObject resp = new JSONObject();
++        resp.put("value", "hello");
++
++        try {
++            IoUtil.streamResponseAndClose(writer, resp, "\"><script>alert(document.cookie)</script>(");
++            fail("Malicious JSONP callback must be rejected");
++        } catch (IllegalArgumentException expected) {
++            // The attacker controlled payload must never be reflected into the response body
++            assertEquals(out.size(), 0);
++        }
++    }
++
++    @Test
++    public void checkDottedCallbackAllowed() throws IOException {
++        ByteArrayOutputStream out = new ByteArrayOutputStream();
++        OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8");
++
++        JSONObject resp = new JSONObject();
++        resp.put("value", "hello");
++        String respString = "angular.callbacks._0(" + resp.toJSONString() + ");";
++
++        IoUtil.streamResponseAndClose(writer, resp, "angular.callbacks._0");
++        assertEquals(out.toString("UTF-8"), respString);
++        assertWriterClosed(writer);
++    }
++
+     private void assertWriterClosed(OutputStreamWriter writer) {
+         try {
+             writer.write(1);
+diff --git a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+index 9dc0df0..01dd9d2 100644
+--- a/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
++++ b/agent/jvm/src/main/java/org/jolokia/jvmagent/handler/JolokiaHttpHandler.java
+@@ -360,6 +360,7 @@ public class JolokiaHttpHandler implements HttpHandler {
+                 headers.set("Content-Type", getMimeType(pParsedUri) + "; charset=utf-8");
+                 String json = pJson.toJSONString();
+                 String callback = pParsedUri.getParameter(ConfigKey.CALLBACK.getKeyValue());
++                IoUtil.validateCallback(callback);
+                 String content = callback == null ? json : callback + "(" + json + ");";
+                 byte[] response = content.getBytes("UTF8");
+                 pExchange.sendResponseHeaders(200,response.length);

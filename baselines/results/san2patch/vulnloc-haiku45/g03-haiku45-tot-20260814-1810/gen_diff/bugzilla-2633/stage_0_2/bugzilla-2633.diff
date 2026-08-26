@@ -1,0 +1,52 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..dae92b76 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2438,7 +2438,8 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	tsize_t cc;
+ 	unsigned char *tf_buf;
+ 	unsigned char *cp, c;
+-
++// FIXME: Crash CWE-125: Out-of-bounds Read
++ 
+ 	(void) w;
+ 	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow);
+ 	if (tf_buf == NULL) {
+@@ -2468,11 +2469,13 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 				 * where Cback = 1.
+ 				 */
+ 				adjust = 255 - cp[nc];
+-				switch (nc) {
+-				case 4: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 3: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 2: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++				if (cp + nc <= tf_buf + tf_bytesperrow) {
++					switch (nc) {
++					case 4: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 3: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 2: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++					}
+ 				}
+ 				cp += es;
+ 			}
+@@ -2480,11 +2483,13 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+-				switch (nc) {
+-				case 4: c = *cp++; PUTHEX(c,fd);
+-				case 3: c = *cp++; PUTHEX(c,fd);
+-				case 2: c = *cp++; PUTHEX(c,fd);
+-				case 1: c = *cp++; PUTHEX(c,fd);
++				if (cp + nc <= tf_buf + tf_bytesperrow) {
++					switch (nc) {
++					case 4: c = *cp++; PUTHEX(c,fd);
++					case 3: c = *cp++; PUTHEX(c,fd);
++					case 2: c = *cp++; PUTHEX(c,fd);
++					case 1: c = *cp++; PUTHEX(c,fd);
++					}
+ 				}
+ 				cp += es;
+ 			}
