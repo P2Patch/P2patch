@@ -19,8 +19,8 @@ if str(REPO_ROOT) not in sys.path:
 
 RUNS_DIR = REPO_ROOT / "security_pipeline_runs"
 ALERTS_DIR = REPO_ROOT / "finder_results_filtered"
-# The CVE corpus and both POV families live in the VulnRepairBench submodule
-# at benchmark/ (P2PATCH_BENCHMARK relocates it). Resolved through the
+# The CVE corpus and both POV families live under benchmark/
+# (P2PATCH_BENCHMARK relocates it). Resolved through the
 # pipeline's own helper so the backend and the CLI can never disagree about
 # where the data is.
 from security_pipeline import paths as _paths  # noqa: E402

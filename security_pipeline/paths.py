@@ -1,9 +1,7 @@
 """Where the benchmark data lives.
 
-The CVE corpus, the per-project Dockerfiles and both curated POV families were
-split out into their own repository (VulnRepairBench) so the data can be used
-and cited independently of this pipeline. It is mounted here as a git submodule
-at ``benchmark/``:
+The CVE corpus, the per-project Dockerfiles and both curated POV families live
+under ``benchmark/``:
 
     benchmark/dataset/          project_info.csv, build_info.csv, fix_info.csv,
                                 Dockerfiles/, project-sources/ (gitignored)
@@ -12,11 +10,9 @@ at ``benchmark/``:
 
 Every path into that tree is resolved through this module rather than spelled
 out at the call site, for two reasons. Moving the mount point is then one edit
-instead of forty, and — the practical one — a checkout whose submodule has not
-been initialised looks *exactly* like a checkout whose data is simply missing,
-so :func:`require_benchmark` can give one accurate error naming
-``git submodule update --init`` instead of each caller reporting its own file
-as absent.
+instead of forty, and — the practical one — :func:`require_benchmark` can give one accurate
+error naming the directory that is missing, instead of each caller reporting
+its own file as absent.
 
 ``P2PATCH_BENCHMARK`` points at a checkout somewhere else entirely, which is
 what a run host with the corpus on a separate volume needs — the project
@@ -38,11 +34,11 @@ RESIDUAL_POVS_SUBDIR = "residual_povs"
 
 
 class BenchmarkMissing(RuntimeError):
-    """The benchmark checkout is absent (usually an uninitialised submodule)."""
+    """The benchmark data is absent or incomplete."""
 
 
 def benchmark_root(workspace_root: Path) -> Path:
-    """The VulnRepairBench checkout backing this workspace."""
+    """The benchmark checkout backing this workspace."""
     override = get_env(BENCHMARK_ENV)
     if override:
         return Path(override).expanduser()
@@ -52,15 +48,15 @@ def benchmark_root(workspace_root: Path) -> Path:
 def require_benchmark(workspace_root: Path) -> Path:
     """:func:`benchmark_root`, but fail with an actionable message if empty.
 
-    A submodule that was never initialised is an empty *directory*, not a
-    missing one, so testing for existence is not enough.
+    A partially-restored tree is an empty *directory*, not a missing one, so
+    testing for existence is not enough — check for a file that must be there.
     """
     root = benchmark_root(workspace_root)
     if (root / DATASET_SUBDIR / "project_info.csv").is_file():
         return root
     raise BenchmarkMissing(
-        f"benchmark data not found at {root}. It lives in the VulnRepairBench "
-        f"submodule — run `git submodule update --init` in the repository root, "
+        f"benchmark data not found at {root}. The CVE corpus, Dockerfiles and POV "
+        f"suites are checked in under benchmark/ — restore it from the repository, "
         f"or set {BENCHMARK_ENV} to an existing checkout."
     )
 

@@ -119,18 +119,14 @@ The skip-if-already-run check is **profile-aware** (keyed by a stable `finding_i
 ### The benchmark data lives under `benchmark/`
 
 The CVE corpus, the Dockerfiles and both curated POV families are checked into
-this repository under `benchmark/`, and are **also** published standalone as
-`git@github.com:P2Patch/VulnRepairBench.git` so the data can be used and cited
-without the tool. The copy here is the one the code reads — it is a plain
-directory, not a submodule, so a clone needs no extra step. **The two copies can
-drift: a change to the data here must be mirrored to VulnRepairBench by hand.**
-Three things follow.
+this repository under `benchmark/`. It is a plain directory, not a submodule, so
+a clone needs no extra step. Three things follow.
 
 - **Never spell a benchmark path at the call site — go through `security_pipeline/paths.py`** (`dataset_dir`, `project_info_csv`, `dockerfiles_dir`, `project_source`, `fix_povs_dir`, `residual_povs_dir`). Moving the data is then one edit, and `require_benchmark()` can give one accurate error naming the directory that is missing instead of every caller reporting its own file as absent. `P2PATCH_BENCHMARK` relocates the checkout entirely, which is what a run host with the sources on another volume needs.
 - **Resolve against `config.REPO_ROOT` at call time, not import time.** The dashboard exposes `config.fix_povs_dir()` / `residual_povs_dir()` / `dataset_dir()` as *functions* for exactly this reason: tests relocate the tree by patching `config.REPO_ROOT`, and a module-level constant silently ignores that — it keeps pointing at the real checkout while the test writes fixtures into a tmpdir, so a lookup can pass by reading the developer's own data. Four tests caught this during the split.
 - **`benchmark/.gitignore` excludes `benchmark/dataset/project-sources/`** (a nested ignore file applies to its own subtree), and both it and the root `.gitattributes` set `* -text`: `project_info.csv` is CRLF and the zip4j/hutool `official_fix.patch` files must stay CRLF or `git apply` rejects them wholesale — worse, every `official_fix.patch` is hashed into its POV's certification `content_hash`, so a newline rewrite does not merely break an apply, it invalidates the certification and the suite silently stops scoring. A machine with `core.autocrlf=input` (a common default, and the one on this host) does exactly that on `git add`; it corrupted four files on the first attempt at this split and was caught by diffing blob hashes against the source repo.
 
-Note `respov reverify` **writes** its audit under `benchmark/residual_povs/verification/`, so a reverify run shows up as ordinary modified files here; mirror them to VulnRepairBench when you commit.
+Note `respov reverify` **writes** its audit under `benchmark/residual_povs/verification/`, so a reverify run shows up as ordinary modified files here.
 
 ### The AutoSec → P2Patch rename
 
@@ -143,7 +139,7 @@ Deliberately **not** renamed, because they name things outside this repo: the Op
 
 ### Alert → project resolution
 
-`security_pipeline/metadata.py` resolves an alert JSON to a project + Dockerfile via CSV lookups in `benchmark/dataset/` (`project_info.csv`, `build_info.csv`, `project-sources/`, `Dockerfiles/`). `benchmark/` holds the project metadata, per-project Dockerfiles, both POV families, and the (gitignored) `project-sources/` clones — checked in here, and mirrored standalone as `git@github.com:P2Patch/VulnRepairBench.git` — **never build a path into it by hand, go through `security_pipeline/paths.py`** (see below); `finder_results_filtered/` holds the curated alert JSONs the pipeline runs against.
+`security_pipeline/metadata.py` resolves an alert JSON to a project + Dockerfile via CSV lookups in `benchmark/dataset/` (`project_info.csv`, `build_info.csv`, `project-sources/`, `Dockerfiles/`). `benchmark/` holds the project metadata, per-project Dockerfiles, both POV families, and the (gitignored) `project-sources/` clones — **never build a path into it by hand, go through `security_pipeline/paths.py`** (see below); `finder_results_filtered/` holds the curated alert JSONs the pipeline runs against.
 
 - **`buggy_commit_id` must be a full 40-char SHA.** `security_pipeline/fetch.py` (`python -m security_pipeline fetch [--project <slug>]`) does `git clone --depth 1` → `git fetch --depth 1 origin <id>` → `git checkout <id>`, and only a full SHA survives both steps. An **abbreviated** SHA fails the fetch outright (`couldn't find remote ref cc6a386` — you cannot fetch a short SHA). A **tag name** fetches fine but the fetch creates no local ref, so the checkout fails with `pathspec ... did not match`; a full SHA is immune because the object is local by then and a full SHA is directly checkout-able. Six C/C++ rows shipped with short SHAs or tag names and were unclonable until their cells were expanded to full SHAs (the tag rows to the tag's *peeled* commit, `refs/tags/X^{}`). Fix the data, not the fetcher: teaching the fetcher to fall back to `FETCH_HEAD` also works, but `FETCH_HEAD` can hold multiple lines and `checkout FETCH_HEAD` silently takes the first — a wrong-revision failure mode with no error, which is a bad trade for a benchmark whose whole premise is being on the vulnerable commit. Nine rows still have an *empty* `buggy_commit_id` and remain unclonable.
 - **`project_info.csv` is CRLF.** Rewrite it with binary I/O; `Path.read_text()` translates `\r\n` → `\n` on read and a one-cell edit then rewrites all 228 lines (same newline-translation trap as diff capture, above).

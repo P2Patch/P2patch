@@ -25,9 +25,8 @@ git clone git@github.com:P2Patch/P2patch.git
 ```
 
 The CVE corpus, the per-project Dockerfiles and both curated POV families are
-under `benchmark/`. They are also published on their own as
-[VulnRepairBench](https://github.com/P2Patch/VulnRepairBench) for use and
-citation without this pipeline; the copy here is the one the code reads.
+under `benchmark/` — 101 CVEs pinned to their vulnerable commit, with the
+per-project build image and both certified POV suites.
 
 Set `P2PATCH_BENCHMARK` to point at a checkout somewhere else — useful on a run
 host that already holds the (tens of GB of) project sources on another volume.
@@ -476,7 +475,7 @@ P2Patch/
 │       └── verifier.json
 ├── tests/
 │   └── test_security_pipeline.py
-├── benchmark/               # The benchmark data (also: VulnRepairBench)
+├── benchmark/               # CVE corpus, Dockerfiles, POV suites
 │   ├── dataset/
 │   │   ├── project_info.csv
 │   │   ├── build_info.csv
