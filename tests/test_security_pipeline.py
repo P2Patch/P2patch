@@ -557,15 +557,15 @@ class CliDryRunTests(unittest.TestCase):
                         "--runs-dir",
                         str(root / "runs"),
                         "--model",
-                        "glm-5.3",
+                        "glm-5.2",
                         "--dry-run",
                     ]
                 )
 
             self.assertEqual(exit_code, 0)
             run_dir = next(iter((root / "runs").iterdir()))
-            self.assertEqual(json.loads((run_dir / "state.json").read_text())["model"], "glm-5.3")
-            self.assertEqual(json.loads((run_dir / "verdict.json").read_text())["model"], "glm-5.3")
+            self.assertEqual(json.loads((run_dir / "state.json").read_text())["model"], "glm-5.2")
+            self.assertEqual(json.loads((run_dir / "verdict.json").read_text())["model"], "glm-5.2")
 
     def test_an_unspecified_model_is_recorded_as_the_pinned_default(self) -> None:
         """"Default" in the launcher still means one specific pinned model.
@@ -1649,7 +1649,7 @@ class OpenRouterRoutingTests(unittest.TestCase):
         from security_pipeline.openrouter import is_openrouter_model
         from security_pipeline.zai import is_zai_model
 
-        for direct, routed in (("glm-5.2", "z-ai/glm-5.2"), ("glm-5.3", "z-ai/glm-5.3")):
+        for direct, routed in (("glm-5.2", "z-ai/glm-5.2"),):
             self.assertTrue(is_openrouter_model(routed))
             self.assertFalse(is_zai_model(routed))
             self.assertTrue(is_zai_model(direct))
@@ -1664,16 +1664,20 @@ class OpenRouterRoutingTests(unittest.TestCase):
         )
 
         self.assertTrue(is_openrouter_model("z-ai/glm-5.2:floor"))
-        self.assertTrue(is_openrouter_model("z-ai/glm-5.3:floor"))
         self.assertEqual(
             openrouter_env("z-ai/glm-5.2:floor")["ANTHROPIC_DEFAULT_OPUS_MODEL"],
             GLM52_STREAMLAKE_REQUEST_MODEL,
         )
-        # Other :floor models keep OpenRouter's ordinary price-sorted routing.
+        # Only this exact id is rewritten: its non-floor sibling keeps
+        # OpenRouter's ordinary routing, so the pin cannot leak across arms.
         self.assertEqual(
-            openrouter_env("z-ai/glm-5.3:floor")["ANTHROPIC_DEFAULT_OPUS_MODEL"],
-            "z-ai/glm-5.3:floor",
+            openrouter_env("z-ai/glm-5.2")["ANTHROPIC_DEFAULT_OPUS_MODEL"],
+            "z-ai/glm-5.2",
         )
+        # Retired launcher arms are rejected outright rather than silently
+        # routed on a slug OpenRouter would still answer.
+        self.assertFalse(is_openrouter_model("z-ai/glm-5.3"))
+        self.assertFalse(is_openrouter_model("z-ai/glm-5.3:floor"))
         self.assertFalse(is_openrouter_model("z-ai/glm-5.2:nitro"))
         self.assertFalse(is_openrouter_model("z-ai/glm-5.2:free"))
 

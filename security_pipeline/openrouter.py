@@ -52,8 +52,6 @@ OPENROUTER_MODELS = (
     "openai/gpt-5.6-luna",
     "z-ai/glm-5.2",
     "z-ai/glm-5.2:floor",
-    "z-ai/glm-5.3",
-    "z-ai/glm-5.3:floor",
 )
 GLM52_STREAMLAKE_MODEL = "z-ai/glm-5.2:floor"
 GLM52_STREAMLAKE_PRESET = "autosec-glm52-streamlake"

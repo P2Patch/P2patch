@@ -27,7 +27,7 @@ const MODEL_ACRONYMS = new Set(["glm", "gpt"]);
 
 export function shortModel(model: string | null): string {
   if (!model) return "default";
-  // An alternate-provider slug is `vendor/model[:variant]` ("z-ai/glm-5.3",
+  // An alternate-provider slug is `vendor/model[:variant]` ("z-ai/glm-5.2",
   // "deepseek/deepseek-v4-flash"). The vendor half is routing, not identity —
   // splitting the whole slug on "-" turned it into "Z ai/glm.5.3" — so keep the
   // model half and carry any routing variant through as a suffix.

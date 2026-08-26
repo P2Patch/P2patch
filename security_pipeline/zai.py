@@ -43,7 +43,7 @@ class ZaiConfigError(RuntimeError):
 # Models the launcher may select to route a run through Z.ai. Values are passed
 # verbatim to ``claude --model`` (Z.ai's Anthropic-compatible endpoint resolves
 # them) *and* substituted into the alias slots below. Add a row to expose more.
-ZAI_MODELS = ("glm-5.1", "glm-5.2", "glm-5.3")
+ZAI_MODELS = ("glm-5.1", "glm-5.2")
 
 # Env var that overrides where the Z.ai settings file lives, for tests and for
 # hosts that keep it somewhere other than the default.

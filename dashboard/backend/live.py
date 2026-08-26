@@ -147,10 +147,7 @@ PROFILE_DESCRIPTIONS = {
 # rather than inside the first agent.
 MODELS = [
     {"value": "", "label": f"Default ({DEFAULT_AGENT_MODEL})", "provider": "anthropic"},
-    {"value": "opus", "label": "Opus 4.8", "provider": "anthropic"},
-    {"value": "sonnet", "label": "Sonnet 5", "provider": "anthropic"},
     {"value": "haiku", "label": "Haiku 4.5", "provider": "anthropic"},
-    {"value": "glm-5.3", "label": "GLM 5.3 (Z.ai)", "provider": "zai"},
     {"value": "glm-5.2", "label": "GLM 5.2 (Z.ai)", "provider": "zai"},
     {"value": "glm-5.1", "label": "GLM 5.1 (Z.ai)", "provider": "zai"},
     {
@@ -161,16 +158,6 @@ MODELS = [
     {
         "value": "openai/gpt-5.6-luna",
         "label": "GPT-5.6 Luna (OpenRouter)",
-        "provider": "openrouter",
-    },
-    {
-        "value": "z-ai/glm-5.3",
-        "label": "GLM 5.3 (OpenRouter, default routing)",
-        "provider": "openrouter",
-    },
-    {
-        "value": "z-ai/glm-5.3:floor",
-        "label": "GLM 5.3 (OpenRouter, cheapest provider)",
         "provider": "openrouter",
     },
     {

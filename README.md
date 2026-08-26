@@ -85,7 +85,6 @@ endpoint instead of Anthropic's:
 
 | Model ID | Launcher label |
 | --- | --- |
-| `glm-5.3` | GLM 5.3 (Z.ai) |
 | `glm-5.2` | GLM 5.2 (Z.ai) |
 | `glm-5.1` | GLM 5.1 (Z.ai) |
 
@@ -105,9 +104,9 @@ file; only its `env` block is read:
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "ANTHROPIC_AUTH_TOKEN": "your_zai_api_key",
     "API_TIMEOUT_MS": "3000000",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.3",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5.3",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-5.3"
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.2",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5.2",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-5.2"
   }
 }
 ```
@@ -134,7 +133,7 @@ export P2PATCH_ZAI_SETTINGS=/path/to/settings-zai.json
 ```bash
 python -m security_pipeline run \
   --alert path/to/alert.json \
-  --model glm-5.3 \
+  --model glm-5.2 \
   --effort high
 ```
 
@@ -164,18 +163,15 @@ OpenRouter models:
 | --- | --- |
 | `deepseek/deepseek-v4-flash` | DeepSeek V4 Flash (OpenRouter) |
 | `openai/gpt-5.6-luna` | GPT-5.6 Luna (OpenRouter) |
-| `z-ai/glm-5.3` | GLM 5.3 (OpenRouter, default routing) |
-| `z-ai/glm-5.3:floor` | GLM 5.3 (OpenRouter, cheapest provider) |
 | `z-ai/glm-5.2:floor` | GLM 5.2 (OpenRouter, StreamLake FP8) |
 | `z-ai/glm-5.2` | GLM 5.2 (OpenRouter, default routing) |
 
 The list is an explicit allowlist (`OPENROUTER_MODELS` in
 `security_pipeline/openrouter.py`), so a sibling slug such as
 `openai/gpt-5.6-luna-pro` is not routed until it is added there and to the
-dashboard's `MODELS` list. Note `z-ai/glm-5.3` (OpenRouter) and `glm-5.3`
+dashboard's `MODELS` list. Note `z-ai/glm-5.2` (OpenRouter) and `glm-5.2`
 (Z.ai direct) are two separate launcher rows for the same model on two
-different routes — likewise for 5.2; only the OpenRouter one reports the amount
-actually billed.
+different routes; only the OpenRouter one reports the amount actually billed.
 
 `:floor` is normally OpenRouter's price-sorted routing variant. P2Patch keeps
 the `z-ai/glm-5.2:floor` launcher id for compatibility, but sends it as
