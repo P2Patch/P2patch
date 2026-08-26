@@ -1,0 +1,1255 @@
+{
+  "note": "Human-authored residual-gap triage verdicts, merged into TRIAGE.json by residual_povs/triage/sweep_upstream.py. One entry per POV, keyed '<project_slug>::<pov_id>'. A POV with no entry here is 'untriaged': nobody has read its upstream history yet. Statuses: fixed-later | open-at-head | superseded-in-release | unsound | disputed | needs-manual.",
+  "verdicts": {
+    "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5::shared_prefix_zip": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f8f42335",
+      "official_fix_date": "2018-05-06",
+      "later_fix_commit": "8a37b7e4",
+      "later_fix_date": "2023-03-19",
+      "later_fix_release": "plexus-archiver-4.6.3 (tagged 2023-03-20 19:31 UTC); 4.6.2 (2023-03-01) still carries the String form",
+      "delta_days": 1778,
+      "releases_exposed": "3.6.0 .. 4.6.2",
+      "corroboration": "explicit \u2014 'Fix path traversal vulnerability ... /opt/directory starts with /opt/dir although it is not inside it. This is a limited  path traversal vulnerability. Fixes: #260' [sic: double space in 'limited  path']. Third-party corroboration: issue #260, 'AbstractUnArchiver extractFile has Partial Path Traversal Vulnerability', opened 2023-03-17 by an outside reporter who wrote 'The patch file for CVE-2018-1002200 still has a vulnerability ... The impact is limited to sibling directories' \u2014 i.e. someone else independently found the same residual gap.",
+      "notes": "Independently audited and confirmed. Three labelling corrections: (1) 2023-03-19 is the AUTHOR date; the committer date is 2023-03-20 \u2014 label whichever you quote. (2) f8f42335 is a MERGE commit (PR #87), not the authoring commit of the guard. (3) This gap got NO CVE of its own \u2014 do not imply one; CVE-2023-37460 / GHSA-wh3p-fphp-9h2m on plexus-archiver is a different, symlink issue first patched in 4.8.0. Baseline premise re-checked: tag plexus-archiver-3.5 has no guard at all, 3.6.0 introduces the boundary-less String form. At HEAD (2026-08-19) the guard is Path-typed and element-wise.",
+      "evidence_urls": [
+        "https://github.com/codehaus-plexus/plexus-archiver/commit/8a37b7e4",
+        "https://github.com/codehaus-plexus/plexus-archiver/issues/260"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED; corrected date labelling and the no-CVE point)"
+    },
+    "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5::shared_prefix_tar": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f8f42335",
+      "official_fix_date": "2018-05-06",
+      "later_fix_commit": "8a37b7e4",
+      "later_fix_date": "2023-03-19",
+      "later_fix_release": "plexus-archiver-4.6.3 (tagged 2023-03-20 19:31 UTC); 4.6.2 (2023-03-01) still carries the String form",
+      "delta_days": 1778,
+      "releases_exposed": "3.6.0 .. 4.6.2",
+      "corroboration": "explicit \u2014 'Fix path traversal vulnerability ... /opt/directory starts with /opt/dir although it is not inside it. This is a limited  path traversal vulnerability. Fixes: #260' [sic: double space in 'limited  path']. Third-party corroboration: issue #260, 'AbstractUnArchiver extractFile has Partial Path Traversal Vulnerability', opened 2023-03-17 by an outside reporter who wrote 'The patch file for CVE-2018-1002200 still has a vulnerability ... The impact is limited to sibling directories' \u2014 i.e. someone else independently found the same residual gap.",
+      "notes": "Independently audited and confirmed. Three labelling corrections: (1) 2023-03-19 is the AUTHOR date; the committer date is 2023-03-20 \u2014 label whichever you quote. (2) f8f42335 is a MERGE commit (PR #87), not the authoring commit of the guard. (3) This gap got NO CVE of its own \u2014 do not imply one; CVE-2023-37460 / GHSA-wh3p-fphp-9h2m on plexus-archiver is a different, symlink issue first patched in 4.8.0. Baseline premise re-checked: tag plexus-archiver-3.5 has no guard at all, 3.6.0 introduces the boundary-less String form. At HEAD (2026-08-19) the guard is Path-typed and element-wise.",
+      "evidence_urls": [
+        "https://github.com/codehaus-plexus/plexus-archiver/commit/8a37b7e4",
+        "https://github.com/codehaus-plexus/plexus-archiver/issues/260"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED; corrected date labelling and the no-CVE point)"
+    },
+    "codehaus-plexus__plexus-utils_CVE-2022-4244_3.0.23::residual_1_shared_prefix_sibling": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "33a2853d",
+      "official_fix_date": "2016-05-07",
+      "later_fix_commit": "6d780b33",
+      "later_fix_date": "2025-11-09",
+      "later_fix_release": "plexus-utils-4.0.3 (2026-03-27); back-ported to 3.6.1 as cherry-pick 36ea3526 (2026-04-01)",
+      "delta_days": 3473,
+      "releases_exposed": "3.0.24 .. 4.0.2 and .. 3.6.0",
+      "corroboration": "STRONGEST IN THE CORPUS \u2014 this residual gap received its own CVE: CVE-2025-67030 / GHSA-6fmv-xxpf-w3cw, HIGH, published 2026-03-25, 'Directory Traversal vulnerability in the extractFile method of org.codehaus.plexus.util.Expand', first_patched 4.0.3 (>=4.0.0,<4.0.3) and 3.6.1 (<3.6.1). Third-party-reported as issue #294 (2025-09-02); fixed by PR #296. Commit message: 'Fix Zip Slip vulnerability in archive extraction (#296)'.",
+      "notes": "EXECUTED, CONTROLLED, AND CVE-CORROBORATED. Execution: reproduces on unpatched (exit 0), still reproduces after the official fix (exit 0), BLOCKED (exit 1) at 6d780b33 \u2014 falsifiability control passed (needed --control-image maven:3.9-eclipse-temurin-17, since the CVE's pinned builder image cannot build the 2025 tree). Clock discipline: 9y6m is COMMIT-to-commit (2016-05-07 UTC -> 2025-11-09); release-to-release is 9y 10m 20d (3.0.24 on 2016-05-07 -> 4.0.3 on 2026-03-27). Say which. Also note 33a2853d's local author date is 2016-05-08 +0200, i.e. 2016-05-07 UTC. 3.6.1 DOES carry the fix (as 36ea3526) \u2014 'git tag --contains 6d780b33' misses that cherry-pick, the same trap that produced our antisamy error.",
+      "evidence_urls": [
+        "https://github.com/advisories/GHSA-6fmv-xxpf-w3cw",
+        "https://nvd.nist.gov/vuln/detail/CVE-2025-67030",
+        "https://github.com/codehaus-plexus/plexus-utils/pull/296"
+      ],
+      "verified_by": "human 2026-08-21 + EXECUTED control (blocked at 6d780b33) + independent agent audit (CONFIRMED; surfaced CVE-2025-67030) + CVE re-verified by hand"
+    },
+    "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2::residual_1_shared_prefix_file": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "59aeea59 (SYNTHETIC \u2014 see notes)",
+      "official_fix_date": "2019-05-17",
+      "later_fix_commit": "ff3d3b34",
+      "later_fix_date": "2020-01-24",
+      "later_fix_release": "v2.3.1 (2020-01-26); v2.3.0 (2020-01-06) still boundary-less",
+      "delta_days": 252,
+      "releases_exposed": "the 1.x line was NEVER fixed (last release 1.3.3, 2019-05-17); on the 2.x line, every release up to v2.3.0",
+      "corroboration": "explicit \u2014 '#133 Fix for zip slip when file name is similar to directory extracted to'; third-party issue #133 opened 2020-01-21. No CVE was assigned to it.",
+      "notes": "SCOPE CORRECTION \u2014 phrase this row carefully. ff3d3b34 fixes net.lingala.zip4j.tasks.AbstractExtractFileTask in the 2.x rewrite, NOT the net.lingala.zip4j.unzip.Unzip class our PoV executes. The 1.x line was never fixed; its last release is 1.3.3. Correct wording: 'upstream later closed the same logical sink in the successor codebase', not 'the same code path'. This is also why the executed control errors: the 1.x API the PoV drives does not exist at ff3d3b34. PROVENANCE, now fully explained: the recorded official-fix SHA 59aeea59 does not exist upstream (gh api -> 422; upstream history starts 2019-05-04 and contains ZERO commits touching Unzip.java). It exists in iris-sast/zip4j, which is NOT a mirror or fork (fork=false, parent=null, created 2025-06-30) but a synthetic benchmark repo built from decompiled sources JARs \u2014 59aeea59 is a 2025-07-09 commit titled 'Add decompiled source for 1.3.3 (fixed) from zip4j-1.3.3-sources.jar', child of the 1.3.2 'vulnerable' commit. So our official_fix.patch content is genuine 1.3.3 code; only the SHA is synthetic, and the dataset's github_url for this row points at that reconstructed repo. RE-INTRODUCTION CLAIM CORRECTED: we credited c158768 (2019-09-05, '#55 ZipSlip fix') with re-introducing the boundary-less check in 2.x. Refuted \u2014 c158768 only canonicalized the LEFT operand. The real re-introduction is 4c50a6a5 (2019-05-18, 'Outputstreams refractor'), which added the 1.3.3-shaped guard verbatim ONE DAY after 1.3.3 shipped. That makes the recurrence thesis stronger, not weaker: the same defect was written into the rewrite the day after it was fixed in the old line.",
+      "evidence_urls": [
+        "https://github.com/srikanth-lingala/zip4j/commit/ff3d3b34",
+        "https://github.com/srikanth-lingala/zip4j/issues/133",
+        "https://github.com/srikanth-lingala/zip4j/commit/4c50a6a5"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (primary CONFIRMED; re-introduction attribution REFUTED and replaced; provenance of the synthetic SHA established)"
+    },
+    "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2::residual_2_shared_prefix_directory": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "59aeea59 (SYNTHETIC \u2014 see notes)",
+      "official_fix_date": "2019-05-17",
+      "later_fix_commit": "ff3d3b34",
+      "later_fix_date": "2020-01-24",
+      "later_fix_release": "v2.3.1 (2020-01-26); v2.3.0 (2020-01-06) still boundary-less",
+      "delta_days": 252,
+      "releases_exposed": "the 1.x line was NEVER fixed (last release 1.3.3, 2019-05-17); on the 2.x line, every release up to v2.3.0",
+      "corroboration": "explicit \u2014 '#133 Fix for zip slip when file name is similar to directory extracted to'; third-party issue #133 opened 2020-01-21. No CVE was assigned to it.",
+      "notes": "SCOPE CORRECTION \u2014 phrase this row carefully. ff3d3b34 fixes net.lingala.zip4j.tasks.AbstractExtractFileTask in the 2.x rewrite, NOT the net.lingala.zip4j.unzip.Unzip class our PoV executes. The 1.x line was never fixed; its last release is 1.3.3. Correct wording: 'upstream later closed the same logical sink in the successor codebase', not 'the same code path'. This is also why the executed control errors: the 1.x API the PoV drives does not exist at ff3d3b34. PROVENANCE, now fully explained: the recorded official-fix SHA 59aeea59 does not exist upstream (gh api -> 422; upstream history starts 2019-05-04 and contains ZERO commits touching Unzip.java). It exists in iris-sast/zip4j, which is NOT a mirror or fork (fork=false, parent=null, created 2025-06-30) but a synthetic benchmark repo built from decompiled sources JARs \u2014 59aeea59 is a 2025-07-09 commit titled 'Add decompiled source for 1.3.3 (fixed) from zip4j-1.3.3-sources.jar', child of the 1.3.2 'vulnerable' commit. So our official_fix.patch content is genuine 1.3.3 code; only the SHA is synthetic, and the dataset's github_url for this row points at that reconstructed repo. RE-INTRODUCTION CLAIM CORRECTED: we credited c158768 (2019-09-05, '#55 ZipSlip fix') with re-introducing the boundary-less check in 2.x. Refuted \u2014 c158768 only canonicalized the LEFT operand. The real re-introduction is 4c50a6a5 (2019-05-18, 'Outputstreams refractor'), which added the 1.3.3-shaped guard verbatim ONE DAY after 1.3.3 shipped. That makes the recurrence thesis stronger, not weaker: the same defect was written into the rewrite the day after it was fixed in the old line.",
+      "evidence_urls": [
+        "https://github.com/srikanth-lingala/zip4j/commit/ff3d3b34",
+        "https://github.com/srikanth-lingala/zip4j/issues/133",
+        "https://github.com/srikanth-lingala/zip4j/commit/4c50a6a5"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (primary CONFIRMED; re-introduction attribution REFUTED and replaced; provenance of the synthetic SHA established)"
+    },
+    "nahsra__antisamy_CVE-2022-28367_1.6.5::residual_livelist_html_xmp_anchor_javascript": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "0199e7e1",
+      "official_fix_date": "2022-03-27",
+      "later_fix_commit": "32e27350",
+      "later_fix_date": "2022-04-09",
+      "later_fix_release": "v1.6.7 (tagged 2022-04-10, released 2022-04-13)",
+      "delta_days": 13,
+      "releases_exposed": "2 \u2014 v1.6.6 (2022-04-02) and v1.6.6.1 (2022-04-07); 11 days of release exposure",
+      "corroboration": "explicit \u2014 commit message: 'Fix child node removal on style tag processing'",
+      "notes": "TWICE-CORRECTED. (1) The first pass said the residual fix first shipped in v1.7.0, i.e. 3 releases exposed; reading the source at each tag shows v1.6.7 already has the reversed loop, so it is 2. (2) The SHA also needed fixing: the change dual-landed. 32e27350 (2022-04-09) is on the 1.6.x lineage and IS an ancestor of v1.6.7 (compare: 2 ahead, 0 behind); 21c4061da0fc (identical subject and author date) is the main-line twin and is NOT in v1.6.7 (compare: diverged) \u2014 it is first tagged v1.7.0. Cite 32e27350 for the release claim and 21c4061 for the main-line commit. ROOT CAUSE of the original error: 'git tag --contains 21c4061' answers v1.7.0, because --contains cannot see a cherry-pick onto a release branch. Content-at-tag is the only reliable oracle for 'which release shipped the fix'. NOTE this row is a live-NodeList removal bug, NOT the containment-boundary family. EXECUTED: both PoVs reproduce on unpatched and after the official fix, and are BLOCKED at 21c4061 (exit 1) \u2014 falsifiability control passed, independently on two machines.",
+      "evidence_urls": [
+        "https://github.com/nahsra/antisamy/commit/32e27350",
+        "https://github.com/nahsra/antisamy/commit/21c4061",
+        "https://github.com/nahsra/antisamy/releases/tag/v1.6.7"
+      ],
+      "verified_by": "human 2026-08-21 (per-tag source read) + independent agent audit (confirmed, corrected the SHA) + executed control"
+    },
+    "nahsra__antisamy_CVE-2022-28367_1.6.5::residual_livelist_xhtml_xmp_script": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "0199e7e1",
+      "official_fix_date": "2022-03-27",
+      "later_fix_commit": "32e27350",
+      "later_fix_date": "2022-04-09",
+      "later_fix_release": "v1.6.7 (tagged 2022-04-10, released 2022-04-13)",
+      "delta_days": 13,
+      "releases_exposed": "2 \u2014 v1.6.6 (2022-04-02) and v1.6.6.1 (2022-04-07); 11 days of release exposure",
+      "corroboration": "explicit \u2014 commit message: 'Fix child node removal on style tag processing'",
+      "notes": "TWICE-CORRECTED. (1) The first pass said the residual fix first shipped in v1.7.0, i.e. 3 releases exposed; reading the source at each tag shows v1.6.7 already has the reversed loop, so it is 2. (2) The SHA also needed fixing: the change dual-landed. 32e27350 (2022-04-09) is on the 1.6.x lineage and IS an ancestor of v1.6.7 (compare: 2 ahead, 0 behind); 21c4061da0fc (identical subject and author date) is the main-line twin and is NOT in v1.6.7 (compare: diverged) \u2014 it is first tagged v1.7.0. Cite 32e27350 for the release claim and 21c4061 for the main-line commit. ROOT CAUSE of the original error: 'git tag --contains 21c4061' answers v1.7.0, because --contains cannot see a cherry-pick onto a release branch. Content-at-tag is the only reliable oracle for 'which release shipped the fix'. NOTE this row is a live-NodeList removal bug, NOT the containment-boundary family. EXECUTED: both PoVs reproduce on unpatched and after the official fix, and are BLOCKED at 21c4061 (exit 1) \u2014 falsifiability control passed, independently on two machines.",
+      "evidence_urls": [
+        "https://github.com/nahsra/antisamy/commit/32e27350",
+        "https://github.com/nahsra/antisamy/commit/21c4061",
+        "https://github.com/nahsra/antisamy/releases/tag/v1.6.7"
+      ],
+      "verified_by": "human 2026-08-21 (per-tag source read) + independent agent audit (confirmed, corrected the SHA) + executed control"
+    },
+    "jeremylong__DependencyCheck_CVE-2018-12036_3.1.2::archiveanalyzer_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "c106ca91",
+      "official_fix_date": "2018-05-07",
+      "later_fix_commit": "0e154062",
+      "later_fix_date": "2019-02-17",
+      "later_fix_release": "v5.0.0-M1 (tagged 2019-02-17, ~41 min after the commit); GA v5.0.0 2019-06-09",
+      "delta_days": 286,
+      "releases_exposed": "v3.2.0 .. v4.0.2",
+      "corroboration": "incidental \u2014 0e154062's subject ends '...and lots of code cleanup'; no advisory, no acknowledgement that a boundary bug existed",
+      "notes": "CORRECTED, then independently confirmed by an adversarial audit. The first pass credited a4b49354 (2023-01-23, v8.0.2, delta 4y 8m). Agent audit reproduced the site counts from file content at each tag: v3.2.0 and v4.0.2 have 3 unsafe String guards and 0 safe Path ones; v5.0.0-M1 has 2 unsafe + 1 safe. git log -S'd.resolve(entry.getName()).normalize()' at v5.0.0-M1 returns exactly one commit, 0e154062. a4b49354's ArchiveAnalyzer diff is purely ADDITIVE \u2014 it introduces extractArchive(ZipInputStream,...) with its own safe guard and never touches the ArchiveInputStream overload, which had been safe for four years. Reachability also checked: Pov.java reflects getDeclaredMethod('extractArchive', ArchiveInputStream.class, ...) and production zip/jar dispatch used ZipArchiveInputStream -> that same overload at v3.1.2/v3.2.0/v5.0.0-M1/v8.0.1, switching to the ZipInputStream overload only at v8.0.2 \u2014 so the PoV's sink was the real zip path across the whole window. Delta 9.5 months (286 days), not 4y 8m.",
+      "evidence_urls": [
+        "https://github.com/dependency-check/DependencyCheck/commit/0e154062",
+        "https://github.com/dependency-check/DependencyCheck/commit/a4b49354"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (CONFIRMED, no corrections)"
+    },
+    "jeremylong__DependencyCheck_CVE-2018-12036_3.1.2::extractfiles_sibling_prefix": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "c106ca91",
+      "official_fix_date": "2018-05-07",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "every release to date",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "COUNT CONFIRMED, REACHABILITY OVERSTATED \u2014 severity must come down before any disclosure. The 6 boundary-less sites at HEAD (02bb473c, 2026-08-18) are confirmed at lines 103/116 (extractFiles(File,File,Engine)), 170/179 (extractFiles(InputStream,File)), 246 (private extractArchive) and 286 (private extractFile), and they are the only startsWith occurrences in the file. But a grep of the whole HEAD tree for ExtractionUtil callers shows: (a) the overload THIS PoV drives, extractFiles(File,File[,Engine]), has ZERO production callers \u2014 only its own unit test; it is public library API of dependency-check-core, reachable only by a third-party embedder; (b) extractFiles(InputStream,File) has one caller, AssemblyAnalyzer.extractGrokAssembly, on a resource inside dependency-check's own JAR \u2014 not attacker-controlled; (c) sites 246/286 are reached from PythonDistributionAnalyzer, which is @Experimental and OFF BY DEFAULT (analyzer.experimental.enabled=false), and its file branch runs only behind NameFileFilter('METADATA'/'PKG-INFO'). SEVERITY CEILING we had been missing: a boundary-less startsWith admits only paths whose canonical form has the destination's FULL path string as a prefix, and both reachable destinations are program-chosen random temp dirs (<temp>/check<random>tmp/<N>), so the escape reaches only siblings inside dependency-check's own scratch tree \u2014 it cannot reach /etc, ~/.ssh, or the scanned project. NOT arbitrary file write. Drop 'zip slip'/'arbitrary write' framing; expect a triager to rate this low/informational. NOTE a conflict between two audits: one recommended leading the report with archiveanalyzer_sibling_prefix as the default-reachable half, but the other established (tag-by-tag counts + git log -S) that the ArchiveInputStream overload that PoV drives has been safe since v5.0.0-M1 in 2019; the two guards still unsafe in ArchiveAnalyzer at HEAD (467/482) are the gz/bz2 branches, whose output name derives from the archive's own filename, and no PoV of ours drives them. So neither PoV is a default-reachable arbitrary-write finding.",
+      "evidence_urls": [
+        "https://github.com/dependency-check/DependencyCheck/blob/main/core/src/main/java/org/owasp/dependencycheck/utils/ExtractionUtil.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second added a GitHub-wide embedder search)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "BOTH prior claims re-confirmed by a second audit, including a GitHub-wide code search. ZERO PRODUCTION CALLERS: extractFiles(File,File) is called only by its own unit test, and a search for external embedders calling it on untrusted input returned only forks, mirrors and dataset copies. The two paths that DO process untrusted archives are siblings, not this overload: extractFiles(InputStream,File) extracts a JAR resource bundled inside dependency-check itself, and extractFilesUsingFilter is reached only from PythonDistributionAnalyzer, which is @Experimental and off by default. CONFINEMENT: every reachable destination is a program-chosen random temp dir, so the boundary-less startsWith admits only paths textually prefixed by that temp path \u2014 an escape lands in a sibling inside dependency-check's own scratch tree, never /etc, ~/.ssh or the scanned project. NOT arbitrary file write. Drop all zip-slip framing; a triager would rate this low/informational."
+    },
+    "perwendel__spark_CVE-2016-9177_2.5.1::shared_prefix_classpath_sibling": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "efcb46c7",
+      "official_fix_date": "2016-11-06",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "every release to date",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Confirmed at master HEAD (1973e402, 2022-07-10): isPathWithinFolder is still a bare String.startsWith with no separator boundary. Chain re-verified at HEAD: ClassPathResourceHandler.getResource -> protectAgainstInClassPath(resource.getPath(), baseResource), and ClassPathResource's constructor does StringUtils.cleanPath (converts backslashes, collapses ..) and strips the leading slash, so '/..\\\\publicSECRET/x' arrives as 'publicSECRET/x' against folder 'public' and startsWith returns true. Signature changed since 2.5.1 \u2014 the folder is now a parameter, not StaticFilesFolder.local(); cite the HEAD signature. removeLeadingAndTrailingSlashesFrom, added after the CVE fix, makes it slightly WORSE: it trims a trailing slash, so even a base configured as 'public/' is reduced to 'public' before the prefix test. MAINTENANCE REALITY for disclosure planning: not archived but effectively unmaintained \u2014 last master commit 2022-07-10, latest tag 2.9.3 (2020-10-08), ZERO GitHub releases ever published, 262 open issues / 56 open PRs, 9.6k stars. Treat as a no-response disclosure target.",
+      "evidence_urls": [
+        "https://github.com/perwendel/spark/blob/master/src/main/java/spark/staticfiles/DirectoryTraversal.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21",
+      "reachability": "code-quality-only",
+      "reachability_notes": "The public HTTP static chain is real (StaticFilesConfiguration.consume:67 -> consumeWithFileResourceHandlers:91 -> getResource(servletPath+pathInfo) -> ClassPathResourceHandler.getResource:83) and the boundary bug is real at HEAD (DirectoryTraversal.java:30-34, bare startsWith). But exploitation needs a sibling CLASSPATH resource directory whose name shares the static folder's prefix (publicSECRET next to public) AND containing a secret the developer did not mean to serve \u2014 a layout that does not occur in a normal staticFiles.location('/public') app \u2014 and it relies on backslash/'..' surviving container URI normalisation into getPathInfo(). Preconditions unrealistic. DISPOSITION: harden startsWith to a separator boundary; not an advisory."
+    },
+    "perwendel__spark_CVE-2016-9177_2.5.1::symlink_external_uncanonicalized": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "efcb46c7",
+      "official_fix_date": "2016-11-06",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "every release to date",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Confirmed at HEAD: unixifyPath uses Paths.get(path).toAbsolutePath(), which performs no symlink resolution (that needs toRealPath()), and the input is ExternalResource.getPath() \u2014 the literal path. WORDING CORRECTION: we call this an 'adjacent weakness', which is defensible on root cause (missing canonicalization vs ../ traversal), but the defect lives INSIDE the guard method the CVE fix introduced, so a triager will read it as a second bypass of the same guard. Say 'distinct root cause in the same guard', not 'unrelated weakness'.",
+      "evidence_urls": [
+        "https://github.com/perwendel/spark/blob/master/src/main/java/spark/staticfiles/DirectoryTraversal.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21",
+      "reachability": "by-design",
+      "reachability_notes": "The defect is real \u2014 protectAgainstForExternal checks the literal resource.getPath(), not getCanonicalPath(), so a symlink under the served base is followed (ExternalResourceHandler.getResource:82). But the attacker must PLANT a symlink inside the served external directory, i.e. hold local filesystem write to the web root \u2014 and anyone with that can already do worse. Not a remote vulnerability. Defense-in-depth only."
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::put_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::get_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::delete_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::find_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::put_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::delete_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::get_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::find_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline \u2014 PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental \u2014 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both \u2014 i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::bucket_name_traversal_read": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "medium",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "92edb5f2",
+      "later_fix_date": "2024-10-14",
+      "later_fix_release": "yamcs-5.11.0 (2025-02-03)",
+      "delta_days": 373,
+      "releases_exposed": "5.8.8 .. 5.10.12 (2025-03-05) \u2014 every release in that window ships the unguarded sink",
+      "corroboration": "incidental, by removal \u2014 92edb5f2 'Add bucket provider mechanism' deletes the class; no commit ever added a containment check to it",
+      "notes": "Different sink from this suite's sibling-prefix PoVs: FileSystemBucketDatabase.getBucket/createBucket did a bare root.resolve(bucketName). Audited history of that file (14 commits, 2018-2024): no containment check was ever added. The class was DELETED in 92edb5f2; at HEAD BucketManager.getBucket is a map lookup and no root.resolve(bucketName) remains anywhere. Classified fixed-later-by-removal rather than open. MEDIUM confidence because reachability over HTTP is unproven: at 5.8.6 BucketsApi.verifyAndGetBucket passes the raw name to getBucket without applying BUCKET_NAME_REGEXP (that regex guards only the create route), but nobody verified the Netty router preserves a literal '..' in the :bucketName path segment. The PoVs drive the Java API directly, so certification stands; the manifest's HTTP-layer wording does not.",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/92edb5f2"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (full file history + HEAD read)"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::bucket_name_traversal": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "medium",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "92edb5f2",
+      "later_fix_date": "2024-10-14",
+      "later_fix_release": "yamcs-5.11.0 (2025-02-03)",
+      "delta_days": 373,
+      "releases_exposed": "5.8.8 .. 5.10.12 (2025-03-05)",
+      "corroboration": "incidental, by removal \u2014 see the CVE-2023-45277 twin",
+      "notes": "Same sink and same disposition as bucket_name_traversal_read in the CVE-2023-45277 suite: FileSystemBucketDatabase deleted by 92edb5f2, never guarded. Medium confidence for the same reason \u2014 HTTP-layer reachability unproven.",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/92edb5f2"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "dromara__hutool_CVE-2018-17297_4.1.11::residual_unzip_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "8d7d0b7f",
+      "official_fix_date": "2018-09-13",
+      "later_fix_commit": "d53ac716",
+      "later_fix_date": "2023-06-16",
+      "later_fix_release": "5.8.20 (published 2023-06-16); 5.8.19 (2023-05-26) still boundary-less",
+      "delta_days": 1737,
+      "releases_exposed": "4.1.12 .. 5.8.19 \u2014 4 years 9 months of releases",
+      "corroboration": "silent at commit level, public in the tracker \u2014 both commit messages are only 'fix a defect in the FileUtil.checkSlip method', but the 5.8.20 CHANGELOG links issue #3140, titled 'the checkSlip function used to detect slip injection has a security defect', whose body describes EXACTLY our sibling-prefix bypass (/home/safe vs /home/safe_bak) and recommends Path.startsWith or appending File.separator. Someone independently found and reported this in June 2023 \u2014 know that before calling it a novel gap. No CVE assigned.",
+      "notes": "PINNED, replacing our earlier 5.8.11..5.8.20 bracket. TWO commits a week apart both ship in 5.8.20, and only the SECOND closes our PoVs: a4ade53d (2023-06-09) swapped the String test for file.toPath().startsWith(parentFile.toPath()), which is element-wise but NOT normalizing \u2014 and hutool's buildFile does not normalize either, so our '../out_evil/x' payload still arrives as '.../out/../out_evil/x', which does start with '.../out' and passes. d53ac716 (2023-06-16) routes through isSub -> PathUtil.isSub = toAbsNormal(sub).startsWith(toAbsNormal(parent)), and toAbsNormal = toAbsolutePath().normalize(), which collapses the traversal and rejects. So cite d53ac716. Lag 4y 9m. Repo now redirects dromara/hutool -> chinabugotech/hutool, default branch v5-master. Only v5-master was audited; v6/v7 branches unchecked.",
+      "evidence_urls": [
+        "https://github.com/chinabugotech/hutool/commit/d53ac716",
+        "https://github.com/dromara/hutool/issues/3140"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (commit-level pin + 5.8.19/5.8.20 diff + issue trail)"
+    },
+    "dromara__hutool_CVE-2018-17297_4.1.11::residual_fileapi_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "8d7d0b7f",
+      "official_fix_date": "2018-09-13",
+      "later_fix_commit": "d53ac716",
+      "later_fix_date": "2023-06-16",
+      "later_fix_release": "5.8.20 (published 2023-06-16); 5.8.19 (2023-05-26) still boundary-less",
+      "delta_days": 1737,
+      "releases_exposed": "4.1.12 .. 5.8.19 \u2014 4 years 9 months of releases",
+      "corroboration": "silent at commit level, public in the tracker \u2014 both commit messages are only 'fix a defect in the FileUtil.checkSlip method', but the 5.8.20 CHANGELOG links issue #3140, titled 'the checkSlip function used to detect slip injection has a security defect', whose body describes EXACTLY our sibling-prefix bypass (/home/safe vs /home/safe_bak) and recommends Path.startsWith or appending File.separator. Someone independently found and reported this in June 2023 \u2014 know that before calling it a novel gap. No CVE assigned.",
+      "notes": "PINNED, replacing our earlier 5.8.11..5.8.20 bracket. TWO commits a week apart both ship in 5.8.20, and only the SECOND closes our PoVs: a4ade53d (2023-06-09) swapped the String test for file.toPath().startsWith(parentFile.toPath()), which is element-wise but NOT normalizing \u2014 and hutool's buildFile does not normalize either, so our '../out_evil/x' payload still arrives as '.../out/../out_evil/x', which does start with '.../out' and passes. d53ac716 (2023-06-16) routes through isSub -> PathUtil.isSub = toAbsNormal(sub).startsWith(toAbsNormal(parent)), and toAbsNormal = toAbsolutePath().normalize(), which collapses the traversal and rejects. So cite d53ac716. Lag 4y 9m. Repo now redirects dromara/hutool -> chinabugotech/hutool, default branch v5-master. Only v5-master was audited; v6/v7 branches unchecked.",
+      "evidence_urls": [
+        "https://github.com/chinabugotech/hutool/commit/d53ac716",
+        "https://github.com/dromara/hutool/issues/3140"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (commit-level pin + 5.8.19/5.8.20 diff + issue trail)"
+    },
+    "incubator-seata_CVE-2025-32897_v2.2.0::raft_sync_shared_prefix": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Confirmed at default branch 2.x HEAD (dbea1859, 2026-08-15): the guard is now a two-entry PERMIT_PACKAGES list but each entry is still tested with a bare className.startsWith(permitPackage) and no package-boundary character. TWO MANIFEST FIXES NEEDED: (1) the fix_summary describes the single-String form from 2.2.0 and should note the list; (2) the PoV description has the arguments INVERTED \u2014 it says 'permitPackage.startsWith(className)' where the code is 'className.startsWith(permitPackage)'; fix before quoting it anywhere. TWO STRONGER VARIANTS found at HEAD that we did not file: java.util.HashMap is checked the same boundary-less way (java.util.HashMapEvil passes), and the oldPackage rewrite runs FIRST, so io.seata.serverEvil.X is rewritten to org.apache.seata.serverEvil.X and then passes. Folding these in makes the 'no boundary anywhere' point without depending on one crafted package name. Not settled: whether a caller upstream of RaftSyncMessageSerializer.decode restricts the class name first.",
+      "evidence_urls": [
+        "https://github.com/apache/incubator-seata/blob/2.x/server/src/main/java/org/apache/seata/server/cluster/raft/serializer/CustomDeserializer.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second searched the classpath for a usable gadget and found none)",
+      "reachability": "needs-more-work",
+      "reachability_notes": "DOWNGRADED \u2014 the allowlist defect is real but NOT weaponizable; do not disclose it as a residual RCE. The entry point is genuinely network-reachable: CustomDeserializer:53 startsWith -> :55 Class.forName, fed by JacksonSerializer.deserialize with an attacker-chosen class name, over two wire paths \u2014 follower onApply (RaftStateMachine:181) and a direct bolt RPC PutNodeMetadataRequest with serializer byte 50, which deserializes on request decode BEFORE the leader check. The raft transport has no auth and no TLS by default and membership is static IP config \u2014 but raft mode is opt-in and non-default (store.mode defaults to file), so a stock server never opens the channel, which is why upstream rates the base CVE Low. WHY IT IS NOT EXPLOITABLE: the base-CVE gadget (JdbcRowSetImpl -> JNDI -> RCE) is blocked because its FQN does not start with org.apache.seata. Exploiting the BOUNDARY bug needs a dangerous class whose FQN textually begins with org.apache.seata (or java.util.HashMap) yet is not genuine Seata code \u2014 no such class exists on the server classpath, and no third-party jar uses that package prefix. The in-namespace *DataSourceProvider classes are not Jackson gadgets. Our PoV instantiates an inert marker class, which is exactly the limitation. DISPOSITION: a fix-completeness PR (append a '.' boundary or require exact-class match), not an advisory. Revisit if a gadget in that namespace appears."
+    },
+    "apache__dolphinscheduler_CVE-2022-26884_2.0.5::shared_prefix_bypass": {
+      "status": "needs-manual",
+      "claim_class": "in-scope",
+      "confidence": "low",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "",
+      "notes": "checkPathSecurity does not exist anywhere at upstream HEAD (GitHub code search: 0 hits) and LoggerRequestProcessor is gone from the path the official fix touched. The guard was refactored or the whole logger-RPC surface removed, so this cannot be settled by a file fetch \u2014 it needs a full clone and git log -S over the deleted path to say fixed-later vs feature-removed.",
+      "evidence_urls": [
+        "https://github.com/apache/dolphinscheduler"
+      ],
+      "verified_by": "human 2026-08-21 (HEAD absence confirmed; history not traced)"
+    },
+    "asf__cxf_CVE-2016-6812_3.0.11::stylesheet_pathinfo": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "1be97cb1",
+      "official_fix_date": "2016-10-18",
+      "later_fix_commit": "3c23fa3b",
+      "later_fix_date": "2020-09-23",
+      "later_fix_release": "2020-11-03 \u2014 cxf-3.3.8 (backport dc6229b0, tagged ~2h earlier) and cxf-3.4.1",
+      "delta_days": 1436,
+      "releases_exposed": "3.0.12 .. 3.4.0; no CXF release after 2020-11-03 ships it unescaped (3.1.x and 3.2.x were already EOL)",
+      "corroboration": "explicit \u2014 'Escape the services listing stylesheet path (#694)'; the diff is exactly this.styleSheetPath = StringEscapeUtils.escapeHtml4(styleSheetPath)",
+      "notes": "Independently audited and confirmed. Neither official fix touches styleSheetPath: the 2016 patch only concatenates contextPath+servletPath+pathInfo, and the 2019 patch adds escapeHtml4 at 6 sites, none of them this one. git log --all -S'escapeHtml4(styleSheetPath)' returns exactly two commits, both 2020-09-23 \u2014 3c23fa3b on main and dc6229b0 on 3.3.x-fixes \u2014 so there is no earlier partial closure. CORRECTION to our first statement: the first release is not cxf-3.4.1 alone; the 3.3.x line got the backport and cxf-3.3.8 was tagged the same day, about two hours earlier. Lag unaffected (same commit date): 3y 11m 5d. At HEAD ServiceListGeneratorServlet still builds styleSheetPath from pathInfo and the writer still emits it into a LINK href, so the constructor escape is the entire guard \u2014 which is exactly what makes the PoV flip to blocked.",
+      "evidence_urls": [
+        "https://github.com/apache/cxf/commit/3c23fa3b",
+        "https://github.com/apache/cxf/commit/dc6229b0"
+      ],
+      "verified_by": "human 2026-08-21 (HEAD read + tag bisect) + independent agent audit (CONFIRMED; corrected first-release to 3.3.8+3.4.1)"
+    },
+    "asf__cxf_CVE-2019-17573_3.2.11::stylesheet_pathinfo": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "a02e96ba",
+      "official_fix_date": "2019-12-18",
+      "later_fix_commit": "3c23fa3b",
+      "later_fix_date": "2020-09-23",
+      "later_fix_release": "2020-11-03 \u2014 cxf-3.3.8 and cxf-3.4.1",
+      "delta_days": 280,
+      "releases_exposed": "3.2.12 .. 3.4.0",
+      "corroboration": "explicit \u2014 same commit and message as the CVE-2016-6812 twin; the official fix a02e96ba ('Make sure to escape URLs returned in the services listing') escaped 6 other sites but not this one",
+      "notes": "One gap, two CVE suites, one closing commit. Shortest lag of the pair: 9m 5d commit-to-commit, ~10.5 months release-to-release (3.3.5 on 2020-01-10 -> 3.3.8 on 2020-11-03).",
+      "evidence_urls": [
+        "https://github.com/apache/cxf/commit/3c23fa3b"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED)"
+    },
+    "jte_CVE-2025-23026_3.1.15::residual_block_lineterm": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; Escape.java untouched since the CVE fix a6fb00d5 (2025-01-13)",
+      "notes": "*** A NEW VULNERABILITY WAS FOUND WHILE AUDITING THIS ROW. It is NOT what our PoV tests, and it needs a disclosure decision. *** jte's OwaspHtmlTemplateOutput routes on* attributes to Escape.javaScriptAttribute ONLY, with no HTML-attribute pass (verified by hand at HEAD), and javaScriptAttribute escapes single-quote, double-quote, backtick, dollar, backslash, \\n \\t \\r \\f \\b \u2014 and NOT ampersand (also verified by hand). So a literal &#x27; in user content reaches the attribute raw and the HTML parser decodes it to a quote BEFORE the JS parser runs. RENDERED END-TO-END through the real engine: template <span onclick=\"show('${u}')\"> with u = &#x27;);alert(document.domain)// yields an onclick the browser decodes into show('P_');alert(document.domain)//_Q') and the alert EXECUTES. Control: a plain ');alert(1)// is correctly escaped to \\x27 and is safe, so the entity form is the specific bypass. &#x22; does the same for double-quoted JS strings. A non-on* attribute routes through htmlAttribute, which escapes & to &amp;, and is safe. The official CVE fix (which added backtick and dollar) does not close it. This is a real XSS in a context jte's OWASP auto-escaping promises to make safe, in a maintained project \u2014 a coordinated-disclosure candidate for casid/jte, and that call is the maintainer's, not ours to publish.",
+      "evidence_urls": [
+        "https://github.com/casid/jte/blob/main/jte-runtime/src/main/java/gg/jte/html/escape/Escape.java"
+      ],
+      "verified_by": "independent reachability audit 2026-08-21 (jte built, templates rendered) + routing and escape set re-verified by hand",
+      "reachability": "code-quality-only",
+      "reachability_notes": "OUR PoV'S CLAIM DOES NOT SURVIVE \u2014 but the audit found a real XSS beside it. An auditor built jte 3.1.15 and rendered <script>var s = 'P_${u}_Q';</script> with U+2028/U+2029 in u: they are emitted raw (escaping gap confirmed, Escape.java untouched since the CVE fix), but ES2019 made them legal unescaped inside string and template literals, so there is NO string breakout on any current engine. What remains is line-structure contexts (// comment end, ASI, regex literals), which a realistic template rarely places user data into. Do NOT disclose this PoV as worded."
+    },
+    "jte_CVE-2025-23026_3.1.15::residual_attr_lineterm": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; Escape.java untouched since the CVE fix a6fb00d5 (2025-01-13)",
+      "notes": "*** A NEW VULNERABILITY WAS FOUND WHILE AUDITING THIS ROW. It is NOT what our PoV tests, and it needs a disclosure decision. *** jte's OwaspHtmlTemplateOutput routes on* attributes to Escape.javaScriptAttribute ONLY, with no HTML-attribute pass (verified by hand at HEAD), and javaScriptAttribute escapes single-quote, double-quote, backtick, dollar, backslash, \\n \\t \\r \\f \\b \u2014 and NOT ampersand (also verified by hand). So a literal &#x27; in user content reaches the attribute raw and the HTML parser decodes it to a quote BEFORE the JS parser runs. RENDERED END-TO-END through the real engine: template <span onclick=\"show('${u}')\"> with u = &#x27;);alert(document.domain)// yields an onclick the browser decodes into show('P_');alert(document.domain)//_Q') and the alert EXECUTES. Control: a plain ');alert(1)// is correctly escaped to \\x27 and is safe, so the entity form is the specific bypass. &#x22; does the same for double-quoted JS strings. A non-on* attribute routes through htmlAttribute, which escapes & to &amp;, and is safe. The official CVE fix (which added backtick and dollar) does not close it. This is a real XSS in a context jte's OWASP auto-escaping promises to make safe, in a maintained project \u2014 a coordinated-disclosure candidate for casid/jte, and that call is the maintainer's, not ours to publish.",
+      "evidence_urls": [
+        "https://github.com/casid/jte/blob/main/jte-runtime/src/main/java/gg/jte/html/escape/Escape.java"
+      ],
+      "verified_by": "independent reachability audit 2026-08-21 (jte built, templates rendered) + routing and escape set re-verified by hand",
+      "reachability": "code-quality-only",
+      "reachability_notes": "OUR PoV'S CLAIM DOES NOT SURVIVE \u2014 but the audit found a real XSS beside it. An auditor built jte 3.1.15 and rendered <script>var s = 'P_${u}_Q';</script> with U+2028/U+2029 in u: they are emitted raw (escaping gap confirmed, Escape.java untouched since the CVE fix), but ES2019 made them legal unescaped inside string and template literals, so there is NO string breakout on any current engine. What remains is line-structure contexts (// comment end, ASI, regex literals), which a realistic template rarely places user data into. Do NOT disclose this PoV as worded."
+    },
+    "apache__sling-org-apache-sling-xss_CVE-2016-5394_1.0.8::multiline_comment_tag": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Byte-identical at HEAD to the version at tag 1.0.8: 'if (comment != null && !comment.contains(\"*/\")) return comment;'. Strengthener we did not have: the XSSAPI interface javadoc at HEAD documents the vulnerable contract \u2014 'Validate multi-line comment to be used inside a <script>...</script> or <style>...</style> block. Multi-line comment end block is disallowed.' \u2014 so the intended sink is exactly the HTML context the payload breaks out of.",
+      "evidence_urls": [
+        "https://github.com/apache/sling-org-apache-sling-xss/blob/master/src/main/java/org/apache/sling/xss/impl/XSSAPIImpl.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21",
+      "reachability": "reportable",
+      "reachability_notes": "BUNDLE WITH style_token_quoted_tag \u2014 standalone it leans code-quality-only. Same shape, weaker reach: the only caller is XSSRuntimeExtension.java:130-131 (SCRIPT_COMMENT / STYLE_COMMENT), reached only via @ context='scriptComment' or 'styleComment', far rarer than styleToken. Note HTL's HTML-comment context routes to encodeForHTML, not here. Same content-author-to-visitor boundary and stored-XSS ceiling."
+    },
+    "apache__sling-org-apache-sling-xss_CVE-2016-5394_1.0.8::style_token_quoted_tag": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; the CSS_TOKEN regex at HEAD is byte-identical to the one at tag 1.0.8",
+      "notes": "SETTLED BY EXECUTION \u2014 raised from medium to high, and this is now the strongest fully-settled open finding in the corpus. The auditor reconstructed CSS_TOKEN and getValidStyleToken verbatim from HEAD (f73c46bb, 2026-08-19) and ran them under real Java 17, cross-checked with Python re.fullmatch, agreeing on every case. Inside a quoted string the regex excludes only the quote, ^, backslash and newline \u2014 <, > and / are all permitted, and (?!javascript\\s?:) is the ONLY content restriction. Results: \"</style><script>alert(1)</script>\" ACCEPTED, '</style><script>...' ACCEPTED, url(\"</style><script>...\") ACCEPTED, \"</style><img src=x onerror=alert(1)>\" ACCEPTED; the unquoted form is rejected (matching upstream's own test) as is \"javascript:alert(1)\". OUR MANIFEST UNDERSTATES IT: we name only the double-quoted vector; there are THREE \u2014 double-quoted, single-quoted, and url(\"...\"). Repo is actively maintained (latest tag 2.4.10, 2026-02-05), which makes this a live disclosure candidate.",
+      "evidence_urls": [
+        "https://github.com/apache/sling-org-apache-sling-xss/blob/master/src/main/java/org/apache/sling/xss/impl/XSSAPIImpl.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (regex executed under Java 17; caller analysis across Sling, HTL and AEM components)",
+      "reachability": "reportable",
+      "reachability_notes": "REPORTABLE, BUT SCOPE IT HONESTLY \u2014 opt-in and content-author-reachable, not a default-install zero-click. There is no framework-driven HTTP->sink chain: the only production caller in Apache is HTL's XSSRuntimeExtension.java:121 (case STYLE_TOKEN -> getValidStyleToken), reached ONLY when a template author writes @ context='styleToken'. The Sightly compiler never infers that context \u2014 inside <style>/<script> it blanks any context-less expression \u2014 and the JSP taglib does not expose it. BOUNDARY: crossed only if an author opts in AND the value is attacker-influenced; in AEM that is authored JCR property -> site visitor. No shipped Sling/AEM template feeds request data here (aem-core-wcm-components: zero styleToken uses). PRECONDITIONS are realistic anyway, because styleToken is the HTL spec's own canonical example for emitting CSS tokens and is TCK-exercised. Two sinks, both emitted RAW because the compiler suppresses attribute escaping for explicit-context expressions: a <style> element (the </style><script> breakout) and a style attribute (a quote breakout also matches CSS_TOKEN). IMPACT: stored XSS. CHANNEL: security@sling.apache.org, JIRA project SLING, origin SLING-4176. Report it as a sanitizer-CONTRACT violation: the method's documented job is to output nothing when validation fails, and upstream's own test asserts the unquoted tag becomes RUBBISH while the quoted form breaks out. adobe/htlengine's JS port carries identical logic."
+    },
+    "emissary_CVE-2025-27508_8.23.0::kff_add_algorithm_md5": {
+      "status": "unsound",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "the advisory itself disclaims the algorithms: GHSA-hw43-fcmm-3m5g says 'these specific default insecure algorithms can not be updated without violating the intended use-case'",
+      "notes": "EXCLUDE FROM THE RESIDUAL SCORE. Not unsound in the 'always exits 0' sense \u2014 it is worse and more interesting. Five lines of evidence that the PoVs assert REQUIRED behaviour: (1) the advisory declares the algorithms un-removable; (2) emissary's own shipped KffChain.cfg loads MD5/SHA-1/CRC32 through setAlgorithms, the exact public method one PoV calls; (3) the KFF on-disk record format IS SHA-1+CRC32 (KffFile: 20-byte SHA + 4-byte CRC) and KffQuincyFile requires MD5; (4) upstream's own KffChainTest.testAlgorithmsUsedWithAddAlgorithm is line-for-line the PoV (chain.addAlgorithm('MD5') then assertEquals('MD5', ...)) \u2014 VERIFIED BY HAND at HEAD; (5) the remediation the advisory prescribes (access-modifier narrowing) would make the PoV harness fail to compile -> exit 2 -> errored, not blocked. WHAT ACTUALLY HAPPENED IN OUR RUNS, which is the real finding: three patched runs scored residual 1.0 ('hardened beyond upstream'). Both PoVs came back blocked with exit 1 \u2014 and run.sh does distinguish (ensure_built || exit 2), so that is a genuine runtime block, not a compile failure. The patch achieved it by silently skipping weak algorithms (a 'continue' in ChecksumCalculator), which disables emissary's documented default hash chain and would fail upstream's own tests. Nothing caught it: those were  profile runs, which deliberately have no regression stage. So this suite awards FULL beyond-upstream credit to a patch that removes the feature. Impact measured on the paper corpus: 3 of 139 residual-scored runs; excluding them moves the run-level mean from 0.4208 to 0.4060 (baseline) and 0.6697 to 0.6629 (hardening), i.e. it slightly WIDENS the gap between the arms.",
+      "evidence_urls": [
+        "https://github.com/advisories/GHSA-hw43-fcmm-3m5g"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 + hand-verified upstream test + run-artifact forensics (exit codes, patch diff, profile)"
+    },
+    "emissary_CVE-2025-27508_8.23.0::kff_set_algorithms_sha1_crc32": {
+      "status": "unsound",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "the advisory itself disclaims the algorithms: GHSA-hw43-fcmm-3m5g says 'these specific default insecure algorithms can not be updated without violating the intended use-case'",
+      "notes": "EXCLUDE FROM THE RESIDUAL SCORE. Not unsound in the 'always exits 0' sense \u2014 it is worse and more interesting. Five lines of evidence that the PoVs assert REQUIRED behaviour: (1) the advisory declares the algorithms un-removable; (2) emissary's own shipped KffChain.cfg loads MD5/SHA-1/CRC32 through setAlgorithms, the exact public method one PoV calls; (3) the KFF on-disk record format IS SHA-1+CRC32 (KffFile: 20-byte SHA + 4-byte CRC) and KffQuincyFile requires MD5; (4) upstream's own KffChainTest.testAlgorithmsUsedWithAddAlgorithm is line-for-line the PoV (chain.addAlgorithm('MD5') then assertEquals('MD5', ...)) \u2014 VERIFIED BY HAND at HEAD; (5) the remediation the advisory prescribes (access-modifier narrowing) would make the PoV harness fail to compile -> exit 2 -> errored, not blocked. WHAT ACTUALLY HAPPENED IN OUR RUNS, which is the real finding: three patched runs scored residual 1.0 ('hardened beyond upstream'). Both PoVs came back blocked with exit 1 \u2014 and run.sh does distinguish (ensure_built || exit 2), so that is a genuine runtime block, not a compile failure. The patch achieved it by silently skipping weak algorithms (a 'continue' in ChecksumCalculator), which disables emissary's documented default hash chain and would fail upstream's own tests. Nothing caught it: those were  profile runs, which deliberately have no regression stage. So this suite awards FULL beyond-upstream credit to a patch that removes the feature. Impact measured on the paper corpus: 3 of 139 residual-scored runs; excluding them moves the run-level mean from 0.4208 to 0.4060 (baseline) and 0.6697 to 0.6629 (hardening), i.e. it slightly WIDENS the gap between the arms.",
+      "evidence_urls": [
+        "https://github.com/advisories/GHSA-hw43-fcmm-3m5g"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 + hand-verified upstream test + run-artifact forensics (exit codes, patch diff, profile)"
+    },
+    "apache__jspwiki_CVE-2019-0225_2.11.0.M2::wikiservlet_shorturl_do": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; advisory GHSA-pffw-p2q5-w6vh describes exactly this outcome ('a specially crafted url could be used to access files under the ROOT directory')",
+      "notes": "At master (656f4f3c, 2026-08-16) ShortURLConstructor.getForwardPage still returns req.getParameter('do') + '.jsp' unvalidated, while the official fix pinned only DefaultURLConstructor (and ShortViewURLConstructor) to 'Wiki.jsp'. Full history of the file (11 commits, newest 2025-09-27) contains no security change. Requires the non-default jspwiki.urlConstructor=ShortURLConstructor, which is documented and supported at HEAD. Sound instrument: blockable by validating 'do' against [A-Za-z0-9]+ without removing the feature.",
+      "evidence_urls": [
+        "https://github.com/apache/jspwiki/blob/master/jspwiki-main/src/main/java/org/apache/wiki/url/ShortURLConstructor.java"
+      ],
+      "verified_by": "agent triage + independent reachability audit 2026-08-21 (which found the PoV's payload inert)",
+      "reachability": "reportable",
+      "reachability_notes": "REPORTABLE \u2014 but OUR PoV UNDER-DEMONSTRATES IT and would be rejected as filed. ENTRY POINT is public and UNAUTHENTICATED: WikiServlet is mapped to /wiki/* and the container security-constraints are commented out by default ('REMOVE ME TO ENABLE CONTAINER-MANAGED AUTH'). Chain at HEAD: GET /wiki/View?do=... -> WikiServlet.doGet:85 -> getForwardPage:93 -> ShortURLConstructor.getForwardPage:159 returns getParameter('do')+'.jsp' -> getRequestDispatcher:94 -> forward:97. BOUNDARY crossed: forward() reaches /WEB-INF/*, which a direct HTTP request cannot. PRECONDITION: jspwiki.urlConstructor=ShortURLConstructor \u2014 non-default but documented and supported. *** THE POV DEFECT: getForwardPage appends '.jsp' UNCONDITIONALLY, so the shipped payload do=WEB-INF/userdatabase resolves to /WEB-INF/userdatabase.jsp, which does not exist and 404s in a real container. The PoV 'reproduces' only because it asserts that the forward-target STRING contains 'WEB-INF' against a passive mock \u2014 it never demonstrates file disclosure. This is the same class of instrument weakness as the emissary suite: asserting a shape rather than an effect. *** REAL exploitation needs the suffix neutralised with a '?': do=WEB-INF/userdatabase.xml? assembles to /WEB-INF/userdatabase.xml?.jsp?page=..., the container splits on the first '?', and the forward serves userdatabase.xml \u2014 which holds user password hashes. That is unauthenticated arbitrary in-webapp file read, the CVE's own impact, through the sibling constructor upstream never hardened. CHANNEL: Apache JSPWiki security team, private. CAVEAT: the '?'-split step is derived from standard Tomcat/Jetty behaviour, not re-run in a live container \u2014 do that before filing."
+    },
+    "apache__jspwiki_CVE-2022-46907_2.11.3::weblogplugin_entryformat": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; advisory GHSA-qvq8-cw7f-m7m4 scopes itself to 'several JSPWiki plugins', so a missed plugin with the identical sink is inside the claim",
+      "notes": "At master WeblogPlugin:206 builds a SimpleDateFormat from a user parameter and :307 appends entryFormat.format(entryDate) with no TextUtil.replaceEntities on that path. The official fix touched six files; WeblogPlugin is not among them. The sweep's fix_changed flag is benign: CurrentTimePlugin still carries the fix, only reformatted by the 2025-11 JSPWIKI-1198 cleanup. Telling detail: WeblogPlugin's only security commit (c5ff7ab6, 2022-03-28, 'Weblog plugin xss protection') escapes a DIFFERENT parameter and predates the CVE fix \u2014 maintainers hardened this very file for XSS and still missed entryFormat.",
+      "evidence_urls": [
+        "https://github.com/apache/jspwiki/blob/master/jspwiki-main/src/main/java/org/apache/wiki/plugin/WeblogPlugin.java"
+      ],
+      "verified_by": "agent triage + independent reachability audit 2026-08-21",
+      "reachability": "reportable",
+      "reachability_notes": "REPORTABLE. ENTRY POINT: wiki page markup. At HEAD WeblogPlugin builds a SimpleDateFormat from a user-supplied plugin parameter (:206) and appends its output unescaped (:307), with no TextUtil.replaceEntities on that path; SimpleDateFormat single-quote literals embed a literal script tag independent of the date, and plugin output is inserted as raw HTML. BOUNDARY: a page editor's parameter is reflected unescaped to every viewer of the rendered weblog \u2014 editor-to-viewer XSS is exactly the boundary CVE-2022-46907 recognises, and its advisory scopes itself to 'several JSPWiki plugins', so a missed plugin with the identical sink is squarely in class. PRECONDITIONS: the attacker can edit a page carrying the plugin (common on registered or anon-editable wikis) and a *_blogentry_* page exists, which they can create. IMPACT: stored XSS in blog rendering, executing in viewers' sessions including admins. Severity depends on the target wiki's edit ACL \u2014 but that is the CVE's own model. CHANNEL: Apache JSPWiki security team."
+    },
+    "djl_CVE-2025-0851_v0.30.0::tar_windows_absolute_path": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; the advisory GHSA-jcrp-x7w3-ffmg names the cross-OS direction explicitly",
+      "notes": "CODE UNCHANGED, SECURITY CLAIM WEAK \u2014 reviewer-critical. ZipUtils.validateArchiveEntry at master (1d6e0580, 2026-08-01) is byte-identical to official_fix.patch; the last commit to either file is the fix itself (7d197ba8, 2024-11-27). But the PoV does not demonstrate an escape: on Linux, dest.resolve('C:\\\\Windows\\\\...') produces a file with literal backslashes INSIDE dest (no traversal), and on Windows that name IS absolute so startsWith(dest) rejects it. The payload is accepted exactly where it is inert and rejected exactly where it would escape. What the PoV certifies is 'the fix still accepts the advisory's cross-OS payload form' \u2014 a portability/defense-in-depth claim, not a live residual traversal. A reviewer could fairly reclassify this to disputed. Still a sound instrument (a patch rejecting backslash or ^[A-Za-z]: blocks it without removing extraction). To settle it: run both PoVs against the fixed code on a Windows host.",
+      "evidence_urls": [
+        "https://github.com/deepjavalibrary/djl/blob/master/api/src/main/java/ai/djl/util/ZipUtils.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second settled Windows/Unix path semantics)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "SETTLED EMPIRICALLY, and it confirms our own reviewer-critical note: NO platform both accepts the payload and escapes. On Linux dest.resolve('C:\\\\Windows\\\\...') is a single relative component with literal backslashes landing INSIDE dest \u2014 no traversal. On Windows that name is absolute, so startsWith(dest) rejects it. Path.startsWith is component-wise, so it is immune to the sibling-prefix class, and there is no attacker-controlled symlink-creation path. The PoV's success condition is 'the fixed code still accepts the advisory's cross-OS payload form', which is inert exactly where it is accepted. Entry is library-API anyway (TarUtils.untar), reached only if an app extracts an attacker archive. DISPOSITION: portability hardening (reject ^[A-Za-z]: and backslashes); NOT a live residual traversal."
+    },
+    "djl_CVE-2025-0851_v0.30.0::zip_windows_absolute_path": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; the advisory GHSA-jcrp-x7w3-ffmg names the cross-OS direction explicitly",
+      "notes": "CODE UNCHANGED, SECURITY CLAIM WEAK \u2014 reviewer-critical. ZipUtils.validateArchiveEntry at master (1d6e0580, 2026-08-01) is byte-identical to official_fix.patch; the last commit to either file is the fix itself (7d197ba8, 2024-11-27). But the PoV does not demonstrate an escape: on Linux, dest.resolve('C:\\\\Windows\\\\...') produces a file with literal backslashes INSIDE dest (no traversal), and on Windows that name IS absolute so startsWith(dest) rejects it. The payload is accepted exactly where it is inert and rejected exactly where it would escape. What the PoV certifies is 'the fix still accepts the advisory's cross-OS payload form' \u2014 a portability/defense-in-depth claim, not a live residual traversal. A reviewer could fairly reclassify this to disputed. Still a sound instrument (a patch rejecting backslash or ^[A-Za-z]: blocks it without removing extraction). To settle it: run both PoVs against the fixed code on a Windows host.",
+      "evidence_urls": [
+        "https://github.com/deepjavalibrary/djl/blob/master/api/src/main/java/ai/djl/util/ZipUtils.java"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second settled Windows/Unix path semantics)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "SETTLED EMPIRICALLY, and it confirms our own reviewer-critical note: NO platform both accepts the payload and escapes. On Linux dest.resolve('C:\\\\Windows\\\\...') is a single relative component with literal backslashes landing INSIDE dest \u2014 no traversal. On Windows that name is absolute, so startsWith(dest) rejects it. Path.startsWith is component-wise, so it is immune to the sibling-prefix class, and there is no attacker-controlled symlink-creation path. The PoV's success condition is 'the fixed code still accepts the advisory's cross-OS payload form', which is inert exactly where it is accepted. Entry is library-API anyway (TarUtils.untar), reached only if an app extracts an attacker archive. DISPOSITION: portability hardening (reject ^[A-Za-z]: and backslashes); NOT a live residual traversal."
+    },
+    "jpawebapi_CVE-2025-32961_v1.1.0::jpg_mime_confusion": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Verified unfixed at master and at the fixed release tag: getContentType still derives the MIME type from the declared extension and there is no X-Content-Type-Options/nosniff anywhere in the controller. Classified ADJACENT: the advisory scopes itself to the Content-Type manipulation when the name ends in .html, while the residual abuses the fix's own allowlist (.jpg) \u2014 the suite's sibling NOTES concede it is a structural gap in the fix's approach rather than an omission the fix was attempting to close. TWO CAVEATS. (1) Exploitation needs a client that sniffs HTML from a body labelled image/jpeg; modern Chrome/Firefox (CORB/ORB) do not, so the PoV asserts a response SHAPE, not demonstrated execution. (2) DORMANT VENDOR: cuba-platform is legacy, superseded by Jmix, both repos last pushed early 2025, and both advisories route remediation to Jmix docs \u2014 this will never be fixed here, so the realistic disposition is 'report, do not expect a fix'. jpawebapi and restapi are the same defect in two forks of one controller and should be dispositioned together.",
+      "evidence_urls": [
+        "https://github.com/cuba-platform/jpawebapi"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second verified the name/extension desync by hand)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "THE CERTIFIED PoV IS NOT EXPLOITABLE ON ANY CURRENT BROWSER \u2014 it over-claims. getContentType is extension-derived only (RestFileDownloadController.java:236-241) and no nosniff/CSP exists in either fork or in cuba core, but the download route is AUTHENTICATED in both (jpawebapi needs a live UserSession UUID; restapi needs OAuth plus EntityOp.READ on sys$FileDescriptor), which NVD corroborates at PR:L. The PoV stores a file named photo.jpg, derives the extension from the name, and asserts on the RESPONSE SHAPE \u2014 Content-Type image/jpeg with inline disposition \u2014 not on execution. Per WHATWG MIME Sniffing \u00a77 a supplied image/jpeg falls through to step 9, the computed type stays image/jpeg, and the HTML body renders as a broken image; the missing nosniff is immaterial for an image Content-Type, and no current browser sniffs HTML from image/jpeg. The official fix already forces attachment for the genuinely dangerous extensions. *** STRONGER ADJACENT BUGS FOUND, which do NOT rescue this PoV because they need different payloads: restapi's disposition reads fd.getName() (:147) while Content-Type reads fd.getExtension() (:131) \u2014 independent DB columns \u2014 so name='photo.jpg', extension='html' yields text/html + inline, a real stored XSS with no sniffing required; and cuba-platform/cuba core's own FileDownloadController never received the allowlist fix at all (zero inlineEnabledFileExtensions/resolveAttachmentValue in that repo). Both are worth their own investigation. *** Route any disposition to Jmix: both repos are dormant and their advisories already point there."
+    },
+    "restapi_CVE-2025-32960_v7.2.6::jpg_mime_confusion": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Verified unfixed at master and at the fixed release tag: getContentType still derives the MIME type from the declared extension and there is no X-Content-Type-Options/nosniff anywhere in the controller. Classified ADJACENT: the advisory scopes itself to the Content-Type manipulation when the name ends in .html, while the residual abuses the fix's own allowlist (.jpg) \u2014 the suite's sibling NOTES concede it is a structural gap in the fix's approach rather than an omission the fix was attempting to close. TWO CAVEATS. (1) Exploitation needs a client that sniffs HTML from a body labelled image/jpeg; modern Chrome/Firefox (CORB/ORB) do not, so the PoV asserts a response SHAPE, not demonstrated execution. (2) DORMANT VENDOR: cuba-platform is legacy, superseded by Jmix, both repos last pushed early 2025, and both advisories route remediation to Jmix docs \u2014 this will never be fixed here, so the realistic disposition is 'report, do not expect a fix'. jpawebapi and restapi are the same defect in two forks of one controller and should be dispositioned together.",
+      "evidence_urls": [
+        "https://github.com/cuba-platform/restapi"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second verified the name/extension desync by hand)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "THE CERTIFIED PoV IS NOT EXPLOITABLE ON ANY CURRENT BROWSER \u2014 it over-claims. getContentType is extension-derived only (FileDownloadController.java:126-131) and no nosniff/CSP exists in either fork or in cuba core, but the download route is AUTHENTICATED in both (jpawebapi needs a live UserSession UUID; restapi needs OAuth plus EntityOp.READ on sys$FileDescriptor), which NVD corroborates at PR:L. The PoV stores a file named photo.jpg, derives the extension from the name, and asserts on the RESPONSE SHAPE \u2014 Content-Type image/jpeg with inline disposition \u2014 not on execution. Per WHATWG MIME Sniffing \u00a77 a supplied image/jpeg falls through to step 9, the computed type stays image/jpeg, and the HTML body renders as a broken image; the missing nosniff is immaterial for an image Content-Type, and no current browser sniffs HTML from image/jpeg. The official fix already forces attachment for the genuinely dangerous extensions. *** STRONGER ADJACENT BUGS FOUND, which do NOT rescue this PoV because they need different payloads: restapi's disposition reads fd.getName() (:147) while Content-Type reads fd.getExtension() (:131) \u2014 independent DB columns \u2014 so name='photo.jpg', extension='html' yields text/html + inline, a real stored XSS with no sniffing required; and cuba-platform/cuba core's own FileDownloadController never received the allowlist fix at all (zero inlineEnabledFileExtensions/resolveAttachmentValue in that repo). Both are worth their own investigation. *** Route any disposition to Jmix: both repos are dormant and their advisories already point there."
+    },
+    "vadz__libtiff_CVE-2016-5321_0ba5d8814a17::tile_9spp_readloop_oob": {
+      "status": "superseded-in-release",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "a1277756",
+      "later_fix_date": "2016-07-11",
+      "later_fix_release": "v4.0.7 (2016-11-19)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'tools/tiffcrop.c: Avoid access outside of stack allocated array on a tiled separate TIFF with more than 8 samples per pixel. Reported by Kaixiang Zhang of the Cloud Security Team, Qihoo 360 (CVE-2016-5321, bugzilla #2558)'",
+      "notes": "CONFIRMED and STRENGTHENED by an adversarial re-audit. a1277756 is not merely an ancestor of the commit our manifest treats as the official fix \u2014 it is its IMMEDIATE PARENT, 12 minutes 28 seconds earlier, and our base 0ba5d8814a17 is the direct parent of that. Decisively, official_fix.patch contains only the eight combineSeparate* hunks and NOT the :992 hunk, so the tree the PoV certifies against never existed upstream. Both commits first ship in v4.0.7 (the tag sets are identical). Note the corpus mixes SHA namespaces: our manifest names the vadz mirror's 2f798560 while the ancestry argument uses gitlab's e54eac22 \u2014 the same commit, different conversions of the same CVS history. PoV drives the tiffcrop CLI.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/a1277756ad8f02af72da16414de1b9aed341d9b5"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21"
+    },
+    "vadz__libtiff_CVE-2017-5225_393881da1a7f::contigtiles2separatestrips_oob": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "88d79a45",
+      "later_fix_date": "2022-03-10",
+      "later_fix_release": "v4.4.0 (released 2022-05-20)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "incidental by message ('fix heap buffer overflow in tiffcp (#278)'), but GitLab issue #278 is titled 'Heap buffer overflow in cpContigBufToSeparateBuf, tiffcp.c:1373' \u2014 i.e. an independent reporter hit exactly this sink five years later",
+      "notes": "CONFIRMED by an adversarial re-audit, with one date correction: v4.4.0's RELEASE-DATE is 2022-05-20, not 2022-05-27. The fix mechanically blocks the PoV \u2014 writeBufferToSeparateStrips now rejects BitsPerSample that is not a multiple of 8 (the PoV uses 1) and passes a computed bytes_per_sample instead of the hardcoded 1. git log -L over the function shows the only intervening commits are cosmetic, so 88d79a45 is the first substantive closer. Releases that shipped the official fix with the gap open: v4.0.8, v4.0.9, v4.0.10, v4.1.0, v4.2.0, v4.3.0 \u2014 a genuine ~5-year fixed-later. GitLab issue #278's title, fetched verbatim, is 'Heap buffer overflow in cpContigBufToSeparateBuf, tiffcp.c:1373' \u2014 an independent reporter hitting the same sink five years later. Executed control passed.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/issues/278"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 + executed control"
+    },
+    "vadz__libtiff_CVE-2017-7601_3144e57770c1::refblackwhite_default_bps64_shift": {
+      "status": "fixed-later",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "b04e935c",
+      "later_fix_date": "2026-06-12",
+      "later_fix_release": "v4.7.2 (released 2026-06-27)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "incidental \u2014 'Harden integer size and offset calculations in libtiff, tools, and contrib', a 33-file/4526-insertion sweep merged as issue-846; nothing in it mentions CVE-2017-7601, ReferenceBlackWhite or shift UB",
+      "notes": "CONFIRMED by an adversarial re-audit, with one date correction: v4.7.2's RELEASE-DATE is 2026-06-27, not 2026-07-03. The claimed exposure range is exact \u2014 a per-release scan found the vulnerable '(float)((1L << td->td_bitspersample)-1L)' verbatim at v4.0.6 through v4.7.1 and guarded at v4.7.2. Reachability holds throughout: tif_dir.c's TIFFTAG_BITSPERSAMPLE case has no upper bound at v4.7.1 and explicitly handles 64. All intervening commits touching the function are cosmetic, so b04e935c is the first substantive closer, and its tif_aux.c hunk ('if (td->td_bitspersample < 64)' plus a UINT64_MAX branch) is exactly the PoV's sink. OPEN: the at:b04e935c control errored, so 'closes the sink' is an unambiguous source read rather than an executed result.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/b04e935cb6242f22cc8b63c99a372cf3ea825e4e"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (control not executed)"
+    },
+    "vadz__libtiff_bugzilla-2611_9a72a69e035e::ojpeg_readheaderinfo_zero_subsampling_fpe": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "43908ce1",
+      "later_fix_date": "2019-08-10",
+      "later_fix_release": "v4.1.0 (2019-11-03)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'OJPEG: fix integer division by zero on corrupted subsampling factors. Fixes oss-fuzz issue 15824. Credit to OSS Fuzz'",
+      "notes": "CONFIRMED by an adversarial re-audit. git log -L over OJPEGReadHeaderInfo from the official fix to 43908ce1 returns ZERO commits, so it is definitively the first closer, and the added subsampling whitelist sits immediately above the PoV's divide (0 is not in {1,2,4}, so it returns before dividing). Releases that shipped the official fix with the gap open: v4.0.8, v4.0.9, v4.0.10; closed in v4.1.0 (RELEASE-DATE 20191103). KEEP THE IN-SCOPE HESITATION \u2014 it is correct and now precise: bugzilla #2611 is CVE-2016-10267, titled 'divide-by-zero in OJPEGDecodeRaw', crashing at tif_ojpeg.c:816 via tiffmedian, whereas our PoV's sink is OJPEGReadHeaderInfo:1079 \u2014 same trigger tag, different divide. Executed control passed.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/43908ce15e8bf85f063443658d2a6da0d1cd4e74"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 + executed control"
+    },
+    "vadz__libtiff_CVE-2016-5314_c421b993abe1::pixarlog_encode_tbuf_oob": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "a71b62bc",
+      "later_fix_date": "2016-08-15",
+      "later_fix_release": "v4.0.7 (2016-11-19)",
+      "delta_days": null,
+      "releases_exposed": "NONE \u2014 no release ever carried the official fix with this gap open",
+      "corroboration": "verbatim \u2014 'Fix write buffer overflow in PixarLogEncode if more input samples are provided than expected by PixarLogSetupEncode. Idea based on libtiff-CVE-2016-3990.patch ... (bugzilla #2544)'",
+      "notes": "RECLASSIFIED 2026-08-21 by an adversarial re-audit: was fixed-later, is superseded. The official fix bf5b6988 (= vadz 391e77fc, 2016-06-28) and the closing commit a71b62bc (2016-08-15) BOTH first ship in v4.0.7 (2016-11-19); there is no release in between, so no upstream tree ever carried the official fix with this gap open. By the same criterion the corpus applies to libtiff CVE-2016-5321 and zziplib CVE-2017-5975, this is a baseline artifact, not an upstream miss. The rest of the row is CONFIRMED: a71b62bc adds the 'Too many input bytes provided' guard immediately before the encode loop and is the first closer (git log -L over PixarLogEncode shows zero intervening commits); ADJACENT is right because NVD CVE-2016-3990 names horizontalDifference8 in tif_pixarlog.c, the PoV's exact crash function. MANIFEST BUG TO FIX (unchanged, still true): manifest.json credits the guard to 'ChangeLog 2016-12-03, bugzilla #2604' in both fix_summary and summary, but #2604 is cec2d959, whose tif_pixarlog.c diff touches only PixarLogClose and never PixarLogEncode. Correct attribution is bugzilla #2544 / CVE-2016-3990 / a71b62bc.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/a71b62bcff784cb86a8f81878f760cb2bcba66e6"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second refuted the fixed-later status)"
+    },
+    "libming__libming_CVE-2016-9264_cc6a386::bitrate_table_oob_read": {
+      "status": "fixed-later",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "6032557a",
+      "later_fix_date": "2018-01-10",
+      "later_fix_release": "NONE \u2014 no release tag contains it; last tag is ming-0_4_8 (2017-04-07)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim, and it names its own CVE \u2014 'Fix global buffer overflow in printMP3Headers ... bitrate_idx = 15 being used as index in mp2l23_bitrate_table while it has only 14 elements ... This commit fixes CVE-2017-16898 (fixes: #75)'",
+      "notes": "ADJACENT: the bitrate-index OOB got its own CVE-2017-16898; CVE-2016-9264's fix and message are about the SAMPLERATE table. FIXED IN GIT BUT NEVER RELEASED \u2014 anyone on the 0.4.8 tarball (our base) is still exposed, so 'fixed later' overstates user-facing remediation; say 'fixed in git 2018, never shipped'. master guards it with 'if (bitrate_idx == 15) error(...)' which exits before the table read. Project effectively dormant: master idle since 2020-07, 262 open issues, no release since 2017. PoV drives the util/listmp3 CLI.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/commit/6032557a21e4dac8bb2606bb5b58e27d85a7ff98"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "libming__libming_CVE-2018-8964_ming-0_4_8::pool_boundary_constant8": {
+      "status": "needs-manual",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 the PoV does not measure the defect it names",
+      "notes": "*** UNSOUND INSTRUMENT \u2014 my own fixed-later call earlier today was wrong, and this supersedes it. *** An execution bisect over the six commits that touched util/decompile.c after the official fix pins the change that silences these three PoVs to efc75c28e8 (2018-05-26, 'decompile: fix buffer-overflow in getString'): they reproduce at 6f1ab31468 and are blocked from efc75c28e8 onward. But that commit changes EXACTLY ONE HUNK in decompile.c \u2014 getString's PUSH_INT case, replacing malloc(10) with an snprintf-sized allocation \u2014 plus one NEWS line. It never touches the constant-pool guard, which is byte-identical at master. Therefore the ASan fault these PoVs detect is the PUSH_INT overflow in getString, NOT the pool boundary they claim. The suite's oracle is 'grep for ERROR: AddressSanitizer', which cannot attribute a fault to a particular defect, so a crafted SWF that trips any adjacent memory bug reports the claimed gap as open. CONSEQUENCES: (1) 'blocked at master' is NOT evidence the pool gap is closed \u2014 the guard is unchanged, so the off-by-one may well still be open; (2) these three cannot support either an open-at-head or a fixed-later claim and must be excluded from any score built on this defect; (3) the certification is still literally true (an ASan fault does occur on the unpatched tree and after the official fix) which is exactly why certification alone could never catch this. TO RESOLVE: give the PoV an oracle that pins the faulting frame (assert the ASan report names the pool read in decompileCONSTANTPOOL/getName, not getString), then re-run. Compare empty_pool_constant8, which still reproduces at master and whose fault therefore survives the getString fix \u2014 its attribution is more likely genuine, though not proven by this oracle either.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/blob/master/util/decompile.c"
+      ],
+      "verified_by": "execution bisect 2026-08-21 over 6 commits + diff scope check \u2014 overturns the earlier fixed-later call",
+      "reachability": "",
+      "reachability_notes": ""
+    },
+    "libming__libming_CVE-2018-8964_ming-0_4_8::pool_boundary_constant16": {
+      "status": "needs-manual",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 the PoV does not measure the defect it names",
+      "notes": "*** UNSOUND INSTRUMENT \u2014 my own fixed-later call earlier today was wrong, and this supersedes it. *** An execution bisect over the six commits that touched util/decompile.c after the official fix pins the change that silences these three PoVs to efc75c28e8 (2018-05-26, 'decompile: fix buffer-overflow in getString'): they reproduce at 6f1ab31468 and are blocked from efc75c28e8 onward. But that commit changes EXACTLY ONE HUNK in decompile.c \u2014 getString's PUSH_INT case, replacing malloc(10) with an snprintf-sized allocation \u2014 plus one NEWS line. It never touches the constant-pool guard, which is byte-identical at master. Therefore the ASan fault these PoVs detect is the PUSH_INT overflow in getString, NOT the pool boundary they claim. The suite's oracle is 'grep for ERROR: AddressSanitizer', which cannot attribute a fault to a particular defect, so a crafted SWF that trips any adjacent memory bug reports the claimed gap as open. CONSEQUENCES: (1) 'blocked at master' is NOT evidence the pool gap is closed \u2014 the guard is unchanged, so the off-by-one may well still be open; (2) these three cannot support either an open-at-head or a fixed-later claim and must be excluded from any score built on this defect; (3) the certification is still literally true (an ASan fault does occur on the unpatched tree and after the official fix) which is exactly why certification alone could never catch this. TO RESOLVE: give the PoV an oracle that pins the faulting frame (assert the ASan report names the pool read in decompileCONSTANTPOOL/getName, not getString), then re-run. Compare empty_pool_constant8, which still reproduces at master and whose fault therefore survives the getString fix \u2014 its attribution is more likely genuine, though not proven by this oracle either.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/blob/master/util/decompile.c"
+      ],
+      "verified_by": "execution bisect 2026-08-21 over 6 commits + diff scope check \u2014 overturns the earlier fixed-later call",
+      "reachability": "",
+      "reachability_notes": ""
+    },
+    "libming__libming_CVE-2018-8964_ming-0_4_8::no_pool_constant8": {
+      "status": "needs-manual",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 the PoV does not measure the defect it names",
+      "notes": "*** UNSOUND INSTRUMENT \u2014 my own fixed-later call earlier today was wrong, and this supersedes it. *** An execution bisect over the six commits that touched util/decompile.c after the official fix pins the change that silences these three PoVs to efc75c28e8 (2018-05-26, 'decompile: fix buffer-overflow in getString'): they reproduce at 6f1ab31468 and are blocked from efc75c28e8 onward. But that commit changes EXACTLY ONE HUNK in decompile.c \u2014 getString's PUSH_INT case, replacing malloc(10) with an snprintf-sized allocation \u2014 plus one NEWS line. It never touches the constant-pool guard, which is byte-identical at master. Therefore the ASan fault these PoVs detect is the PUSH_INT overflow in getString, NOT the pool boundary they claim. The suite's oracle is 'grep for ERROR: AddressSanitizer', which cannot attribute a fault to a particular defect, so a crafted SWF that trips any adjacent memory bug reports the claimed gap as open. CONSEQUENCES: (1) 'blocked at master' is NOT evidence the pool gap is closed \u2014 the guard is unchanged, so the off-by-one may well still be open; (2) these three cannot support either an open-at-head or a fixed-later claim and must be excluded from any score built on this defect; (3) the certification is still literally true (an ASan fault does occur on the unpatched tree and after the official fix) which is exactly why certification alone could never catch this. TO RESOLVE: give the PoV an oracle that pins the faulting frame (assert the ASan report names the pool read in decompileCONSTANTPOOL/getName, not getString), then re-run. Compare empty_pool_constant8, which still reproduces at master and whose fault therefore survives the getString fix \u2014 its attribution is more likely genuine, though not proven by this oracle either.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/blob/master/util/decompile.c"
+      ],
+      "verified_by": "execution bisect 2026-08-21 over 6 commits + diff scope check \u2014 overturns the earlier fixed-later call",
+      "reachability": "",
+      "reachability_notes": ""
+    },
+    "libming__libming_CVE-2018-8964_ming-0_4_8::empty_pool_constant8": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "THE ONE THAT SURVIVES, and now proven by execution rather than reading. At master (04aee523) this PoV still REPRODUCES with an AddressSanitizer error (exit 0), while its three siblings in the same suite are blocked in the same build \u2014 which is what proves ASan was active and the sibling blocks are real. The defect: parser.c:1124 still does 'act->ConstantPool = malloc(act->Count*sizeof(char*))' with no Count>0 check, so an empty CONSTANTPOOL (Count=0) yields a live zero-length block, and the guard 'if (act->p.Constant8 > poolcounter)' reduces to '0 > 0' \u2014 false \u2014 so index 0 is read out of that zero-length allocation. Never released either way: last tag is ming-0_4_8 (2017-04-07). Drives the util/listswf_d CLI; project dormant since 2020-07.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/blob/master/util/decompile.c"
+      ],
+      "verified_by": "two independent audits 2026-08-21 (second found the existing upstream issue)",
+      "reachability": "code-quality-only",
+      "reachability_notes": "ALREADY PUBLIC AND IGNORED \u2014 not reportable as a new finding. Upstream issue #317 (2024-07-11, still open, zero comments) is this exact bug with a PoC. The OOB is real at master (parser.c:1124 mallocs Count*sizeof(char*) with Count=0 giving a live zero-length block; decompile.c:375 guard reduces to 0>0 and pool[0] is read and dereferenced at :380-382), but decompile.c/parser.c compile into noinst_LTLIBRARIES = libutil.la \u2014 build-only, NEVER INSTALLED \u2014 and are linked only into the decompiler binaries. The installed libming.so does not reference the decompiler, and php-ming exposes no SWF-decompile function. So it is reachable only by someone manually running listswf_d or swftophp on an untrusted SWF. Flash is EOL since 2020, the package is removed from Debian, Ubuntu, Fedora and FreeBSD, and no server-side consumer invokes it. IMPACT CEILING: local DoS \u2014 a one-pointer over-read dereferenced as char*, likely SIGSEGV. A read, not a write; not RCE."
+    },
+    "solon_CVE-2025-1584_v3.0.8::symlink_follow_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f46e47fd",
+      "official_fix_date": "2025-02-21",
+      "later_fix_commit": "21f7b7c3",
+      "later_fix_date": "2026-08-17",
+      "later_fix_release": "v4.0.6 (2026-08-17); NOT in v4.0.5",
+      "delta_days": 542,
+      "releases_exposed": "the entire 3.x line is STILL EXPOSED \u2014 git branch -r --contains 21f7b7c3 returns only main and v4.0; branches v3.4 through v3.11 do not have it, including the whole range the CVE names",
+      "corroboration": "verbatim and deliberate \u2014 'fix solon-web-staticfiles path security issue (GHSA-mmhm-jhrm-7xp9)'",
+      "notes": "FIXED FOUR DAYS AGO \u2014 live corpus drift, and the timing needs establishing before we claim anything. Our certification ran 2026-08-16; upstream's fix landed 2026-08-17. Either someone reported it independently in that window or it came from us; do not claim discovery credit until that is settled. The gap was real on our target version: at v3.0.8 FileStaticRepository.find does new File(location, relativePath) with no containment check and StaticMappings.find has no '..' guard at all, while official_fix.patch adds only 'path.contains(\"/../\") == false' \u2014 which stops neither PoV ('/static/..' contains no '/../'; the symlink path contains no '..'). At HEAD FileStaticRepository canonicalises and requires containment plus isFile(), closing both, and the same guard was applied to ExtendStaticRepository and ClassPathStaticRepository with new tests. Note an earlier tightening (4a6e8346, v3.1.0) added '../' and '..\\\\' rejection but closes NEITHER PoV. CAVEAT: GHSA-mmhm-jhrm-7xp9 is not publicly resolvable (404 from the advisories API and the repo page; the repo's only published advisory is GHSA-g6j2-2jq7-g753, a separate WebDAV traversal) \u2014 treat the id as unverified, likely a draft/private advisory.",
+      "evidence_urls": [
+        "https://github.com/opensolon/solon/commit/21f7b7c395d49cb3784d2eab979033eb4f617d71"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (v3.0.8 premise re-checked + HEAD + branch containment)"
+    },
+    "solon_CVE-2025-1584_v3.0.8::trailing_parent_dir_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f46e47fd",
+      "official_fix_date": "2025-02-21",
+      "later_fix_commit": "21f7b7c3",
+      "later_fix_date": "2026-08-17",
+      "later_fix_release": "v4.0.6 (2026-08-17); NOT in v4.0.5",
+      "delta_days": 542,
+      "releases_exposed": "the entire 3.x line is STILL EXPOSED \u2014 git branch -r --contains 21f7b7c3 returns only main and v4.0; branches v3.4 through v3.11 do not have it, including the whole range the CVE names",
+      "corroboration": "verbatim and deliberate \u2014 'fix solon-web-staticfiles path security issue (GHSA-mmhm-jhrm-7xp9)'",
+      "notes": "FIXED FOUR DAYS AGO \u2014 live corpus drift, and the timing needs establishing before we claim anything. Our certification ran 2026-08-16; upstream's fix landed 2026-08-17. Either someone reported it independently in that window or it came from us; do not claim discovery credit until that is settled. The gap was real on our target version: at v3.0.8 FileStaticRepository.find does new File(location, relativePath) with no containment check and StaticMappings.find has no '..' guard at all, while official_fix.patch adds only 'path.contains(\"/../\") == false' \u2014 which stops neither PoV ('/static/..' contains no '/../'; the symlink path contains no '..'). At HEAD FileStaticRepository canonicalises and requires containment plus isFile(), closing both, and the same guard was applied to ExtendStaticRepository and ClassPathStaticRepository with new tests. Note an earlier tightening (4a6e8346, v3.1.0) added '../' and '..\\\\' rejection but closes NEITHER PoV. CAVEAT: GHSA-mmhm-jhrm-7xp9 is not publicly resolvable (404 from the advisories API and the repo page; the repo's only published advisory is GHSA-g6j2-2jq7-g753, a separate WebDAV traversal) \u2014 treat the id as unverified, likely a draft/private advisory.",
+      "evidence_urls": [
+        "https://github.com/opensolon/solon/commit/21f7b7c395d49cb3784d2eab979033eb4f617d71"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (v3.0.8 premise re-checked + HEAD + branch containment)"
+    },
+    "xwiki__xwiki-rendering_CVE-2023-37908_14.10.3::allowed_data_prefix_bypass_sax": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "0b8e9c45",
+      "later_fix_date": "2023-01-13",
+      "later_fix_release": "xwiki-commons 14.10.4 (2023-02-01)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'XCOMMONS-2606: Properly validate data attributes in SecureHTMLElementSanitizer'; deliberate, not incidental",
+      "notes": "SUPERSEDED, NOT AN UPSTREAM MISS \u2014 the residual gap never existed in any released, patched XWiki. The defect lives in xwiki-commons (SecureHTMLElementSanitizer's DATA_ATTR pattern, unanchored + .find()), a DEPENDENCY of the patched artifact, not in xwiki-rendering-xml itself. XRENDERING-697 (the rendering fix, 2023-01-13T16:28) and XCOMMONS-2606 (the commons fix, same day) are a coordinated pair, and GHSA-663w-2xp3-5739 names 14.10.4 as the first patched version \u2014 exactly the release where commons ships the anchored '^data-[...]+$' pattern matched with .matches(). Our gap exists only in the benchmark's synthetic tree: rendering-14.10.3 source + official_fix.patch, still resolving commons-14.10.3 jars. XHTMLWikiPrinter.cleanAttributes' ALLOWED branch is indeed still unvalidated at HEAD, but that is not where the flaw was closed. Valid instrument; no upstream-miss claim.",
+      "evidence_urls": [
+        "https://github.com/xwiki/xwiki-commons/commit/0b8e9c45b7e7457043938f35265b2aa5adc76a68"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "xwiki__xwiki-rendering_CVE-2023-37908_14.10.3::allowed_data_prefix_bypass_map": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "0b8e9c45",
+      "later_fix_date": "2023-01-13",
+      "later_fix_release": "xwiki-commons 14.10.4 (2023-02-01)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'XCOMMONS-2606: Properly validate data attributes in SecureHTMLElementSanitizer'; deliberate, not incidental",
+      "notes": "SUPERSEDED, NOT AN UPSTREAM MISS \u2014 the residual gap never existed in any released, patched XWiki. The defect lives in xwiki-commons (SecureHTMLElementSanitizer's DATA_ATTR pattern, unanchored + .find()), a DEPENDENCY of the patched artifact, not in xwiki-rendering-xml itself. XRENDERING-697 (the rendering fix, 2023-01-13T16:28) and XCOMMONS-2606 (the commons fix, same day) are a coordinated pair, and GHSA-663w-2xp3-5739 names 14.10.4 as the first patched version \u2014 exactly the release where commons ships the anchored '^data-[...]+$' pattern matched with .matches(). Our gap exists only in the benchmark's synthetic tree: rendering-14.10.3 source + official_fix.patch, still resolving commons-14.10.3 jars. XHTMLWikiPrinter.cleanAttributes' ALLOWED branch is indeed still unvalidated at HEAD, but that is not where the flaw was closed. Valid instrument; no upstream-miss claim.",
+      "evidence_urls": [
+        "https://github.com/xwiki/xwiki-commons/commit/0b8e9c45b7e7457043938f35265b2aa5adc76a68"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "jenkinsci__perfecto-plugin_CVE-2020-2261_1.17::command_construction_unsanitised": {
+      "status": "disputed",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "9109c806",
+      "later_fix_date": "2020-08-31",
+      "later_fix_release": "perfecto 1.18 (published 2020-09-11)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "Jenkins SECURITY-1980 defines the vulnerability as LOCATION, not sanitisation: 'This command is executed on the Jenkins controller ... allowing attackers with Job/Configure permission to run arbitrary commands on the Jenkins controller', remediated by 'executes the specified commands on the agent the build is running on'",
+      "notes": "DISPUTED \u2014 valid instrument, not a reportable vulnerability. Job/Configure already grants shell on the agent by design (that is what an Execute-shell build step is), so the only escalation was crossing to the controller; our PoV's attacker is a job configurer and it runs the argv through an in-process LocalLauncher, never demonstrating controller execution after the fix. SEPARATELY, the benchmark baseline is wrong: residual_of points at 52c09ad (2020-08-13), an intermediate commit that was NEVER RELEASED (tags go 1.17 -> 1.20/1.21; released versions are 1.12-1.19, 1.21, 1.25, 1.26). At 52c09ad getCommandInterpreter was still live, which is why the PoV certifies \u2014 but the shipped remediation 1.18 removed that call site entirely (grep in perfecto-1.18-sources.jar: the method has ZERO call sites and is reached only reflectively) and added @DataBoundConstructor regex validation of every job-config field. So the residual gap never existed in any released version claimed to be fixed. Repo is ARCHIVED (2024-05-13) and plugins.jenkins.io/perfecto 404s \u2014 the plugin appears withdrawn from the update centre.",
+      "evidence_urls": [
+        "https://www.jenkins.io/security/advisory/2020-09-16/"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (advisory text + released 1.18 sources jar)"
+    },
+    "kylin_CVE-2025-30067_kylin-5.0.1::fix_opt_in_disabled_by_default": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed; KYLIN-5994 is the only commit ever to touch JdbcUtils.java on kylin5",
+      "notes": "HEADLINE of the kylin cluster. Verified unfixed at kylin5 HEAD and at the newest release tag kylin-5.0.4, despite the advisory claiming 'fixed in 5.0.2'.",
+      "reachability": "reportable",
+      "reachability_notes": "ENTRY POINT: a real HTTP route \u2014 PUT /api/projects/{project}/jdbc_source_info_config -> NProjectController.updateJdbcSourceConfig (:509) -> ProjectService.updateJdbcInfo (:504) -> validateJdbcConfig (:534) -> JdbcUtils.checkConnectionParameter (:42) -> BasicDataSourceFactory.createDataSource + getConnection (:55). The sink genuinely executes code: DBCP2 Class.forName on the driver field, and H2 INIT=RUNSCRIPT on connect, with H2 at compile/runtime scope so the gadget is on a production classpath. TRUST BOUNDARY: system administrator only \u2014 updateJdbcInfo carries @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN) (verified by hand at kylin5), which deliberately omits the 'or hasPermission(project,ADMINISTRATION)' clause nearly every sibling config method has. So NOT project admin and NOT any authenticated user. PRECONDITIONS: none beyond ROLE_ADMIN \u2014 isSourceJdbcWhiteListEnabled defaults FALSE (KylinConfigBase.java:4529, verified by hand) and no shipped build/conf properties file enables it, so a stock install has zero protection and the CVE is effectively unfixed by default. IMPACT: arbitrary Java/OS execution on the Kylin server as the Kylin process user. HONEST CAVEAT: a system admin can already set kylin.query.pushdown.runner-class-name to an arbitrary class, so admin->code-exec is partly inherent to the role; the vendor's 'you are fine if admin access is protected' framing is a severity-reducer, not a defeater, because Apache themselves assigned CVE-2025-30067 and shipped a fix at exactly this boundary \u2014 a fix that is off by default and bypassable. CHANNEL: private report to security@kylin.apache.org referencing GHSA-29m8-wh9p-5wc4, scoped honestly as post-auth (ROLE_ADMIN), same privilege as the original CVE.",
+      "evidence_urls": [
+        "https://github.com/apache/kylin/commit/21d98f3ef29f"
+      ],
+      "verified_by": "agent triage + independent reachability audit 2026-08-21 + two facts re-verified by hand"
+    },
+    "kylin_CVE-2025-30067_kylin-5.0.1::semicolon_param_bypass": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Fix-bypass addendum to the kylin headline.",
+      "reachability": "reportable",
+      "reachability_notes": "Same ROLE_ADMIN route as fix_opt_in_disabled_by_default. Assumes the whitelist is switched ON; validateUrlByWhiteList parses only '?'-style query params via UriComponentsBuilder, so H2 ';'-style settings are invisible to it \u2014 a genuine validator bypass. Report as an addendum showing the enabled whitelist is porous; against a default install the opt-in finding already wins.",
+      "evidence_urls": [],
+      "verified_by": "independent reachability audit 2026-08-21"
+    },
+    "kylin_CVE-2025-30067_kylin-5.0.1::driver_class_unvalidated": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Weakest of the kylin trio; do not lead with it.",
+      "reachability": "reportable",
+      "reachability_notes": "Same ROLE_ADMIN route. checkConnectionParameter validates only the url; driverClassName (JdbcUtils.java:45) reaches Class.forName unchecked. WEAKEST of the three: a system admin can already name arbitrary classes through other config, so this adds little over the role's inherent power. Report only as context.",
+      "evidence_urls": [],
+      "verified_by": "independent reachability audit 2026-08-21"
+    },
+    "wildfly__wildfly_CVE-2018-1047_11.0.0.Final::list_escape_single": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Real 8-year-old asymmetry, no attacker path. Both PoVs share this disposition.",
+      "reachability": "code-quality-only",
+      "reachability_notes": "UNREACHABLE \u2014 a second independent audit confirms the earlier suspicion, so this is settled. The raw sink is ServletResourceManager.list(:156) doing overlay.getChild(p) un-canonicalized, versus getResource which canonicalises (:74) and containment-checks getPathNameRelativeTo (:82). But the ONLY in-repo caller of list() is ServletResource.list() (ServletResource.java:69), ServletResource is constructed only inside ServletResourceManager and always from a getResource()-resolved resource (:67, :83) or from already-resolved listing children (:147, :160), and getPath() returns that resolved path. Every consumer resolves first: ServletContextImpl.getResourcePaths calls getResource at :270 before resource.list() at :278, and DefaultServlet canonicalises at :160/167 before getResource at :174. Request paths are canonicalised at the HTTP layer too. A repo-wide sweep found no other caller of list() and no ServletResource construction outside its manager. The PoV calls ServletResourceManager.list('../secret') directly \u2014 internal library API. DISPOSITION: cheap defense-in-depth PR (canonicalise in list() too); not an advisory.",
+      "evidence_urls": [],
+      "verified_by": "two independent audits 2026-08-21 (second confirmed unreachable)"
+    },
+    "wildfly__wildfly_CVE-2018-1047_11.0.0.Final::list_escape_deep": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Real 8-year-old asymmetry, no attacker path. Both PoVs share this disposition.",
+      "reachability": "code-quality-only",
+      "reachability_notes": "UNREACHABLE \u2014 a second independent audit confirms the earlier suspicion, so this is settled. The raw sink is ServletResourceManager.list(:156) doing overlay.getChild(p) un-canonicalized, versus getResource which canonicalises (:74) and containment-checks getPathNameRelativeTo (:82). But the ONLY in-repo caller of list() is ServletResource.list() (ServletResource.java:69), ServletResource is constructed only inside ServletResourceManager and always from a getResource()-resolved resource (:67, :83) or from already-resolved listing children (:147, :160), and getPath() returns that resolved path. Every consumer resolves first: ServletContextImpl.getResourcePaths calls getResource at :270 before resource.list() at :278, and DefaultServlet canonicalises at :160/167 before getResource at :174. Request paths are canonicalised at the HTTP layer too. A repo-wide sweep found no other caller of list() and no ServletResource construction outside its manager. The PoV calls ServletResourceManager.list('../secret') directly \u2014 internal library API. DISPOSITION: cheap defense-in-depth PR (canonicalise in list() too); not an advisory.",
+      "evidence_urls": [],
+      "verified_by": "two independent audits 2026-08-21 (second confirmed unreachable)"
+    },
+    "jackrabbit_CVE-2025-53689_jackrabbit-2.23.1-beta::config_parser_external_dtd_fetch": {
+      "status": "open-at-head",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "Code-level gap confirmed at trunk; not reportable as a vulnerability.",
+      "reachability": "code-quality-only",
+      "reachability_notes": "NO PRODUCT ENTRY POINT \u2014 say no to a vulnerability report. The sink is real (ConfigurationParser.java:273 bare DocumentBuilderFactory, :280 parse, and ConfigurationEntityResolver returns null for unknown ids so external entities are fetched), but every caller of parseRepositoryConfig feeds admin-supplied repository.xml from disk (RepositoryStartupServlet:352, JCARepositoryManager:109/120, JackrabbitRepositoryServlet:109, Main:285, BindableRepository:138), and parseWorkspaceConfig is fed workspace.xml from the repo filesystem. The one caller-supplied-XML sibling, createWorkspaceConfig(String,InputSource) via WorkspaceImpl.createWorkspace(name,InputSource), is gated by checkRepositoryPermission(WORKSPACE_MNGMT) and is NOT remotely exposed \u2014 Jackrabbit's WebDAV RootCollection.addWorkspace calls the no-template overload. Exploiting it would need an embedder running Jackrabbit 2.x (modern AEM uses Oak) that passes remote-user XML to that in-process API with admin permission. DISPOSITION: a hardening PR \u2014 'harden ConfigurationParser.parseXML like the other four' \u2014 not an advisory. The asymmetry is still a legitimate incomplete-hardening finding: JCR-5195 built XMLFactories.safeDocumentBuilderFactory() and applied it to DOMWalker, DOMBuilder, PrivilegeXmlHandler and SearchIndex while skipping this caller.",
+      "evidence_urls": [],
+      "verified_by": "agent triage + independent reachability audit 2026-08-21"
+    },
+    "snowflake-jdbc_CVE-2025-27496_v3.23.0::query_stage_master_key_output_json_leak": {
+      "status": "open-at-head",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "",
+      "later_fix_date": "",
+      "later_fix_release": "",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "n/a \u2014 never fixed",
+      "notes": "The incomplete-fix observation stands (the CVE fix masked the DEBUG log and left this unconditional write), but exploitability is low.",
+      "reachability": "code-quality-only",
+      "reachability_notes": "NOT A REMOTELY EXPLOITABLE LEAK. The write (SnowflakeUtil.java:161, PrintWriter to output.json, unmasked, NOT log-level gated) fires only when the GS response has success=false with neither data.sqlState nor a top-level code \u2014 and that response comes from the trusted Snowflake service, not from a client-side attacker. Making it hostile means compromising the server or defeating TLS, and a server that crafted such a response already holds the master key. Preconditions compound: the driver's CWD must be readable by another local user, AND the error envelope must carry data.encryptionMaterial.queryStageMasterKey, a shape a real Snowflake server does not emit (encryptionMaterial is success metadata). IMPACT CEILING: one per-transfer stage master key disclosed to a co-located local user who also holds the ciphertext. DISPOSITION: a courtesy low-severity hardening note to Snowflake PSIRT (mask or remove the write) is reasonable since they already treat this key as sensitive \u2014 but not a vulnerability report. Telling detail: output.json is committed at the repo root; this is leftover debug scaffolding.",
+      "evidence_urls": [],
+      "verified_by": "agent triage + independent reachability audit 2026-08-21"
+    },
+    "gdraheim__zziplib_CVE-2017-5975_3a4ffcdd7870::truncated_local_header_extras_oob_read": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "03de3bea",
+      "later_fix_date": "2017-04-20",
+      "later_fix_release": "v0.13.63 (2017-04-21) \u2014 the SAME release as the residual_of commit",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'remember extra_block length / check min and max sizes / ... CVE-2017-5974 / CVE-2017-5976'; the added guard carries its own inline attribution 'errno = EBADMSG; /* format error CVE-2017-5978 */'. The gap belongs to 5974/5976/5978, not to 5975 \u2014 hence adjacent.",
+      "notes": "CONFIRMED independently, without relying on the earlier ASan pass. The four commits are strictly linear on 2017-04-20: base 19:13:50 -> 03de3be 21:44:22 -> 33d6e9c 23:07:10 -> 64e745f 23:20:23, so the closer precedes our residual_of commit by 1h22m48s and is its immediate predecessor. All three first appear in v0.13.63, tagged ~1h38m after the last of them; the tag-set difference is empty. Decisively, official_fix.patch carries only the 33d6e9c magic check and the 64e745f null check \u2014 03de3be's hunks are absent, confirming the counterfactual tree. ADJACENT is supported by the fix's own inline attribution ('/* format error CVE-2017-5978 */') and its message naming CVE-2017-5974 / CVE-2017-5976.",
+      "evidence_urls": [
+        "https://github.com/gdraheim/zziplib/commit/03de3beabbf570474a9ac05d6dc6b42cdb184cd1"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (first executed with ASan, second structural)"
+    },
+    "gdraheim__zziplib_CVE-2017-5976_3a4ffcdd7870::zip64_truncated_extra_block_oob_read": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "9e8f867a",
+      "later_fix_date": "2017-05-23",
+      "later_fix_release": "v0.13.67 (2017-06-12)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "the commit message is the bare string 'CVE-2017-5974' \u2014 filed under a different CVE, but the diff is precisely this gap's guard: in-scope by content, mislabeled by message",
+      "notes": "VERIFIED BY EXECUTION with an ASan build+run bracket: 3a4ffcdd REPRODUCED (memdisk.c:221), 03de3be REPRODUCED (:228, matching the certification), 33d6e9c REPRODUCED (:228), 64e745f REPRODUCED (:233), 9033837 (the fix's PARENT) REPRODUCED (:254) -> 1e5b1ac blocked, v0.13.67 blocked, HEAD blocked. The fix swaps zzip_mem_entry_extra_block for zzip_mem_entry_find_extra_block, which checks 'blocksize <= datasize + headerlength'. Note 9e8f867a itself does not compile (it calls the new function before its prototype exists; the prototype arrives in the follow-up 1e5b1ac), which is why the bracket ends at 1e5b1ac. OPEN LEAD, untested, worth its own look: at HEAD the zip64 override was rewritten again by 06c24f6 (2024-03-01, v0.13.74) so zzip_mem_entry_new reads the 32-byte struct zzip_extra_zip64 DIRECTLY off the mmapped extras pointer, gated only on a csize sentinel and a 2-byte magic, with no check that the declared extras length covers 32 bytes \u2014 the bound runs later. Same class of unvalidated-size read, relocated. The certified PoV is blocked earlier so it does not reach it.",
+      "evidence_urls": [
+        "https://github.com/gdraheim/zziplib/commit/9e8f867a976311a3e5fb0184c947e22ec35f2fcb"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (ASan build + run at 8 revisions)"
+    },
+    "gnome__libxml2_CVE-2017-5969_362b3229::snprintf_element_content_null_deref": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "babe7503",
+      "later_fix_date": "2021-05-01",
+      "later_fix_release": "v2.9.11 (2021-05-13)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim \u2014 'Propagate error in xmlParseElementChildrenContentDeclPriv ... Otherwise, struct xmlElementContent could contain unexpected null pointers, leading to a null deref when post-validating documents which aren't well-formed and parsed in recovery mode. Fixes #243.'",
+      "notes": "THE MOST DURABLE STRUCTURAL FINDING IN THE CORPUS: upstream fixed the PRODUCER, not the sink. xmlSnprintfElementContent at HEAD (valid.c:1006, 1018, 1026, 1038) STILL dereferences content->c1->type / content->c2->type with no null check \u2014 our structural claim ('the fix guarded xmlDumpElementContent and left the identical sibling unguarded') remains literally true nine years on. What babe7503 closed is the recover-mode parser path that could build a NULL child, which is why the PoV is dead. VERIFIED BY EXECUTION: xmllint built with ASan from the CANONICAL gitlab.gnome.org clone, run on the suite's own 1.xml \u2014 at babe7503^ it produced the certified stack exactly (SEGV, #0 xmlSnprintfElementContent valid.c:1342, #1 same fn:1332, #2 xmlCtxtDumpElemDecl), and no crash at babe7503, v2.9.11, v2.10-2.14, v2.14.6 or HEAD. The sweep's fix_changed flag is explained: xmlDumpElementContent no longer exists in valid.c \u2014 it became iterative in 2019 and moved to xmlsave.c as xmlBufDumpElementContent, where it IS null-safe.",
+      "evidence_urls": [
+        "https://gitlab.gnome.org/GNOME/libxml2/-/commit/babe75030c7f64a37826bb3342317134568bef61"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (ASan build + run, canonical repo)"
+    },
+    "skyrpex__potrace_CVE-2013-7437_189777a2bd50::res_bmp_coltable_ncolors_oob": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "upstream release 1.13 (no public git)",
+      "later_fix_date": "2015-10-22",
+      "later_fix_release": "potrace 1.13",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim, potrace ChangeLog v1.13 \u2014 '(2015/07/18) PS1 - fixed heap overflows, null pointer dereference bugs and a memory leak. Reported by Agostino Sarubbo.'; NEWS \u2014 'Some critical bugs in the processing of BMP files were fixed ... by feeding it specially crafted BMP files.'",
+      "notes": "CONFIRMED AND NOW EXECUTED \u2014 the 'not built/run' caveat is retired. An auditor built potrace 1.11, 1.12 and 1.13 from the sourceforge tarballs with clang+ASan and ran the suite's own run.sh: 1.11 reproduced (exit 0), 1.12 (the official fix) reproduced (exit 0) with ASan reporting 'heap-buffer-overflow READ of size 4 in bm_readbody_bmp bitmap_io.c:601' \u2014 exactly the coltable[b] line at that version \u2014 and 1.13 BLOCKED (exit 1). So the falsifiability control passes, out-of-harness (there is no git revision to point --at at, since upstream potrace has no public git). Re-host parity is now byte-proven: diff of src/bitmap_io.c and src/bitmap.h at each of the four skyrpex import commits against the corresponding tarball is identical in all eight comparisons. Genuine fixed-later: 1.12 (2015-03-24) -> 1.13 (2015-10-22), no intermediate release, lag ~7 months.",
+      "evidence_urls": [
+        "https://potrace.sourceforge.net"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second BUILT and RAN the PoV at three releases)"
+    },
+    "git__binutils-gdb_CVE-2017-15025_515f23e63c00::opcode_base_zero_line_loop": {
+      "status": "superseded-in-release",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "e338894d",
+      "later_fix_date": "2017-09-26",
+      "later_fix_release": "binutils 2.30 (tagged 2018-01-27)",
+      "delta_days": null,
+      "releases_exposed": "NONE \u2014 binutils-2_29_1's tag commit (90276f15, 2017-09-15) predates all three commits, and 2.30 is the first release carrying any of them",
+      "corroboration": "verbatim \u2014 'PR22204, Lack of DW_LNE_end_sequence causes infinite loop / PR 22204 / * dwarf2.c (decode_line_info): Ensure line_ptr stays within bounds in inner loop.'",
+      "notes": "RECLASSIFIED 2026-08-21: was fixed-later, is superseded \u2014 and the dossier's own body already said so ('2.30 is the first release carrying all three') while its status line contradicted it. Verified by hand: binutils-2_29_1 is tagged 2017-09-15, BEFORE the official fix d8010d3e (2017-09-24) and the closer e338894d (2017-09-26), so the set of releases carrying the official fix without the bound is empty. WHY THE CONTROL PASSES, now settled mechanically: with opcode_base == 0, 'op_code >= lh.opcode_base' is true for every value including the 0 that read_1_byte returns past line_end, so control never reaches the branch where DW_LNE_end_sequence sets end_sequence; each iteration advances line_ptr by 1 and calls add_line_info -> bfd_alloc, unbounded. Adding '&& line_ptr < line_end' caps the iteration count, and the outer loop then exits. No opcode_base == 0 rejection exists at master and none is needed. TWO CORRECTIONS: '32 seconds' is the AUTHOR-date delta between our base and the official fix; the commit-date delta is 2m05s. And our 'dataset URL is dead' note was STALE \u2014 project_info.csv already records github_url = https://github.com/gnutools/binutils-gdb; only the slug prefix git__binutils-gdb_ is historical. That stale note came from a bug in our own sweep, which built owner/name from the github_username/github_repository_name columns instead of github_url; the sweep now prefers the URL and binutils no longer reports file_absent.",
+      "evidence_urls": [
+        "https://github.com/gnutools/binutils-gdb/commit/e338894dc2e603683bed2172e8e9f25b29051005"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second refuted the status) + tag dates re-verified by hand"
+    }
+  }
+}

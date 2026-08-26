@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Residual-gap POV manifest",
+  "description": "Curated exploits for paths the CVE's OFFICIAL upstream fix does NOT close. Certified with an inverted oracle (reproduces on unpatched source AND still reproduces after the official fix) and replayed against pipeline-patched code as a non-gating BONUS metric: blocking one means the patch beat upstream.",
+  "type": "object",
+  "required": [
+    "project_slug",
+    "residual_of",
+    "povs"
+  ],
+  "properties": {
+    "project_slug": {
+      "type": "string",
+      "description": "Dataset slug; must match dataset/project_info.csv"
+    },
+    "cve_id": {
+      "type": "string"
+    },
+    "cwe_id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "sink": {
+      "type": "string",
+      "description": "file:method of the vulnerable sink"
+    },
+    "trust_boundary": {
+      "type": "string"
+    },
+    "advisory": {
+      "type": "object",
+      "properties": {
+        "ghsa": {
+          "type": "string"
+        },
+        "nvd": {
+          "type": "string"
+        },
+        "urls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fix_reference": {
+      "type": "object",
+      "properties": {
+        "fix_commit_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "official_fix_patch": {
+          "type": "string",
+          "description": "Relative path to a git-apply-able patch. Mandatory here: it is the 'after' oracle, and without it a residual POV is indistinguishable from an ordinary one."
+        },
+        "fix_summary": {
+          "type": "string"
+        }
+      }
+    },
+    "setup_commands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional commands run once in /workspace/repo before the POVs"
+    },
+    "build_command": {
+      "type": "string",
+      "description": "Optional: a command run ONCE per checkout (before the POVs) to compile the project + POV drivers, so each POV can then be a build-free run. Enables running the POVs concurrently. When set, the per-POV run.sh must be build-free in the happy path (self-building only as a fallback when the artifacts are absent). Runs in the same kept-alive container as the POVs, so /tmp artifacts persist."
+    },
+    "pov_parallelism": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional: max POVs to run concurrently within one checkout (default min(4, #povs)). Only takes effect when build_command is set AND a persistent container is active; ignored (forced to 1) otherwise."
+    },
+    "povs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "command",
+          "gap_summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique within this manifest"
+          },
+          "description": {
+            "type": "string"
+          },
+          "exploit_path": {
+            "type": "string",
+            "description": "The source-to-sink path this POV exercises"
+          },
+          "covers_alert_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "command": {
+            "type": "string",
+            "description": "Runs in /workspace/repo; exit reproduces_exit_code == the gap is still open, error_exit_code == errored, else the patch CLOSED a gap upstream left open (bonus)."
+          },
+          "reproduces_exit_code": {
+            "type": "integer",
+            "default": 0,
+            "description": "Exit code that means the exploit reproduced (vulnerable)"
+          },
+          "error_exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": 2,
+            "description": "Exit code the command uses for a harness/build error; classified ERRORED and excluded from the score. Set null to disable."
+          },
+          "validation": {
+            "type": "object",
+            "description": "Written by `respov validate` -- do not hand-author. certified == reproduced before AND reproduced after the official fix.",
+            "properties": {
+              "before": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "after": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "certified": {
+                "type": "boolean"
+              },
+              "ran_at": {
+                "type": "string"
+              }
+            }
+          },
+          "gap_summary": {
+            "type": "string",
+            "description": "One line: what the official fix fails to close (e.g. 'startsWith() containment check has no trailing-separator boundary, so a sibling dir sharing the name prefix escapes')."
+          }
+        }
+      }
+    },
+    "residual_of": {
+      "type": "string",
+      "description": "The official fix commit id these POVs are proven to survive. Required: a residual set is a claim about a specific fix, so it must name it."
+    }
+  }
+}

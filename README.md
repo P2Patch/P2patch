@@ -18,15 +18,16 @@ A web UI, **P2Patch Lab**, sits on top of the pipeline for browsing, evaluating,
 
 ## Getting the code and the data
 
-The CVE corpus, the per-project Dockerfiles and both curated POV families live
-in a separate repository, [VulnRepairBench](https://github.com/P2Patch/VulnRepairBench),
-mounted here as a submodule at `benchmark/`. Clone with it:
+Everything you need is in this repository — a plain clone is enough:
 
 ```bash
-git clone --recurse-submodules git@github.com:P2Patch/P2patch.git
-# already cloned without it:
-git submodule update --init
+git clone git@github.com:P2Patch/P2patch.git
 ```
+
+The CVE corpus, the per-project Dockerfiles and both curated POV families are
+under `benchmark/`. They are also published on their own as
+[VulnRepairBench](https://github.com/P2Patch/VulnRepairBench) for use and
+citation without this pipeline; the copy here is the one the code reads.
 
 Set `P2PATCH_BENCHMARK` to point at a checkout somewhere else — useful on a run
 host that already holds the (tens of GB of) project sources on another volume.
@@ -479,7 +480,7 @@ P2Patch/
 │       └── verifier.json
 ├── tests/
 │   └── test_security_pipeline.py
-├── benchmark/               # VulnRepairBench submodule (the data)
+├── benchmark/               # The benchmark data (also: VulnRepairBench)
 │   ├── dataset/
 │   │   ├── project_info.csv
 │   │   ├── build_info.csv

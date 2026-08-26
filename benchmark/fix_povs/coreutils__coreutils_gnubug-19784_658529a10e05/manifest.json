@@ -1,0 +1,107 @@
+{
+  "advisory": {
+    "ghsa": "",
+    "nvd": "gnubug-19784",
+    "urls": [
+      "https://debbugs.gnu.org/cgi/bugreport.cgi?bug=19784",
+      "https://github.com/coreutils/coreutils/commit/1d0f1b7ce10807290715d0b7c4637ac9d4fc7821"
+    ]
+  },
+  "build_command": "if ls gnulib/lib/*.c >/dev/null 2>&1; then BA=\"--no-git --gnulib-srcdir=$PWD/gnulib\"; elif git rev-parse --git-dir >/dev/null 2>&1; then git config submodule.gnulib.url https://git.savannah.gnu.org/git/gnulib.git; BA=\"\"; else rm -rf gnulib && git clone https://git.savannah.gnu.org/git/gnulib.git gnulib && git -C gnulib checkout b9bfe78424b871f5b92e5ee9e7d21ef951a6801d && BA=\"--no-git --gnulib-srcdir=$PWD/gnulib\"; fi && FORCE_UNSAFE_CONFIGURE=1 ./bootstrap --skip-po $BA && FORCE_UNSAFE_CONFIGURE=1 ./configure CFLAGS=\"-fsanitize=address -g -O0 -Wno-error -fcommon\" CXXFLAGS=\"-fsanitize=address -g -O0 -Wno-error -fcommon\" LDFLAGS=\"-fsanitize=address\" && make -j1 src/make-prime-list",
+  "cve_id": "gnubug-19784",
+  "cwe_id": "CWE-125",
+  "fix_reference": {
+    "fix_commit_ids": [
+      "1d0f1b7ce10807290715d0b7c4637ac9d4fc7821"
+    ],
+    "fix_summary": "Bounds-check the INCREMENTED index before using it: `while (i < size && sieve[++i] == 0)` becomes `while (++i < size && sieve[i] == 0)`. The increment now happens before the bounds check, so i == size short-circuits before sieve[size] is ever read. (P\u00e1draig Brady's fix, pushed in Yury Usishchev's name per bug#19784.)",
+    "official_fix_patch": "official_fix.patch"
+  },
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh 5000",
+      "covers_alert_paths": [
+        "sieve = xalloc (size) : size-byte heap buffer (src/make-prime-list.c:198) -> while (i < size && sieve[++i] == 0) : guard checks i's PRE-increment value, access indexes with ++i (src/make-prime-list.c:214)"
+      ],
+      "description": "The exact repro from the bug report and fix commit: `src/make-prime-list 5000` (limit even -> odd 4999, which is prime, so the outermost sieve slot at index size-1 = 2498 holds the last prime; the following scan guard `i < size` passes with i = size-1 and the read pokes one byte past the 2499-byte sieve). ASan heap-buffer-overflow.",
+      "exploit_path": "argv[1]=5000 -> limit odd-ified to 4999 -> size = (4999-1)/2 = 2499 (make-prime-list.c:196) -> sieve = xalloc(size) (make-prime-list.c:198) -> sieve scan: last prime at i = size-1 (make-prime-list.c:204-215) -> `while (i < size && sieve[++i] == 0)`: guard passes on i = size-1, ++i -> sieve[size] READ 1 byte past the heap (make-prime-list.c:214)",
+      "id": "limit_5000_advisory_repro",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "a0ca4359cd26bc65f303231a33346e3ee5c9a3012482b980999203ceea1bdc94",
+        "ran_at": "2026-08-20T06:48:25+00:00"
+      }
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh 5001",
+      "covers_alert_paths": [
+        "sieve = xalloc (size) : size-byte heap buffer (src/make-prime-list.c:198) -> while (i < size && sieve[++i] == 0) : guard passes a second time via the trailing-zero walk (src/make-prime-list.c:214)"
+      ],
+      "description": "A composite odd limit (5001 = 3*1667) so the outer scan's LAST live index is a prime strictly below size-1: after it, sieve[size-1] is a sieved-out zero and the `sieve[++i] == 0` walk advances i to size-1, passes the `i < size` guard a second time, and reads sieve[size]. Same expression, different route to the OOB -- guards against a partial fix tuned only to the 'last prime at size-1' shape of the advisory repro.",
+      "exploit_path": "argv[1]=5001 (odd, composite) -> size = (5001-1)/2 = 2500 -> sieve = xalloc(2500) (make-prime-list.c:198) -> sieve[2499] (5001) sieved to 0 -> scan reaches last prime at i = 2498 = size-2 -> `i < size` passes, ++i -> sieve[2499] == 0 (zero) -> `i < size` passes again with i = size-1, ++i -> sieve[size] READ 1 byte past the heap (make-prime-list.c:214)",
+      "id": "limit_5001_composite_odd",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "5d96d9ea8541340db94ceefaa7e89173c062dba9c4187911e3ed07eb44c1f3b5",
+        "ran_at": "2026-08-20T06:48:25+00:00"
+      }
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh 3",
+      "covers_alert_paths": [
+        "sieve = xalloc (size) : 1-byte heap buffer for limit=3 (src/make-prime-list.c:198) -> while (i < size && sieve[++i] == 0) : size-1 == 0 still passes the guard (src/make-prime-list.c:214)"
+      ],
+      "description": "The smallest possible trigger: limit = 3 -> size = 1, a one-byte sieve whose only slot (index 0, prime 3) is processed and then scanned with i = 0 = size-1: `i < size` passes, ++i -> i = 1, sieve[1] reads one byte past the 1-byte allocation. Proves the bounds guard is wrong for every size, not just large ones.",
+      "exploit_path": "argv[1]=3 -> size = (3-1)/2 = 1 -> sieve = xalloc(1) (make-prime-list.c:198) -> p = 3+2*0 processed (make-prime-list.c:206-212) -> `while (i < size && sieve[++i] == 0)`: i = 0 = size-1 passes the guard, ++i -> sieve[1] READ 1 byte past the 1-byte heap (make-prime-list.c:214)",
+      "id": "limit_3_minimal",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "30475751037d4e1aa6baff4a16dff574220d9d388f00382cff6b973aa43d9f79",
+        "ran_at": "2026-08-20T06:48:25+00:00"
+      }
+    }
+  ],
+  "project_slug": "coreutils__coreutils_gnubug-19784_658529a10e05",
+  "sink": "src/make-prime-list.c:214 (main: `while (i < size && sieve[++i] == 0)` -- pre-increment value bounds-checked, post-increment value indexes sieve)",
+  "summary": "The build-time host tool src/make-prime-list.c (generates src/primes.h for factor/expr) scans its odd-prime sieve with `while (i < size && sieve[++i] == 0)`: the guard bounds-checks i's PRE-increment value against size while the access indexes with the POST-increment value of the same expression, so when the scan reaches i == size-1 the guard passes, ++i makes i == size, and sieve[size] reads one byte past the size-byte xalloc buffer -- an ASan heap-buffer-overflow (READ of size 1), reached on every run with limit >= 3 (e.g. `src/make-prime-list 5000`).",
+  "trust_boundary": "the LIMIT command-line argument: `size = (limit-1)/2` sizes the xalloc'd sieve (make-prime-list.c:196-198), and every scrape of the sieve for the next prime walks past the end once i reaches size-1"
+}

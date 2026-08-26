@@ -1,0 +1,97 @@
+{
+  "project_slug": "vadz__libtiff_bugzilla-2611_9a72a69e035e",
+  "cve_id": "bugzilla-2611",
+  "generated_at": "2026-08-21T12:05:02Z",
+  "duration_s": 43.2,
+  "harness": "security_pipeline.reverify",
+  "note": "Independent re-execution record. Written by `respov reverify`; never written by anything that also edits manifest.json. 'errored' is a harness/build failure and is evidence for nothing.",
+  "trees": {
+    "unpatched": {
+      "key": "unpatched",
+      "label": "project source at the recorded buggy commit",
+      "expectation": "reproduce",
+      "revision": null,
+      "notes": "re-proves the oracle: a POV that no longer reproduces here has drifted",
+      "repo": "vadz/libtiff",
+      "resolved_commit": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+      "state": "ran",
+      "duration_s": 24.0,
+      "staging_ok": true,
+      "totals": {
+        "reproduced": 1,
+        "blocked": 0,
+        "errored": 0
+      }
+    },
+    "official-fix": {
+      "key": "official-fix",
+      "label": "buggy commit + official_fix.patch",
+      "expectation": "reproduce",
+      "revision": null,
+      "notes": "the residual contract: the gap must survive the official fix",
+      "repo": "vadz/libtiff",
+      "resolved_commit": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+      "state": "ran",
+      "duration_s": 27.9,
+      "staging_ok": true,
+      "totals": {
+        "reproduced": 1,
+        "blocked": 0,
+        "errored": 0
+      }
+    },
+    "at:43908ce1": {
+      "key": "at:43908ce1",
+      "label": "upstream tree at 43908ce1",
+      "expectation": "block",
+      "revision": "43908ce1",
+      "notes": "falsifiability control: a genuine gap upstream closed here must be blocked",
+      "repo": "https://gitlab.com/libtiff/libtiff",
+      "resolved_commit": "43908ce15e8bf85f063443658d2a6da0d1cd4e74",
+      "state": "ran",
+      "duration_s": 43.2,
+      "staging_ok": true,
+      "totals": {
+        "reproduced": 0,
+        "blocked": 1,
+        "errored": 0
+      }
+    }
+  },
+  "povs": {
+    "ojpeg_readheaderinfo_zero_subsampling_fpe": {
+      "pov_id": "ojpeg_readheaderinfo_zero_subsampling_fpe",
+      "trees": {
+        "unpatched": {
+          "outcome": "reproduced",
+          "exit_code": 0,
+          "expectation": "reproduce",
+          "verdict": "as_expected",
+          "command": "bash .security-pipeline/respov/run.sh r1_readheader",
+          "log": null,
+          "revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018"
+        },
+        "official-fix": {
+          "outcome": "reproduced",
+          "exit_code": 0,
+          "expectation": "reproduce",
+          "verdict": "as_expected",
+          "command": "bash .security-pipeline/respov/run.sh r1_readheader",
+          "log": null,
+          "revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018"
+        },
+        "at:43908ce1": {
+          "outcome": "blocked",
+          "exit_code": 1,
+          "expectation": "block",
+          "verdict": "as_expected",
+          "command": "bash .security-pipeline/respov/run.sh r1_readheader",
+          "log": null,
+          "revision": "43908ce15e8bf85f063443658d2a6da0d1cd4e74"
+        }
+      },
+      "summary": "as_expected",
+      "falsifiability_control": "passed"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# This repository stores DATA whose exact bytes are load-bearing, so git must
+# never translate line endings on the way in or out.
+#
+# Two files make this concrete. `dataset/project_info.csv` is CRLF, and
+# `official_fix.patch` for the CRLF-sourced projects (zip4j, hutool) must stay
+# CRLF or `git apply` rejects it wholesale -- its context lines would match
+# nothing. Worse, every official_fix.patch is hashed into its POV's
+# certification `content_hash`, so a newline rewrite does not merely break an
+# apply: it invalidates the certification, and the suite silently stops scoring.
+#
+# A checkout on a machine with core.autocrlf=input or true (a common default)
+# would do exactly that. `-text` disables the conversion for every path.
+* -text
