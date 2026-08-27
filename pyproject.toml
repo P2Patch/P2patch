@@ -1,0 +1,33 @@
+# Packaging exists for exactly one reason: to put `security-pipeline` on PATH, so
+# the commands in README.md run as written. The pipeline itself stays pure stdlib
+# -- `dependencies` is empty and stays empty (see CLAUDE.md, "Keep
+# security_pipeline/ dependency-free"). The dashboard's own deps live in
+# dashboard/backend/requirements.txt and are installed separately.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "p2patch"
+version = "0.1.0"
+description = "Exploit-guided vulnerability repair: an exploit -> patch -> verify pipeline driven by Claude Code agents"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+security-pipeline = "security_pipeline.cli:main"
+
+[tool.setuptools]
+# Only the pipeline package is installable. `dashboard/`, `baselines/`, `tests/`
+# and `benchmark/` are run in place from a checkout, never imported from
+# site-packages, so auto-discovery is turned off rather than left to guess.
+packages = ["security_pipeline"]
+
+[tool.setuptools.package-data]
+# The agent prompts and output schemas are read at runtime relative to the
+# package directory (`ClaudeAgentRunner`'s `package_root`), and `agent_guard.py`
+# is handed to the Claude CLI as a hook script by absolute path. A non-editable
+# install that dropped them would fail at the first agent invocation rather than
+# at import, so they are declared here even though the documented install is
+# editable.
+security_pipeline = ["prompts/*.md", "schemas/*.json"]
