@@ -22,7 +22,6 @@ import type {
   PublishedMeta,
   ReferencePatch,
   RunDetail,
-  ResidualTriageOverview,
   RunSummary,
   SchedulerStatus,
   SourceStatus,
@@ -198,10 +197,6 @@ export const api = {
   // On-demand source cloning (for alerts that ship without a local source tree)
   sourceStatus: (slug: string) => getJSON<SourceStatus>(`/sources/${encodeURIComponent(slug)}`),
   cloneSource: (slug: string) => postJSON<SourceStatus>(`/sources/${encodeURIComponent(slug)}/clone`),
-
-  // Residual-gap audit (its own page): every certified residual POV joined with the
-  // upstream sweep and the independent `respov reverify` execution record.
-  residualTriage: () => getJSON<ResidualTriageOverview>("/residual-triage"),
 
   // San2Patch baseline-tool benchmark (its own page; LoopRepair's is separate)
   san2patchList: () => getJSON<San2PatchList>("/baselines/san2patch"),

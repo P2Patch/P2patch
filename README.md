@@ -550,6 +550,10 @@ pipeline runs. It reads the on-disk run artifacts (never mutates them), maps
 each redacted run back to its real CVE and official fix, and can launch runs
 live.
 
+![P2Patch Lab — an accepted run on commons-io CVE-2021-29425: the stage rail
+(exploiter → POV → patcher → POV-after → regressions → verifier), the acceptance
+verdict, and the held-out fixPOV coverage score.](docs/dashboard-run.jpg)
+
 - **Browse & evaluate** — per-run signal-rail, agent I/O, diffs, container
   logs, fixPOV panel, and LLM-judge scorecards for patch and POV quality
   (with optional ensemble judging).

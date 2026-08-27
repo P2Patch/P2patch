@@ -61,18 +61,23 @@ export function PatchAgent() {
               title="Cases counted by CVE. Fewer runs than CVEs because one run's patch covers two of them."
             />
             <Readout
-              label="fully fixed (our gt POVs)"
-              value={data.stats.patched && data.pov ? `${data.pov.fully_blocked}/${data.pov.scored}` : "—"}
+              label="fix-closed coverage"
+              value={data.pov ? (data.pov.mean_score?.toFixed(3) ?? "—") : "—"}
               hint={
                 data.pov
-                  ? `${data.pov.povs_blocked}/${data.pov.povs_total} POVs · mean ${data.pov.mean_score?.toFixed(2) ?? "—"}`
+                  ? `${data.pov.fully_blocked}/${data.pov.n} fully blocked · ${data.pov.povs_blocked}/${data.pov.povs_total} POVs`
                   : "not scored yet"
               }
+              title="Intention-to-treat over every shared subject carrying a certified fix-closed suite."
             />
             <Readout
-              label="beat upstream (res POVs)"
-              value={data.pov_residual ? `${data.pov_residual.povs_blocked}/${data.pov_residual.povs_total}` : "—"}
-              hint="0 is a fine result — see below"
+              label="beyond-upstream coverage"
+              value={data.pov_residual ? (data.pov_residual.mean_score?.toFixed(3) ?? "—") : "—"}
+              hint={
+                data.pov_residual
+                  ? `${data.pov_residual.povs_blocked}/${data.pov_residual.povs_total} POVs · 0 is a fine result`
+                  : "no residual suite"
+              }
             />
             <Readout
               label="spend (measured)"

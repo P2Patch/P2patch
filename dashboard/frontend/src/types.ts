@@ -593,6 +593,11 @@ export interface LoopRepairPovHeadline {
 
 export interface LoopRepairList {
   stats: LoopRepairStats;
+  /** fixPOVs: blocked is good. */
+  pov: BaselineCoverage | null;
+  /** Residual: a POV still reproducing is the expected neutral result, so this is
+   *  kept SEPARATE from `pov` rather than averaged with it. */
+  pov_residual: BaselineCoverage | null;
   results: LoopRepairResultSummary[];
 }
 
@@ -868,18 +873,34 @@ export interface San2PatchStats {
   total_tokens: number;
 }
 
-/** Headline of our own POV re-scoring; null until a scoring run has happened. */
-export interface San2PatchPovSummary {
+/** Held-out coverage headline for one baseline and one oracle family, scored
+ *  INTENTION-TO-TREAT: `n` (not `scored`) is the denominator, so a subject that
+ *  carries a certified suite but got no patch counts as zero. `mean_scored_only`
+ *  is the same numerator over `scored` alone — kept so the two policies stay
+ *  visibly distinct rather than one silently standing in for the other. */
+export interface BaselineCoverage {
   scored: number;
+  /** Subjects with a certified suite that the system produced no patch for. */
+  zero_credited: number;
+  /** The intention-to-treat denominator: `scored + zero_credited`. */
+  n: number;
   fully_blocked: number;
-  errored: number;
+  score_sum: number;
+  /** Intention-to-treat mean — the number the paper reports. */
   mean_score: number | null;
-  claimed_repaired: number;
+  mean_scored_only: number | null;
+  policy: string;
+  errored?: number;
+  claimed_repaired?: number;
 }
 
 export interface San2PatchList {
   stats: San2PatchStats;
-  pov: San2PatchPovSummary | null;
+  /** fixPOVs: blocked is good. */
+  pov: BaselineCoverage | null;
+  /** Residual: a POV still reproducing is the expected neutral result, so this is
+   *  kept SEPARATE from `pov` rather than averaged with it. */
+  pov_residual: BaselineCoverage | null;
   results: San2PatchRow[];
 }
 
@@ -894,100 +915,6 @@ export interface San2PatchResult extends San2PatchRow {
   residual_eval: ResidualEval | null;
   logs_available: string[];
 }
-
-/**
- * Residual-gap audit. Three provenances are kept apart on purpose: `pov.*` is
- * what the manifest's own certification recorded, `upstream_*` is a machine
- * sweep of the project's current code, and `execution` is an independent re-run
- * by `respov reverify`. A row can be certified, look open at head, and never
- * have been re-run — the UI shows that rather than blending it into one score.
- */
-export type ResidualUpstreamFile = {
-  path: string;
-  state: "fix_intact" | "fix_changed" | "file_absent";
-  signature_lines: number;
-  present?: number;
-  missing?: number;
-  missing_examples?: string[];
-  commit_leads?: { sha: string; date: string; subject: string }[];
-  detail?: string;
-};
-
-export type ResidualExecutionTree = {
-  outcome: "reproduced" | "blocked" | "errored";
-  exit_code: number | null;
-  expectation: "reproduce" | "block";
-  verdict: "as_expected" | "contradicts" | "inconclusive";
-  command?: string;
-  log?: string | null;
-  revision?: string;
-};
-
-export type ResidualTriageRow = {
-  pov_uid: string;
-  project_slug: string;
-  pov_id: string;
-  cve_id: string;
-  cwe_id: string;
-  status: string;
-  claim_class: string;
-  confidence: string;
-  certified: boolean;
-  gap_summary: string;
-  official_fix_commits: string[];
-  official_fix_date: string;
-  later_fix_commit: string;
-  later_fix_date: string;
-  later_fix_release: string;
-  delta_days: number | null;
-  releases_exposed: string;
-  corroboration: string;
-  notes: string;
-  verified_by: string;
-  evidence_urls: string[];
-  upstream_signal: string;
-  upstream_repo: string | null;
-  upstream_checked_at: string;
-  upstream_liveness: { archived?: boolean; pushed_at?: string; stars?: number; full_name?: string } | null;
-  upstream_files: ResidualUpstreamFile[];
-  execution: {
-    ran: boolean;
-    summary: string;
-    falsifiability_control: "passed" | "failed" | "not_run";
-    trees: Record<string, ResidualExecutionTree>;
-  };
-  pov: {
-    description?: string;
-    exploit_path?: string;
-    gap_summary?: string;
-    command?: string;
-    covers_alert_paths?: string[];
-    certified: boolean;
-    certified_before?: string;
-    certified_after?: string;
-    certified_at?: string;
-    content_hash?: string;
-  };
-};
-
-export type ResidualTriageOverview = {
-  available: boolean;
-  reason?: string;
-  generated_at: string;
-  note: string;
-  rows: ResidualTriageRow[];
-  summary: {
-    povs: number;
-    projects: number;
-    certified: number;
-    by_status: Record<string, number>;
-    by_upstream_signal: Record<string, number>;
-    by_claim_class: Record<string, number>;
-    executed: number;
-    falsifiability_controls_passed: number;
-    execution_contradictions: number;
-  };
-};
 
 // --- PatchAgent baseline-tool benchmark (dashboard/backend/patchagent.py) -----
 // Reuses PovHeadline / FixPovEval / ResidualEval above rather than declaring
@@ -1058,14 +985,8 @@ export interface PatchAgentStats {
   baseline_commit: string | null;
 }
 
-/** Headline of our own POV re-scoring; null until a scoring run has happened.
- *  `povs_*` are per-POV, `scored`/`fully_blocked` per-case. */
-export interface PatchAgentPovSummary {
-  scored: number;
-  fully_blocked: number;
-  errored: number;
-  mean_score: number | null;
-  claimed_repaired: number;
+/** `povs_*` are per-POV; `scored`/`fully_blocked`/`n` are per-case. */
+export interface PatchAgentPovSummary extends BaselineCoverage {
   povs_total: number | null;
   povs_blocked: number | null;
   scoring_note: string;
