@@ -8,9 +8,14 @@ P2Patch automates the end-to-end process of fixing security vulnerabilities:
 
 1. **Exploiter** — Creates a proof-of-vulnerability (POV) test that reproduces the vulnerability
 2. **Patcher** — Applies a fix to the vulnerability while maintaining POV isolation
-3. **Verifier** — Reviews the patch, reruns checks, and accepts or rejects the fix
+3. **LLM Verifier** — Helps with manual review by inspecting the patch, rerunning project checks, and recommending whether to accept or reject the fix
 
 The pipeline runs each agent inside a Docker container and validates outputs at each stage through configurable gates.
+
+When you want to automatically test a project, the LLM verifier provides an
+additional review pass: it examines the proposed change in context and runs the
+project's tests, giving manual reviewers evidence to use when assessing the
+patch.
 
 By default it runs the full exploit → patch → verify sequence, but it supports **experiment profiles** that vary which stages run — for example a `baseline` profile that patches from the alert alone (no exploiter, POV, or verifier) so you can A/B whether exploitation helps the patcher produce a better fix. See [Experiment profiles](#experiment-profiles).
 
