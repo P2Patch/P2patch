@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import baseline_coverage
 import config
 import runs
 
@@ -145,22 +146,60 @@ def stats() -> Dict[str, Any]:
     }
 
 
-def pov_summary() -> Optional[Dict[str, Any]]:
-    """Headline of our fixPOV re-scoring, from the roll-up score_patches.py
-    writes. None until a scoring run has happened -- deliberately not zeros, since
-    "not scored" and "blocked nothing" are opposite conclusions about a patch."""
-    # ``pov_scores_gtpov.json`` is the pre-rename name score_patches.py wrote;
-    # already-recorded roll-ups keep it.
-    d = _read_json(ROOT / "pov_scores_fixpov.json") or _read_json(ROOT / "pov_scores_gtpov.json")
+_NO_PATCH_SKIP = "tool reported no patch"
+
+
+def pov_summary(family: str = "fixpov") -> Optional[Dict[str, Any]]:
+    """Headline of our re-scoring for one oracle family, from the roll-up
+    score_patches.py writes. None until a scoring run has happened -- deliberately
+    not zeros, since "not scored" and "blocked nothing" are opposite conclusions
+    about a patch.
+
+    Scored under intention-to-treat (see ``baseline_coverage``): the mean is over
+    every shared subject carrying a certified suite of this family, so a case
+    San2Patch produced no patch for counts as zero rather than vanishing from the
+    denominator. The score sum is re-derived from the per-case rows rather than
+    taken from the roll-up's ``mean_score``, which is already rounded to 4 places.
+    """
+    if family not in ("fixpov", "respov"):
+        return None
+    if family == "fixpov":
+        # ``pov_scores_gtpov.json`` is the pre-rename name score_patches.py wrote;
+        # already-recorded roll-ups keep it.
+        d = _read_json(ROOT / "pov_scores_fixpov.json") or _read_json(ROOT / "pov_scores_gtpov.json")
+    else:
+        d = _read_json(ROOT / "pov_scores_respov.json")
     if not d:
         return None
-    return {
-        "scored": d.get("scored"),
-        "fully_blocked": d.get("fully_blocked"),
-        "errored": d.get("errored"),
-        "mean_score": d.get("mean_score"),
-        "claimed_repaired": d.get("claimed_repaired"),
-    }
+
+    rows = d.get("rows") or []
+    scores = [
+        r["summary"]["score"]
+        for r in rows
+        if isinstance(r.get("summary"), dict) and r["summary"].get("score") is not None
+    ]
+    # A case with a ``superseded_by`` marker is NOT dropped here. ``aggregate.json``
+    # has already chosen which attempt counts -- the earliest complete one, so a
+    # re-run cannot turn the benchmark into best-of-10 -- and for these two cases
+    # that attempt produced no patch. Scoring the later, luckier attempt instead
+    # would be exactly the best-of-N the aggregate exists to prevent, and would
+    # disagree with the row this page renders and with RESULTS.md.
+    no_patch = [
+        r for r in rows if (r.get("skip_reason") or "").startswith(_NO_PATCH_SKIP)
+    ]
+    zero_credited = baseline_coverage.zero_credited_from_cases(
+        family,
+        no_patch,
+        slug_of=lambda r: r.get("project_slug"),
+    )
+    return baseline_coverage.summarize(
+        scores,
+        zero_credited,
+        extra={
+            "errored": d.get("errored"),
+            "claimed_repaired": d.get("claimed_repaired"),
+        },
+    )
 
 
 def get_result(key: str) -> Optional[Dict[str, Any]]:

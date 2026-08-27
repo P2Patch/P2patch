@@ -11,11 +11,13 @@ logs, ``pov_input/``).
 from __future__ import annotations
 
 import csv
+import io
 import json
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import baseline_coverage
 import config
 import runs
 
@@ -141,6 +143,66 @@ def stats() -> Dict[str, Any]:
         "total_cost_usd": total_cost,
         "total_tokens": total_tokens,
     }
+
+
+_FAMILY_FIELD = {"fixpov": "fix_pov", "respov": "residual"}
+
+
+def pov_summary(family: str = "fixpov") -> Optional[Dict[str, Any]]:
+    """Held-out coverage headline for one oracle family, under intention-to-treat.
+
+    Unlike San2Patch and PatchAgent, LoopRepair ships no roll-up file -- its scores
+    live in the per-CVE ``fix_pov``/``residual`` result files that ``list_results``
+    already reads -- so the aggregate is computed here from those rows.
+
+    A CVE LoopRepair produced no patch for counts as zero when the subject carries a
+    certified suite of this family (see ``baseline_coverage``). A row that WAS
+    measured but came back with a null score is excluded instead: that is a harness
+    or build failure, not a repair failure, and it is the same rule the pipeline's
+    own fixPOV stage applies to an ``errored`` POV.
+    """
+    field = _FAMILY_FIELD.get(family)
+    if field is None:
+        return None
+    rows = list_results()
+    if not rows:
+        return None
+    slugs = _slugs_by_cve()
+    scores = [
+        r[field]["score"] for r in rows if r.get(field) and r[field].get("score") is not None
+    ]
+    unscored = [
+        r for r in rows if not (r.get(field) and r[field].get("score") is not None)
+    ]
+    zero_credited = baseline_coverage.zero_credited_from_cases(
+        family,
+        unscored,
+        slug_of=lambda r: slugs.get(r["cve"]),
+        # "Measured but unscoreable" is not a no-patch subject. LoopRepair reports a
+        # patch for it, so it is out of the denominator rather than credited zero.
+        is_non_attempt=lambda r: r["status"] == "patched",
+    )
+    return baseline_coverage.summarize(scores, zero_credited)
+
+
+def _slugs_by_cve() -> Dict[str, str]:
+    """CVE id -> dataset project slug, for the certified-suite lookup.
+
+    LoopRepair's rows carry its own project shorthand ("libtiff"), not our slug, so
+    the benchmark CSV is the join. A CVE with no row here is outside this benchmark
+    and drops out of every denominator.
+    """
+    out: Dict[str, str] = {}
+    try:
+        raw = config.PROJECT_INFO_CSV.read_bytes().decode("utf-8-sig")
+    except OSError:
+        return out
+    for row in csv.DictReader(io.StringIO(raw)):
+        cve = (row.get("cve_id") or "").strip()
+        slug = (row.get("project_slug") or "").strip()
+        if cve and slug:
+            out.setdefault(cve, slug)
+    return out
 
 
 def get_result(key: str) -> Optional[Dict[str, Any]]:
