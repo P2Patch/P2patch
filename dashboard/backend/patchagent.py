@@ -32,6 +32,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import baseline_coverage
 import config
 import runs
 
@@ -202,18 +203,41 @@ def pov_summary(family: str = "fixpov") -> Optional[Dict[str, Any]]:
         d = _read_json(ROOT / "pov_scores_gtpov.json")
     if not d:
         return None
-    return {
-        "scored": d.get("scored"),
-        "fully_blocked": d.get("fully_blocked"),
-        "errored": d.get("errored"),
-        "mean_score": d.get("mean_score"),
-        "claimed_repaired": d.get("claimed_repaired"),
-        # Per-POV totals as well as per-case: the headline for this arm is stated in
-        # POVs (29/37 fixPOVs blocked), and a case-level count alone loses that.
-        "povs_total": d.get("povs_total"),
-        "povs_blocked": d.get("povs_blocked"),
-        "scoring_note": d.get("scoring_note", ""),
-    }
+    rows = d.get("rows") or []
+    scores = [
+        r["summary"]["score"]
+        for r in rows
+        if isinstance(r.get("summary"), dict) and r["summary"].get("score") is not None
+    ]
+    # Intention-to-treat, like the other two baselines -- but a no-op here, and that
+    # is the point: PatchAgent shipped a patch for every shared subject it attempted,
+    # so nothing is credited zero and ``n`` stays the scored count. The one subject
+    # it never attempted (``gnubug-19784``, whose own functional gate hardcodes an
+    # expected failure count our environment does not reproduce) is a non-attempt,
+    # not a repair failure, and stays out of the denominator.
+    never_attempted = set(stats().get("not_runnable_ids") or [])
+    no_patch = [
+        r for r in rows if (r.get("skip_reason") or "").startswith("tool reported no patch")
+    ]
+    zero_credited = baseline_coverage.zero_credited_from_cases(
+        family,
+        no_patch,
+        slug_of=lambda r: r.get("project_slug"),
+        is_non_attempt=lambda r: r.get("case_id") in never_attempted,
+    )
+    return baseline_coverage.summarize(
+        scores,
+        zero_credited,
+        extra={
+            "errored": d.get("errored"),
+            "claimed_repaired": d.get("claimed_repaired"),
+            # Per-POV totals as well as per-case: the headline for this arm is stated
+            # in POVs (29/37 fixPOVs blocked), and a case-level count alone loses that.
+            "povs_total": d.get("povs_total"),
+            "povs_blocked": d.get("povs_blocked"),
+            "scoring_note": d.get("scoring_note", ""),
+        },
+    )
 
 
 def get_result(key: str) -> Optional[Dict[str, Any]]:

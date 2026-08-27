@@ -43,7 +43,6 @@ export function App() {
   const onLive = loc.pathname.startsWith("/live");
   const onOtherProjects = loc.pathname.startsWith("/other-projects");
   const onSan2Patch = loc.pathname.startsWith("/san2patch");
-  const onResidual = loc.pathname.startsWith("/residual-audit");
   const onPatchAgent = loc.pathname.startsWith("/patchagent");
   return (
     <div className="min-h-full">
@@ -71,14 +70,6 @@ export function App() {
               }`}
             >
               Other projects
-            </Link>
-            <Link
-              to="/residual-audit"
-              className={`focusable rounded-md px-3 py-1.5 ${
-                onResidual ? "bg-elevated text-txt" : "text-txt-dim hover:text-txt"
-              }`}
-            >
-              Residual audit
             </Link>
             <Link
               to="/san2patch"

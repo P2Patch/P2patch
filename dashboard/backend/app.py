@@ -21,7 +21,6 @@ import san2patch
 import san2patch_fixpov
 import patchagent_fixpov
 import residual_replay
-import residual_triage
 import retrofit_job
 import verifier_rerun_job
 import live
@@ -400,20 +399,6 @@ class BatchRequest(BaseModel):
     models: list[str | None] | None = None
 
 
-@api.get("/residual-triage")
-def get_residual_triage() -> dict:
-    """Every certified residual POV with its upstream triage and execution state."""
-    return residual_triage.overview()
-
-
-@api.get("/residual-triage/{project_slug}")
-def get_residual_triage_suite(project_slug: str) -> dict:
-    data = residual_triage.suite(project_slug)
-    if not data.get("available"):
-        raise HTTPException(status_code=404, detail=data.get("reason", "not found"))
-    return data
-
-
 @api.get("/live/options")
 def live_options() -> dict:
     """Selectable experiment profiles, efforts, and models for the launcher."""
@@ -536,9 +521,12 @@ def live_stop(launch_id: str) -> dict:
 
 @api.get("/baselines/san2patch")
 def san2patch_list() -> dict:
-    """San2Patch benchmark results: summary stats, our POV re-scoring headline, and
-    every case row."""
-    return {"stats": san2patch.stats(), "pov": san2patch.pov_summary(),
+    """San2Patch benchmark results: summary stats, both POV re-scoring headlines, and
+    every case row. Two POV headlines rather than one because fixPOV and residual
+    scores read in OPPOSITE directions and must not collapse into a single number."""
+    return {"stats": san2patch.stats(),
+            "pov": san2patch.pov_summary("fixpov"),
+            "pov_residual": san2patch.pov_summary("respov"),
             "results": san2patch.list_results()}
 
 
@@ -685,8 +673,12 @@ def start_patchagent_respov_replay(key: str) -> dict:
 
 @api.get("/baselines/loop-repair")
 def loop_repair_list() -> dict:
-    """LoopRepair benchmark results: summary stats + every CVE row."""
-    return {"stats": loop_repair.stats(), "results": loop_repair.list_results()}
+    """LoopRepair benchmark results: summary stats, both POV re-scoring headlines,
+    and every CVE row. Same two-headline shape as the other two baselines."""
+    return {"stats": loop_repair.stats(),
+            "pov": loop_repair.pov_summary("fixpov"),
+            "pov_residual": loop_repair.pov_summary("respov"),
+            "results": loop_repair.list_results()}
 
 
 @api.get("/baselines/loop-repair/{key}")

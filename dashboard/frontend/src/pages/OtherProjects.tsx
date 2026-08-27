@@ -4,13 +4,24 @@ import { cost } from "../lib/format";
 import { LoopRepairTable } from "../components/LoopRepairTable";
 import type { LoopRepairList } from "../types";
 
-function Readout({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Readout({
+  label,
+  value,
+  accent,
+  hint,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  hint?: string;
+}) {
   return (
     <div className="px-5 py-4 first:pl-0">
       <div className="eyebrow">{label}</div>
       <div className={`mt-1 font-display text-3xl font-semibold tabular-nums ${accent ? "text-iris" : "text-txt"}`}>
         {value}
       </div>
+      {hint && <div className="mt-0.5 text-2xs text-txt-faint">{hint}</div>}
     </div>
   );
 }
@@ -37,10 +48,37 @@ export function OtherProjects() {
           <div className="mb-8 panel flex flex-wrap divide-x divide-hairline px-1">
             <Readout label="CVEs" value={`${data.stats.total}`} />
             <Readout label="patched" value={`${data.stats.patched}`} accent />
-            <Readout label="failed" value={`${data.stats.failed}`} />
             <Readout label="success rate" value={`${Math.round(data.stats.success_rate * 100)}%`} />
+            <Readout
+              label="fix-closed coverage"
+              value={data.pov ? (data.pov.mean_score?.toFixed(3) ?? "—") : "—"}
+              hint={data.pov ? `${data.pov.fully_blocked}/${data.pov.n} fully blocked · n=${data.pov.n}` : "not scored yet"}
+            />
+            <Readout
+              label="beyond-upstream coverage"
+              value={data.pov_residual ? (data.pov_residual.mean_score?.toFixed(3) ?? "—") : "—"}
+              hint={
+                data.pov_residual
+                  ? `${data.pov_residual.fully_blocked}/${data.pov_residual.n} fully blocked · n=${data.pov_residual.n}`
+                  : "no residual suite"
+              }
+            />
             <Readout label="spend" value={cost(data.stats.total_cost_usd)} />
           </div>
+
+          {data.pov && (
+            <div className="mb-6 panel border-hairline p-4 text-2xs text-txt-dim">
+              <div className="eyebrow mb-1">coverage is intention-to-treat</div>
+              LoopRepair's own oracle accepts a case when its single crashing input stops crashing; the two coverage
+              readouts above are our independent re-scoring against the certified POV suites a pipeline run is
+              measured with. The denominator is every shared subject carrying a certified suite (n={data.pov.n}), so
+              the <strong className="text-txt">{data.pov.zero_credited}</strong> subjects LoopRepair shipped no patch
+              for count as zero rather than dropping out. Subjects with no certified suite, and one whose replay could
+              not be measured at all, are excluded rather than scored zero — see{" "}
+              <span className="font-mono">baselines/COMPARISON.md</span>.
+            </div>
+          )}
+
           <LoopRepairTable results={data.results} />
         </>
       )}

@@ -49,9 +49,18 @@ export function San2Patch() {
             />
             <Readout label="rate" value={`${Math.round(data.stats.success_rate * 100)}%`} />
             <Readout
-              label="fully fixed (our POVs)"
-              value={data.pov ? `${data.pov.fully_blocked}/${data.pov.scored}` : "—"}
-              hint={data.pov ? `mean ${data.pov.mean_score?.toFixed(2) ?? "—"}` : "not scored yet"}
+              label="fix-closed coverage"
+              value={data.pov ? (data.pov.mean_score?.toFixed(3) ?? "—") : "—"}
+              hint={data.pov ? `${data.pov.fully_blocked}/${data.pov.n} fully blocked · n=${data.pov.n}` : "not scored yet"}
+            />
+            <Readout
+              label="beyond-upstream coverage"
+              value={data.pov_residual ? (data.pov_residual.mean_score?.toFixed(3) ?? "—") : "—"}
+              hint={
+                data.pov_residual
+                  ? `${data.pov_residual.fully_blocked}/${data.pov_residual.n} fully blocked · n=${data.pov_residual.n}`
+                  : "no residual suite"
+              }
             />
             <Readout label="spend" value={cost(data.stats.total_cost_usd)} />
           </div>
@@ -65,8 +74,11 @@ export function San2Patch() {
               </strong>{" "}
               patches San2Patch declared correct still leave at least one certified exploit variant working. Its own
               oracle re-runs only the single PoC, so a guard narrow enough to reject exactly those bytes passes it.
-              Cases with no POV manifest, and patches that would not apply to our reconstruction, are excluded from
-              this count rather than scored zero — see <span className="font-mono">baselines/COMPARISON.md</span>.
+              Coverage is scored <strong className="text-txt">intention-to-treat</strong>: the denominator is every
+              shared subject carrying a certified suite (n={data.pov.n}), so the{" "}
+              {data.pov.zero_credited} subject{data.pov.zero_credited === 1 ? "" : "s"} San2Patch shipped no patch for
+              count as zero rather than dropping out. Subjects with no certified suite, and those outside this
+              benchmark, are excluded — see <span className="font-mono">baselines/COMPARISON.md</span>.
             </div>
           )}
 

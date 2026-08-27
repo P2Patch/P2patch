@@ -13,7 +13,6 @@ import { San2PatchDetail } from "./pages/San2PatchDetail";
 import { PatchAgent } from "./pages/PatchAgent";
 import { PatchAgentDetail } from "./pages/PatchAgentDetail";
 import { LoopRepairDetail } from "./pages/LoopRepairDetail";
-import { ResidualTriage } from "./pages/ResidualTriage";
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -28,7 +27,6 @@ const router = createBrowserRouter([
       { path: "other-projects/:key", element: <LoopRepairDetail /> },
       // San2Patch lives on its own route, not under other-projects/: that page and
       // its LoopRepair data are owned and analysed separately.
-      { path: "residual-audit", element: <ResidualTriage /> },
       { path: "san2patch", element: <San2Patch /> },
       { path: "san2patch/:key", element: <San2PatchDetail /> },
       // PatchAgent gets its own route for the same reason San2Patch does: a
