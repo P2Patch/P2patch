@@ -36,6 +36,57 @@ per-project build image and both certified POV suites.
 Set `P2PATCH_BENCHMARK` to point at a checkout somewhere else — useful on a run
 host that already holds the (tens of GB of) project sources on another volume.
 
+### The paper's pipeline runs
+
+The runs behind the paper's numbers are published separately, because they are
+too large for this repository (`security_pipeline_runs/` is gitignored for the
+same reason). You do **not** need them to run the pipeline yourself — only to
+inspect the exact runs the paper reports.
+
+**Download:** <!-- TODO(before submission): replace with the figshare private
+share link, https://figshare.com/s/<token>. The item is currently an unpublished
+draft, so neither its /account/ URL nor its DOI resolves for a reviewer. -->
+_link to be added_
+
+The download is ~2.6 GB and provides `security_pipeline_runs.tar.zst` together
+with its own README. It is a snapshot of **505 completed runs** over the 101-CVE
+corpus across five arms — haiku-4.5 `baseline`, and `hardening` on each of
+haiku-4.5, deepseek-v4-flash, gpt-5.6-luna and glm-5.2:floor — 101 runs each,
+over the identical set of findings.
+
+```bash
+# from the repository root
+mkdir -p security_pipeline_runs
+tar -I 'zstd -d --long=27' -xf /path/to/security_pipeline_runs.tar.zst -C security_pipeline_runs/
+./dashboard/dev.sh          # every run is then browsable at http://localhost:8000
+```
+
+`--long=27` is **mandatory** on extraction: the archive was written with a 128 MiB
+long-range window and zstd refuses windows above 8 MiB without a matching flag.
+Needs `zstd` (`brew install zstd` / `apt install zstd`) and ~13 GB free.
+
+Three things worth knowing before you unpack:
+
+- **Each run's `worktree/` and `baseline_checkout/` were dropped** — that is what
+  takes the snapshot from 139 GB to 2.4 GB. Everything read-only still works
+  (run lists, diffs, agent transcripts including full `stream.jsonl` reasoning,
+  container logs, verdicts, and every previously computed fixPOV, residual and
+  gate score). The dashboard's three re-evaluation buttons — fixPOV replay,
+  residual replay, verifier retrofit — and the POV-quality judge do not, since
+  they read the patched tree out of the worktree.
+- **Unpacking makes the pipeline skip these findings.** The skip check is keyed
+  by `(finding_id, profile)`, so a `--profile baseline` or `--profile hardening`
+  sweep would find all 101 alerts already done. Either run an arm the snapshot
+  does not contain (`full`, `baseline_eval`, `no_verifier`), unpack into a
+  second checkout used only for browsing, or pass `--rerun`.
+- **These runs predate the "ground truth" → "fixPOV" rename**, so their results
+  still sit under `ground_truth/` with a `ground_truth_eval` step. No migration
+  is needed — every reader accepts the legacy names.
+
+Nothing outside `security_pipeline_runs/` is required to *view* them: the
+dashboard maps each run back to its CVE through `finder_results_filtered/` and
+`benchmark/`, both of which ship with this repository.
+
 
 ## Requirements
 
@@ -534,6 +585,9 @@ Each run produces a directory under `security_pipeline_runs/` containing:
 - `git/` — Diff files (full, patch-only, POV)
 - `docker/` — Docker command logs
 - `agent_io/` — Agent inputs, outputs, and raw stdout/stderr
+
+The 505 runs behind the paper's numbers are published as a separate download —
+see [The paper's pipeline runs](#the-papers-pipeline-runs).
 
 ## Dry Run
 
