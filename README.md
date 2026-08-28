@@ -605,6 +605,8 @@ live.
 (exploiter → POV → patcher → POV-after → regressions → verifier), the acceptance
 verdict, and the held-out fixPOV coverage score.](docs/dashboard-run.jpg)
 
+![img_2.png](img_2.png)
+
 - **Browse & evaluate** — per-run signal-rail, agent I/O, diffs, container
   logs, fixPOV panel, and LLM-judge scorecards for patch and POV quality
   (with optional ensemble judging).
