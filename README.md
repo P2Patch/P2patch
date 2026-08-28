@@ -43,10 +43,7 @@ too large for this repository (`security_pipeline_runs/` is gitignored for the
 same reason). You do **not** need them to run the pipeline yourself — only to
 inspect the exact runs the paper reports.
 
-**Download:** <!-- TODO(before submission): replace with the figshare private
-share link, https://figshare.com/s/<token>. The item is currently an unpublished
-draft, so neither its /account/ URL nor its DOI resolves for a reviewer. -->
-_link to be added_
+**Download:** <https://figshare.com/s/e512bce09e2f8a1c05c4>
 
 The download is ~2.6 GB and provides `security_pipeline_runs.tar.zst` together
 with its own README. It is a snapshot of **505 completed runs** over the 101-CVE
