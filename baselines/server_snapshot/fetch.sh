@@ -8,8 +8,8 @@
 # (~53 MB) including per-run diffs, agent IO and logs. That WRITES to the server,
 # so it is not what this script does — use it deliberately, not as a refresh.
 set -euo pipefail
-HOST="${AUTOSEC_HOST:-root@2.28.1.51}"
-KEY="${AUTOSEC_SSH_KEY:-$HOME/.ssh/id_ed25519_personal}"
+HOST="${AUTOSEC_HOST:?set AUTOSEC_HOST=user@host for the run host}"
+KEY="${AUTOSEC_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 for ep in runs stats; do

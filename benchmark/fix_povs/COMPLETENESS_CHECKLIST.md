@@ -135,7 +135,7 @@ Run this for one project at a time.
 
 - Audit **5 projects at a time by default**, one per parallel agent, so
   Docker builds overlap instead of serializing; the remote server
-  (`root@2.28.1.51`, `/root/autosec`, key `~/.ssh/tb`) has 8 CPUs / 16 GB.
+  (repo at `/root/autosec`; address and key are kept out of the repo) has 8 CPUs / 16 GB.
   This has been pushed to **10 concurrent** at the user's request and it
   held up — no failed audits — but under that load `fixpov validate` can
   spuriously report `before_reproduced: 0` / `certified: 0` on a project
@@ -242,7 +242,7 @@ fixed.
    technique the way the round-1 zip-slip trio does.
 3. Spin up one agent per project, each given: the project's identity row,
    this file's audit procedure, and SSH access
-   (`ssh -i ~/.ssh/tb root@2.28.1.51`, repo at `/root/autosec`, branch
+   (`ssh -i ~/.ssh/<key> root@<run-host>`, repo at `/root/autosec`, branch
    `feature/fixpov-completeness-audit`).
 4. After all 3 report back, review their NOTES.md/manifest diffs, run
    `fixpov validate` yourself to confirm certification, commit, update this

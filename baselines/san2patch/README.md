@@ -83,7 +83,7 @@ closed on the Anthropic side.
 
 **Do not run this on the Mac.** Not primarily a speed argument:
 
-| | local Mac | server (2.28.1.51) | San2Patch's own eval env |
+| | local Mac | server (remote run host) | San2Patch's own eval env |
 |---|---|---|---|
 | arch | **arm64** | **x86_64** | x86_64 (Xeon Gold 5218) |
 | CPU / RAM | 12 / 24 GB | 8 / 15 GB | 32 / 64 GB |

@@ -5,15 +5,12 @@ Temporary: it exists to pick the baseline-comparison target set, not to be a per
 
 ## Accessing the dashboard
 
-**http://2.28.1.51:8000**
+**`http://<run-host>:8000`** (the run host; address kept out of the repo)
 
 - `uvicorn app:app --host 0.0.0.0 --port 8000`, run by `autosec-dashboard.service` as user
   `secpipeline` from `/root/autosec/dashboard/backend`.
-- **No reverse proxy, no TLS, no custom domain, and `ufw` is inactive** — nginx/caddy/apache/traefik
-  are all absent or stopped, so port 8000 is exposed directly to the internet over plain HTTP.
-  `2.28.1.51` reverse-resolves only to Hetzner's generic `static.51.1.28.2.clients.your-server.de`,
-  which also works as `http://static.51.1.28.2.clients.your-server.de:8000`. If a real domain is
-  pointed at this box, it is configured at the DNS provider, not on the server.
+- **No reverse proxy and no TLS** — the dashboard is served directly by uvicorn over plain HTTP,
+  so reach it over an SSH tunnel rather than binding it to a public interface.
 - Server repo is at `dc660d8` (ahead of us — includes the C/C++ ground-truth POV batch).
   `security_pipeline_runs/` there is **27 GB / 171 run dirs**.
 
@@ -113,4 +110,4 @@ Deliberately balanced: a set of only our wins measures nothing.
 | `fetch.sh` | re-pull both, read-only over SSH |
 
 Per-run detail (diffs, agent IO, docker logs) is **not** here — it is 53 MB as a static export and
-27 GB in raw artifacts. Pull individual runs from `http://2.28.1.51:8000/api/runs/<run_id>` as needed.
+27 GB in raw artifacts. Pull individual runs from `http://<run-host>:8000/api/runs/<run_id>` as needed.

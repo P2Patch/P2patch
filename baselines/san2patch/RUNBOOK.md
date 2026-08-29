@@ -4,7 +4,7 @@ Everything needed to reproduce the VulnLoc evaluation, or to run it again with a
 model (DeepSeek, GPT-4o, Gemini …). Written so the whole thing is four commands once the
 model is registered.
 
-Server: `root@2.28.1.51`, harness at `/root/autosec-baselines/san2patch/`.
+Server: `$SAN2PATCH_HOST` (e.g. `root@<run-host>`), harness at `/root/autosec-baselines/san2patch/`.
 Scripts are version-controlled at `baselines/san2patch/server/` — **edit them there and
 copy up**, never edit only on the server.
 
@@ -13,7 +13,7 @@ copy up**, never edit only on the server.
 ## TL;DR — run the whole benchmark with a new model
 
 ```bash
-ssh root@2.28.1.51
+ssh "$SAN2PATCH_HOST"
 cd /root/autosec-baselines/san2patch
 
 # 1. register the model (idempotent, verifies against the CLI)
@@ -45,9 +45,9 @@ you asked for, so a DeepSeek run does not think Haiku's 34 successes are already
 ```bash
 cd <repo>/baselines/san2patch/server
 for f in *.sh *.py; do
-  scp -i ~/.ssh/id_ed25519_personal $f root@2.28.1.51:/root/autosec-baselines/san2patch/$f.new
+  scp -i ~/.ssh/<key> $f "$SAN2PATCH_HOST":/root/autosec-baselines/san2patch/$f.new
 done
-ssh root@2.28.1.51 'cd /root/autosec-baselines/san2patch && for f in *.new; do mv $f ${f%.new}; done && chmod +x *.sh *.py'
+ssh "$SAN2PATCH_HOST" 'cd /root/autosec-baselines/san2patch && for f in *.new; do mv $f ${f%.new}; done && chmod +x *.sh *.py'
 ```
 
 The `.new` + `mv` is not decoration: **bash reads a script incrementally**, so `scp`ing over
