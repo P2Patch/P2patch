@@ -53,7 +53,9 @@ inspect the exact runs the paper reports.
 **Download:** <https://figshare.com/s/e512bce09e2f8a1c05c4>
 
 The download is a ~2.4 GB zip, `autosec_runs_backup.zip`, which unpacks to
-`security_pipeline_runs.tar.zst` together with its own README. It is a snapshot
+`security_pipeline_runs.tar.zst` together with its own README (tracked here as
+[docs/figshare-README.md](docs/figshare-README.md), so the two cannot drift —
+edit that copy and re-upload it). It is a snapshot
 of **505 completed runs** over the 101-CVE corpus across five arms — haiku-4.5
 `baseline`, and `hardening` on each of haiku-4.5, deepseek-v4-flash,
 gpt-5.6-luna and glm-5.2:floor — 101 runs each, over the identical set of
