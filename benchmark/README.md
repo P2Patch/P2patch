@@ -5,9 +5,8 @@ open-source projects, each pinned to its vulnerable commit, each buildable in a
 container, and each scored by two independent families of curated,
 machine-certified proof-of-concept exploits.
 
-It is consumed as a git submodule by [P2Patch](https://github.com/P2Patch/P2patch),
-but nothing here depends on P2Patch — the data, the Dockerfiles and the POV
-suites stand on their own.
+It ships inside the P2Patch repository, but nothing here depends on P2Patch —
+the data, the Dockerfiles and the POV suites stand on their own.
 
 | | count |
 |---|---|

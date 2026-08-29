@@ -23,11 +23,18 @@ A web UI, **P2Patch Lab**, sits on top of the pipeline for browsing, evaluating,
 
 ## Getting the code and the data
 
-Everything you need is in this repository — a plain clone is enough:
+Everything you need is in this repository — no submodules, no extra fetch step.
+The anonymized host serves a zip rather than supporting `git clone`:
 
 ```bash
-git clone git@github.com:P2Patch/P2patch.git
+curl -L -o P2patch.zip https://anonymous.4open.science/api/repo/P2patch-4986/zip
+unzip P2patch.zip -d P2patch
+cd P2patch   # if the zip holds a single top-level folder, cd into that instead
 ```
+
+The pipeline does not require this checkout to be a git repository — each run's
+worktree is exported from the project's own clone, which
+`security-pipeline fetch` creates.
 
 The CVE corpus, the per-project Dockerfiles and both curated POV families are
 under `benchmark/` — 101 CVEs pinned to their vulnerable commit, with the
@@ -497,6 +504,29 @@ security-pipeline run --alert path/to/alert.json --no-fix-pov-eval
 To author POVs for a new project, follow `benchmark/fix_povs/GENERATING_POVS.md`
 (hand it to a coding agent, one project at a time). See
 `benchmark/fix_povs/README.md` for the contract and layout.
+
+### Residual gaps confirmed upstream
+
+The residual POV suites (`benchmark/residual_povs/`) certify exploit paths that a
+project's **official CVE fix leaves open**. Those that still reproduce against
+upstream's current code were disclosed to the affected projects.
+
+Two have since been confirmed by the Apache Software Foundation and assigned
+their own CVE identifiers:
+
+| Residual gap in the official fix for | Suite | Now tracked as |
+|---|---|---|
+| CVE-2019-0225 (Apache JSPWiki) | `apache__jspwiki_CVE-2019-0225_2.11.0.M2` | CVE-2026-82360 · JSPWIKI-1304 |
+| CVE-2022-46907 (Apache JSPWiki) | `apache__jspwiki_CVE-2022-46907_2.11.3` | CVE-2026-78093 · JSPWIKI-1281 |
+
+Both were reported as residual gaps in *already-fixed* vulnerabilities — the
+original fixes were incomplete, and the certified POVs in this repository are
+what demonstrated that. The remaining disclosures are still under review with
+their projects, so this table will grow.
+
+Executable POVs and reproduction detail for gaps that remain open are withheld
+until the corresponding issue is fixed or cleared; the certification status and
+aggregate scores stay visible either way.
 
 ### fetch
 
