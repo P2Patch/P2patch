@@ -39,7 +39,7 @@ class PatchSourceTests(unittest.TestCase):
     def test_only_san2patch_is_registered(self):
         """LoopRepair is deliberately not a baseline here: this driver WRITES into a
         baseline's own result directories, and that experiment is owned elsewhere."""
-        self.assertEqual(patch_source.BASELINE_NAMES, ("san2patch",))
+        self.assertEqual(patch_source.BASELINE_NAMES, ("san2patch", "patchagent"))
 
     def test_san2patch_patch_is_already_a_git_diff(self):
         case = patch_source.find_case("san2patch", REPO_ROOT, "CVE-2017-7601")

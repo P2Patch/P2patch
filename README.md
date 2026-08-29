@@ -52,22 +52,32 @@ inspect the exact runs the paper reports.
 
 **Download:** <https://figshare.com/s/e512bce09e2f8a1c05c4>
 
-The download is ~2.6 GB and provides `security_pipeline_runs.tar.zst` together
-with its own README. It is a snapshot of **505 completed runs** over the 101-CVE
-corpus across five arms — haiku-4.5 `baseline`, and `hardening` on each of
-haiku-4.5, deepseek-v4-flash, gpt-5.6-luna and glm-5.2:floor — 101 runs each,
-over the identical set of findings.
+The download is a ~2.4 GB zip, `autosec_runs_backup.zip`, which unpacks to
+`security_pipeline_runs.tar.zst` together with its own README. It is a snapshot
+of **505 completed runs** over the 101-CVE corpus across five arms — haiku-4.5
+`baseline`, and `hardening` on each of haiku-4.5, deepseek-v4-flash,
+gpt-5.6-luna and glm-5.2:floor — 101 runs each, over the identical set of
+findings.
 
 ```bash
-# from the repository root
+# unpack the figshare download first — it is a zip around the tarball
+unzip autosec_runs_backup.zip          # -> security_pipeline_runs.tar.zst + README.md
+
+# then, from the repository root
 mkdir -p security_pipeline_runs
-tar -I 'zstd -d --long=27' -xf /path/to/security_pipeline_runs.tar.zst -C security_pipeline_runs/
+zstd -d --long=27 -c /path/to/security_pipeline_runs.tar.zst | tar -xf - -C security_pipeline_runs/
+
+chmod +x dashboard/dev.sh   # the anonymized zip does not preserve the executable bit
 ./dashboard/dev.sh          # every run is then browsable at http://localhost:8000
 ```
 
 `--long=27` is **mandatory** on extraction: the archive was written with a 128 MiB
 long-range window and zstd refuses windows above 8 MiB without a matching flag.
 Needs `zstd` (`brew install zstd` / `apt install zstd`) and ~13 GB free.
+
+The pipe above is used instead of `tar -I 'zstd -d --long=27' -xf ...` because
+`-I` is GNU tar only: on macOS, BSD tar reads it as an *inclusion pattern* and
+fails with `Error inclusion pattern`. The pipe works with both tars.
 
 Three things worth knowing before you unpack:
 
@@ -96,8 +106,12 @@ dashboard maps each run back to its CVE through `finder_results_filtered/` and
 
 - Python 3.10+
 - Docker
-- [Claude Code CLI](https://claudecode.ai) (`claude` binary)
+- [Claude Code CLI](https://claude.com/claude-code) (`claude` binary)
 - Git (for worktree creation)
+- Node.js 18+ and npm — only for the dashboard, which builds its frontend with Vite
+
+Viewing published runs in the dashboard needs just Python, Node and npm; Docker,
+Git and the Claude Code CLI are needed only to *produce* new runs.
 
 ## Setup
 
@@ -122,6 +136,16 @@ Those are also what the full test suite needs:
 
 ```bash
 python -m unittest discover -s tests
+```
+
+`tests/test_baselines.py` is the exception: six of its cases compare our commit
+pins against the third-party baselines' own benchmarks, so they need the vendored
+clones that `baselines/setup.sh` creates (`vendor/` is gitignored). Without that
+checkout they report the base revision as `unknown` and fail. Run either:
+
+```bash
+./baselines/setup.sh && python -m unittest discover -s tests   # full suite, 342 tests
+python -m unittest discover -s tests -p 'test_[!b]*.py'        # skip them, 322 tests
 ```
 
 ## Quick Start
@@ -328,7 +352,10 @@ Options:
   --alerts-dir PATH        Filtered alerts directory (default: finder_results_filtered)
   --runs-dir PATH          Run output directory (default: security_pipeline_runs)
   --profile NAME           Experiment arm / stage recipe (default: full).
-                           One of: full, baseline, baseline_eval, no_verifier
+                           One of: full, baseline, baseline_eval, no_verifier,
+                           hardening
+  --max-rounds N           Max adversarial hardening rounds in `hardening`
+                           (default 4)
   --stages a,b,c           Ad-hoc stage override (advanced ablations); takes
                            precedence over the profile's stage list
   --patcher-evidence {full,alert_only}
@@ -356,6 +383,9 @@ Options:
   --dry-run                Write context/state only; do not invoke Docker or Claude
   --skip-docker-build      Assume the computed Docker image already exists
   --limit INT              Limit number of alerts to run (applied after skipping)
+  --jobs, -j INT           Run this many alerts concurrently (default 1 =
+                           sequential; 0 = auto from Docker memory)
+  --label TEXT             Free-form experiment tag recorded on each run
   --except ID [ID ...]     Skip alerts matching a CVE id, project slug, or alert
                            filename (alias: --exclude)
   --rerun                  Re-run alerts even if a prior run directory exists
@@ -388,6 +418,13 @@ The `converge` stage runs the POV-after and regression checks as a
 | `baseline` | worktree → docker_build → patcher → verifier | no — no exploiter or POV |
 | `baseline_eval` | same as `full` | no — the exploiter still builds the scorer, but its output is withheld from the patcher |
 | `no_verifier` | `full` minus the verifier gate | yes |
+| `hardening` | exploiter → patcher → pov_after → harden → regression → verifier | yes |
+
+`hardening` is the arm the paper reports. It replaces `converge` with an explicit
+`pov_after` gate followed by the adversarial `harden` loop, in which the exploiter
+attacks the patched code for a fresh same-vulnerability bypass and every surviving
+bypass becomes a permanent repair requirement (`--max-rounds`, default 4), then
+re-checks the regression suite. Four of the snapshot's five arms use it.
 
 `baseline` produces a patch from the alert alone, but that patch is still
 reviewed by the verifier, which needs no POV — it has an alert-only evidence
@@ -655,8 +692,13 @@ verdict, and the held-out fixPOV coverage score.](docs/dashboard-run.jpg)
 Run it (build the UI + serve everything on http://localhost:8000):
 
 ```bash
-./dashboard/dev.sh
+chmod +x dashboard/dev.sh   # the anonymized zip does not preserve the executable bit
+./dashboard/dev.sh          # or, equivalently: bash dashboard/dev.sh
 ```
+
+It builds the frontend with npm, creates `.venv` if absent, installs the backend
+requirements, and serves on port 8000 (`PORT=... ./dashboard/dev.sh` to change it).
+Viewing runs does not require `pip install -e .`.
 
 For hot-reload development and the full API reference, see
 [dashboard/README.md](dashboard/README.md).
