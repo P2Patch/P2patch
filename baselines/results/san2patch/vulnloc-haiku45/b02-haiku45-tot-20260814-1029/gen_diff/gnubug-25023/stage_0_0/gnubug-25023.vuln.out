@@ -1,0 +1,48 @@
+=================================================================
+==588564==ERROR: AddressSanitizer: global-buffer-overflow on address 0x557472220802 at pc 0x55747220e6d8 bp 0x7ffecca4b960 sp 0x7ffecca4b950
+READ of size 1 at 0x557472220802 thread T0
+    #0 0x55747220e6d7 in print_sep_string src/pr.c:2242
+    #1 0x55747220f1ed in read_line src/pr.c:2496
+    #2 0x55747220d2b4 in print_page src/pr.c:1802
+    #3 0x55747220c855 in print_files src/pr.c:1618
+    #4 0x55747220aae8 in main src/pr.c:1136
+    #5 0x7f64414aac86 in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x21c86)
+    #6 0x557472208d59 in _start (/experiment/san2patch-benchmark/coreutils/gnubug-25023/src/src/pr+0x8d59)
+
+0x557472220802 is located 62 bytes to the left of global variable '*.LC22' defined in 'src/pr.c' (0x557472220840) of size 2
+  '*.LC22' is ascii string '	'
+0x557472220802 is located 0 bytes to the right of global variable '*.LC21' defined in 'src/pr.c' (0x557472220800) of size 2
+  '*.LC21' is ascii string ' '
+SUMMARY: AddressSanitizer: global-buffer-overflow src/pr.c:2242 in print_sep_string
+Shadow bytes around the buggy address:
+  0x0aaf0e43c0b0: 00 00 00 00 07 f9 f9 f9 f9 f9 f9 f9 00 06 f9 f9
+  0x0aaf0e43c0c0: f9 f9 f9 f9 04 f9 f9 f9 f9 f9 f9 f9 00 00 00 00
+  0x0aaf0e43c0d0: 00 00 00 00 05 f9 f9 f9 f9 f9 f9 f9 00 00 00 07
+  0x0aaf0e43c0e0: f9 f9 f9 f9 00 04 f9 f9 f9 f9 f9 f9 01 f9 f9 f9
+  0x0aaf0e43c0f0: f9 f9 f9 f9 00 00 00 00 00 00 03 f9 f9 f9 f9 f9
+=>0x0aaf0e43c100:[02]f9 f9 f9 f9 f9 f9 f9 02 f9 f9 f9 f9 f9 f9 f9
+  0x0aaf0e43c110: 00 00 00 00 00 00 05 f9 f9 f9 f9 f9 06 f9 f9 f9
+  0x0aaf0e43c120: f9 f9 f9 f9 00 f9 f9 f9 f9 f9 f9 f9 07 f9 f9 f9
+  0x0aaf0e43c130: f9 f9 f9 f9 00 00 03 f9 f9 f9 f9 f9 00 05 f9 f9
+  0x0aaf0e43c140: f9 f9 f9 f9 00 04 f9 f9 f9 f9 f9 f9 00 04 f9 f9
+  0x0aaf0e43c150: f9 f9 f9 f9 00 02 f9 f9 f9 f9 f9 f9 07 f9 f9 f9
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==588564==ABORTING

@@ -1,0 +1,28 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..38feaad8 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2467,14 +2467,16 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 				 *    Cback * (1 - Aimage)
+ 				 * where Cback = 1.
+ 				 */
+-				adjust = 255 - cp[nc];
+-				switch (nc) {
+-				case 4: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 3: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 2: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++				if (cc + nc <= tf_bytesperrow) {
++					adjust = 255 - cp[nc];
++					switch (nc) {
++					case 4: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 3: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 2: c = *cp++ + adjust; PUTHEX(c,fd);
++					case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++					}
++					cp += es;
+ 				}
+-				cp += es;
+ 			}
+ 		} else {
+ 			cc = 0;

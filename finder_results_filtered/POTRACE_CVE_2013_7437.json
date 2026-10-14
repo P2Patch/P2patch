@@ -1,0 +1,38 @@
+{
+  "cwe_id": "cwe-190",
+  "cve_id": "CVE-2013-7437",
+  "note": "bm_readbody_bmp() reads the BMP header's width/height fields directly from the untrusted input file with no upper-bound check, then passes them to bm_new(), which computes the scanline stride `dy` and the allocation size `dy * h * BM_WORDSIZE` using plain `int` arithmetic. For a crafted BMP with large enough dimensions this multiplication overflows (wraps to a small or negative value cast to size_t), so malloc() returns a buffer far smaller than the pixel data the caller believes it owns; the subsequent per-pixel BM_UPUT() write loop in bm_readbody_bmp() then writes past that undersized heap buffer. Source provenance: github.com/skyrpex/potrace is a faithful mirror of upstream potrace. potrace ships releases as source tarballs rather than incremental development history, and the mirror's per-release commits are themselves whole-tree imports (squashed) rather than minimal single-purpose commits -- so buggy_commit_id/fix_commit_ids here are the mirror's 1.11/1.12 tag commits. The overflow this trace describes lands inside the BM_UPUT() write loop at src/bitmap_io.c:615.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "TRY(bmp_readint(f, 4, &bmpinfo.w)) : untrusted 32-bit BMP width, no upper-bound check",
+            "uri": "src/bitmap_io.c",
+            "line": 465
+          },
+          {
+            "message": "TRY(bmp_readint(f, 4, &bmpinfo.h)) : untrusted 32-bit BMP height, no upper-bound check",
+            "uri": "src/bitmap_io.c",
+            "line": 466
+          },
+          {
+            "message": "bm = bm_new(bmpinfo.w, bmpinfo.h) : untrusted w/h passed straight to the bitmap allocator",
+            "uri": "src/bitmap_io.c",
+            "line": 542
+          },
+          {
+            "message": "bm->map = (potrace_word *) malloc(dy * h * BM_WORDSIZE) : plain `int` multiplication overflows for large w/h, malloc() succeeds with an undersized buffer",
+            "uri": "src/bitmap.h",
+            "line": 66
+          },
+          {
+            "message": "BM_UPUT(bm, x, ycorr(y), ...) : per-pixel write indexed by the same untrusted w/h, past the undersized heap buffer -- ASan heap-buffer-overflow",
+            "uri": "src/bitmap_io.c",
+            "line": 615
+          }
+        ]
+      ]
+    }
+  ]
+}

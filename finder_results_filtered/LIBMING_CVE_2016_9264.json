@@ -1,0 +1,62 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2016-9264",
+  "note": "mp1_samplerate_table[], mp2_samplerate_table[] and mp25_samplerate_table[] are each declared with exactly 3 elements (one per MPEG version's sample rates). samplerate_idx is a 2-bit field extracted from flags (range 0-3; value 3 is the MPEG 'reserved' samplerate code) and flags is built directly from four fgetc() reads of the untrusted MP3 frame header, used to index whichever table matches the frame's MPEG version.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "flags built from fgetc(f) reads of the untrusted MP3 frame header",
+            "uri": "util/listmp3.c",
+            "line": 96
+          },
+          {
+            "message": "samplerate_idx = (flags & MP3_SAMPLERATE) >> MP3_SAMPLERATE_SHIFT -- 2-bit field, range 0-3",
+            "uri": "util/listmp3.c",
+            "line": 105
+          },
+          {
+            "message": "mp1_samplerate_table[samplerate_idx] -- 3-element array indexed by a 0-3 value, MPEG version 1",
+            "uri": "util/listmp3.c",
+            "line": 128
+          }
+        ],
+        [
+          {
+            "message": "flags built from fgetc(f) reads of the untrusted MP3 frame header",
+            "uri": "util/listmp3.c",
+            "line": 96
+          },
+          {
+            "message": "samplerate_idx = (flags & MP3_SAMPLERATE) >> MP3_SAMPLERATE_SHIFT -- 2-bit field, range 0-3",
+            "uri": "util/listmp3.c",
+            "line": 105
+          },
+          {
+            "message": "mp2_samplerate_table[samplerate_idx] -- 3-element array indexed by a 0-3 value, MPEG version 2",
+            "uri": "util/listmp3.c",
+            "line": 142
+          }
+        ],
+        [
+          {
+            "message": "flags built from fgetc(f) reads of the untrusted MP3 frame header",
+            "uri": "util/listmp3.c",
+            "line": 96
+          },
+          {
+            "message": "samplerate_idx = (flags & MP3_SAMPLERATE) >> MP3_SAMPLERATE_SHIFT -- 2-bit field, range 0-3",
+            "uri": "util/listmp3.c",
+            "line": 105
+          },
+          {
+            "message": "mp25_samplerate_table[samplerate_idx] -- 3-element array indexed by a 0-3 value, MPEG version 2.5",
+            "uri": "util/listmp3.c",
+            "line": 144
+          }
+        ]
+      ]
+    }
+  ]
+}

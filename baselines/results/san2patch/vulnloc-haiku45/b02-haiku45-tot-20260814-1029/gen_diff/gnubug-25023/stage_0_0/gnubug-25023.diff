@@ -1,0 +1,38 @@
+diff --git a/src/pr.c b/src/pr.c
+index 20e863760..b87948815 100644
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -2234,7 +2234,8 @@ print_sep_string (void)
+     {
+       for (; separators_not_printed > 0; --separators_not_printed)
+         {
+-          while (l-- > 0)
++          int safe_length = (l > 0 && l <= col_sep_length) ? l : 0;
++          while (safe_length-- > 0)
+             {
+               /* 3 types of sep_strings: spaces only, spaces and chars,
+               chars only */
+@@ -2483,14 +2484,17 @@ read_line (COLUMN *p)
+           align_empty_cols = false;
+         }
+ 
+-      if (col_sep_length < padding_not_printed)
++      if (col_sep_length > 0)
+         {
+-          pad_across_to (padding_not_printed - col_sep_length);
+-          padding_not_printed = ANYWHERE;
+-        }
++          if (col_sep_length < padding_not_printed)
++            {
++              pad_across_to (padding_not_printed - col_sep_length);
++              padding_not_printed = ANYWHERE;
++            }
+ 
+-      if (use_col_separator)
+-        print_sep_string ();
++          if (use_col_separator)
++            print_sep_string ();
++        }
+     }
+ 
+   if (p->numbered)

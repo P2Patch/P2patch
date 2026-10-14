@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "gnubug-19784",
+  "note": "src/make-prime-list.c is coreutils' build-time host tool that generates src/primes.h (the odd-prime table 'factor'/'expr' use); it is not one of the installed end-user binaries. In main()'s sieve loop, `while (i < size && sieve[++i] == 0);` (line 214) bounds-checks the PRE-increment value of `i` against `size`, then increments `i` and indexes `sieve` with the POST-increment value in the same expression -- when `i == size-1` the guard sees `size-1 < size` and passes, `++i` makes `i == size`, and `sieve[size]` reads one byte past the `size`-byte buffer `xalloc(size)` allocates at line ~198. This produces an AddressSanitizer heap-buffer-overflow (READ of size 1, one byte past the end of the allocated region).",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "sieve = xalloc (size) : size-byte heap buffer (xalloc wraps malloc)",
+            "uri": "src/make-prime-list.c",
+            "line": 198
+          },
+          {
+            "message": "while (i < size && sieve[++i] == 0) : guard checks i's PRE-increment value against size, but the array access indexes with ++i (the POST-increment value) in the same expression -- when i == size-1 the guard passes and sieve[size] is read one byte past the allocation",
+            "uri": "src/make-prime-list.c",
+            "line": 214
+          }
+        ]
+      ]
+    }
+  ]
+}

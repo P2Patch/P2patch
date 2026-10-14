@@ -1,0 +1,369 @@
+{
+  "duration-minutes": 41.36799911935038,
+  "analysis": {
+    "summary": {
+      "duration-minutes": 9.50651302425152,
+      "num-fix-locations": 1,
+      "num-linter-errors": 0,
+      "disk-usage-megabytes": 284.888666
+    },
+    "fix-locations": [
+      {
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "distance": 3,
+        "constraint": "(@var(integer, sp->bytes_per_line) != 0)",
+        "variables": [],
+        "values-file": "#data#vulnloc#libtiff#bugzilla-2611#src#libtiff#tif_ojpeg.c:816:2.csv"
+      }
+    ],
+    "linter-errors": []
+  },
+  "fuzzer": {
+    "summary": {
+      "duration-minutes": 6.649992428719998e-07,
+      "num-tests": {
+        "total": 0,
+        "passing": 0,
+        "crashing": 0
+      }
+    }
+  },
+  "generation": {
+    "summary": {
+      "duration-minutes": 0.5339252682829586,
+      "num-candidates": 5
+    },
+    "candidates": [
+      {
+        "diff": "@@ -818,6 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(1);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "id": 0,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2"
+      },
+      {
+        "diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,9 +815,11 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(0);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "id": 1,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2"
+      },
+      {
+        "diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc == 0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "id": 2,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2"
+      },
+      {
+        "diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,10 +815,14 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n+\t\treturn(0);\n+\t}\n+\tif (cc<=0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Invalid data length\\\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "id": 3,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2"
+      },
+      {
+        "diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc<=0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "id": 4,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2"
+      }
+    ]
+  },
+  "validation": {
+    "summary": {
+      "duration-minutes": {
+        "overall": 29.845773390633987,
+        "tests": 0.0019054024325062832,
+        "compilation": 0.5598239372329166
+      },
+      "num-patches-evaluated": 5,
+      "num-repairs-found": 0,
+      "num-compilation-failures": 2
+    },
+    "evaluations": [
+      {
+        "patch-id": 0,
+        "is-repair": false,
+        "candidate-diff": "@@ -818,6 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(1);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "compiles": true,
+        "time-taken-seconds": {
+          "total": 10.856337571982294,
+          "compile": 10.819203200982884,
+          "tests": 0.03713437099941075
+        },
+        "tests": {
+          "executed": 1,
+          "passed": 0,
+          "failed": 1,
+          "outcomes": [
+            {
+              "successful": false,
+              "return-code": 1,
+              "duration": 0.03619561705272645,
+              "failure-reason": "bad-output"
+            }
+          ]
+        }
+      },
+      {
+        "patch-id": 1,
+        "is-repair": false,
+        "candidate-diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,9 +815,11 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(0);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "compiles": false,
+        "time-taken-seconds": {
+          "total": 0.23349557304754853,
+          "compile": 0.23349557304754853,
+          "tests": null
+        },
+        "tests": {
+          "executed": 0,
+          "passed": 0,
+          "failed": 0,
+          "outcomes": []
+        }
+      },
+      {
+        "patch-id": 2,
+        "is-repair": false,
+        "candidate-diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc == 0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "compiles": true,
+        "time-taken-seconds": {
+          "total": 10.910504906903952,
+          "compile": 10.862167637911625,
+          "tests": 0.048337268992327154
+        },
+        "tests": {
+          "executed": 1,
+          "passed": 0,
+          "failed": 1,
+          "outcomes": [
+            {
+              "successful": false,
+              "return-code": 1,
+              "duration": 0.046999653917737305,
+              "failure-reason": "bad-output"
+            }
+          ]
+        }
+      },
+      {
+        "patch-id": 3,
+        "is-repair": false,
+        "candidate-diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,10 +815,14 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n+\t\treturn(0);\n+\t}\n+\tif (cc<=0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Invalid data length\\\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "compiles": false,
+        "time-taken-seconds": {
+          "total": 0.28655443305615336,
+          "compile": 0.28655443305615336,
+          "tests": null
+        },
+        "tests": {
+          "executed": 0,
+          "passed": 0,
+          "failed": 0,
+          "outcomes": []
+        }
+      },
+      {
+        "patch-id": 4,
+        "is-repair": false,
+        "candidate-diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc<=0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "compiles": true,
+        "time-taken-seconds": {
+          "total": 11.416867894935422,
+          "compile": 11.388015388976783,
+          "tests": 0.028852505958639085
+        },
+        "tests": {
+          "executed": 1,
+          "passed": 0,
+          "failed": 1,
+          "outcomes": [
+            {
+              "successful": false,
+              "return-code": 1,
+              "duration": 0.028023560997098684,
+              "failure-reason": "bad-output"
+            }
+          ]
+        }
+      }
+    ],
+    "repairs": []
+  },
+  "analysis-for-guide": {
+    "summary": {
+      "duration-minutes": 28.76678464834889,
+      "num-candidates": 5
+    },
+    "candidates": [
+      {
+        "id": 0,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "diff": "@@ -818,6 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(1);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "impact_lines": 0.0,
+        "vulnerability_type": "division by zero",
+        "localization_result": [
+          {
+            "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+            "distance": 3,
+            "constraint": "(@var(integer, sp->bytes_per_line) != 0)",
+            "variables": [],
+            "values-file": "#data#vulnloc#libtiff#bugzilla-2611#src#libtiff#tif_ojpeg.c:816:2.csv"
+          }
+        ],
+        "time-taken-seconds": {
+          "compile": 564.1017681859666,
+          "analyze": 554.0121683990583
+        }
+      },
+      {
+        "id": 1,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,9 +815,11 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n \t\treturn(0);\n \t}\n+\tif (cc==0)\n+\t\treturn(0);\n \tassert(cc>0);\n \tm=buf;\n \tn=cc;\n",
+        "impact_lines": -1,
+        "vulnerability_type": "",
+        "localization_result": [],
+        "time-taken-seconds": {
+          "compile": 0.0,
+          "analyze": 0.0
+        }
+      },
+      {
+        "id": 2,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc == 0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "impact_lines": 0.0,
+        "vulnerability_type": "division by zero",
+        "localization_result": [
+          {
+            "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+            "distance": 3,
+            "constraint": "(@var(integer, sp->bytes_per_line) != 0)",
+            "variables": [],
+            "values-file": "#data#vulnloc#libtiff#bugzilla-2611#src#libtiff#tif_ojpeg.c:816:2.csv"
+          }
+        ],
+        "time-taken-seconds": {
+          "compile": 573.8172275860561,
+          "analyze": 563.1047722869553
+        }
+      },
+      {
+        "id": 3,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -815,10 +815,14 @@\n \tuint8 sx,sy;\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n+\t\treturn(0);\n+\t}\n+\tif (cc<=0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Invalid data length\\\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "impact_lines": -1,
+        "vulnerability_type": "",
+        "localization_result": [],
+        "time-taken-seconds": {
+          "compile": 0.0,
+          "analyze": 0.0
+        }
+      },
+      {
+        "id": 4,
+        "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+        "diff": "@@ -818,7 +818,8 @@\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n \t\treturn(0);\n \t}\n-\tassert(cc>0);\n+\tif (cc<=0)\n+\t\treturn(0);\n \tm=buf;\n \tn=cc;\n \tdo\n",
+        "impact_lines": 0.0,
+        "vulnerability_type": "division by zero",
+        "localization_result": [
+          {
+            "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+            "distance": 3,
+            "constraint": "(@var(integer, sp->bytes_per_line) != 0)",
+            "variables": [],
+            "values-file": "#data#vulnloc#libtiff#bugzilla-2611#src#libtiff#tif_ojpeg.c:816:2.csv"
+          }
+        ],
+        "time-taken-seconds": {
+          "compile": 588.0867546420777,
+          "analyze": 577.8808048299979
+        }
+      }
+    ]
+  },
+  "iterative_repair": {
+    "summary": {
+      "duration-minutes": 1.481759797067692,
+      "num-candidates": 1
+    },
+    "iterative": {
+      "iteration_0": [
+        {
+          "summary": {
+            "duration-minutes": {
+              "overall": 0.7373598021164071,
+              "tests": 0.00023167400116411347,
+              "compilation": 0.19634514438027206
+            },
+            "num-patches-evaluated": 3,
+            "num-repairs-found": 1,
+            "num-compilation-failures": 2
+          },
+          "evaluations": [
+            {
+              "patch-id": 0,
+              "is-repair": false,
+              "candidate-diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]==\"OJPEGDecodeRaw\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -813,6 +813,11 @@\n \tuint32 q;\n \tuint8* r;\n \tuint8 sx,sy;\n+\tif (sp->bytes_per_line == 0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Invalid bytes_per_line\");\n+\t\treturn(0);\n+\t}\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n",
+              "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+              "compiles": false,
+              "time-taken-seconds": {
+                "total": 0.2695194189436734,
+                "compile": 0.2695194189436734,
+                "tests": null
+              },
+              "tests": {
+                "executed": 0,
+                "passed": 0,
+                "failed": 0,
+                "outcomes": []
+              }
+            },
+            {
+              "patch-id": 1,
+              "is-repair": false,
+              "candidate-diff": "@@ -802,7 +802,7 @@\n static int\n OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)\n {\n-\tstatic const char module[]=\"OJPEGDecodeRaw\";\n+\tstatic const char module[]=\\\"OJPEGDecodeRaw\\\";\n \tOJPEGState* sp=(OJPEGState*)tif->tif_data;\n \tuint8* m;\n \ttmsize_t n;\n@@ -813,9 +813,14 @@\n \tuint32 q;\n \tuint8* r;\n \tuint8 sx,sy;\n+\tif (sp->bytes_per_line == 0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Invalid bytes per line\\\");\n+\t\treturn(0);\n+\t}\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n-\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\\\"Fractional scanline not read\\\");\n \t\treturn(0);\n \t}\n \tif (cc==0)\n",
+              "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+              "compiles": false,
+              "time-taken-seconds": {
+                "total": 0.3032191249076277,
+                "compile": 0.3032191249076277,
+                "tests": null
+              },
+              "tests": {
+                "executed": 0,
+                "passed": 0,
+                "failed": 0,
+                "outcomes": []
+              }
+            },
+            {
+              "patch-id": 2,
+              "is-repair": true,
+              "candidate-diff": "@@ -813,6 +813,11 @@\n \tuint32 q;\n \tuint8* r;\n \tuint8 sx,sy;\n+\tif (sp->bytes_per_line == 0)\n+\t{\n+\t\tTIFFErrorExt(tif->tif_clientdata,module,\"Invalid bytes_per_line\");\n+\t\treturn(0);\n+\t}\n \tif (cc%sp->bytes_per_line!=0)\n \t{\n \t\tTIFFErrorExt(tif->tif_clientdata,module,\"Fractional scanline not read\");\n",
+              "location": "/data/vulnloc/libtiff/bugzilla-2611/src/libtiff/tif_ojpeg.c:816:2",
+              "compiles": true,
+              "time-taken-seconds": {
+                "total": 11.221870559034869,
+                "compile": 11.207970118965022,
+                "tests": 0.013900440069846809
+              },
+              "tests": {
+                "executed": 1,
+                "passed": 1,
+                "failed": 0,
+                "outcomes": [
+                  {
+                    "successful": true,
+                    "return-code": 0,
+                    "duration": 0.012984896078705788
+                  }
+                ]
+              }
+            }
+          ],
+          "repairs": [
+            2
+          ]
+        }
+      ]
+    }
+  }
+}

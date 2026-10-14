@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2016-1838",
+  "note": "xmlParseEndTag2() (parser.c) checks whether the current input matches the still-open tag's name via `xmlStrncmp(ctxt->input->cur, ctxt->name, tlen)` and then, on a match, indexes `ctxt->input->cur[tlen]` to look for the closing '>' -- neither read is preceded by any check that at least tlen (respectively tlen+1) bytes remain before ctxt->input->end. A crafted end tag near EOF makes both reads walk past the end of the parser's input buffer (heap-buffer-overread).",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "xmlStrncmp(ctxt->input->cur, ctxt->name, tlen) : reads up to tlen bytes from the input cursor with no check that tlen bytes remain before ctxt->input->end",
+            "uri": "parser.c",
+            "line": 9836
+          },
+          {
+            "message": "ctxt->input->cur[tlen] : reads one more byte past that, still with no bounds check",
+            "uri": "parser.c",
+            "line": 9837
+          }
+        ]
+      ]
+    }
+  ]
+}

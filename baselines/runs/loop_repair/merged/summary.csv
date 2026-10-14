@@ -1,0 +1,41 @@
+project,cve,vul_id,status,elapsed_seconds,num_patches_evaluated,num_repairs_found,patch_found,prompt_tokens,completion_tokens,total_tokens,cost_usd,message
+binutils,CVE-2017-14745,CVE-2017-14745,no_patch,8897,10,0,false,107748,22696,130444,0.2212,"LLM repair-quality: correctly localized the crash but generated a NULL-pointer guard instead of the required array-bounds check; 10 candidates evaluated, all the same wrong pattern"
+binutils,CVE-2017-15025,CVE-2017-15025,no_patch,446,NA,NA,false,0,0,0,0.0,OOM: KLEE taint analysis exceeds available memory even in full isolation on a 15GB box (hardware-limited)
+binutils,CVE-2017-6965,CVE-2017-6965,no_patch,42,NA,NA,false,0,0,0,0.0,"Benchmark/PoV fidelity: packaged PoV does not crash the built binary (confirmed on repeat runs, deterministic)"
+coreutils,gnubug-19784,gnubug-19784,patched,54,1,1,true,9569,3450,13019,0.0268,
+coreutils,gnubug-25023,gnubug-25023,patched,179,1,1,true,34938,11272,46210,0.0913,
+jasper,CVE-2016-8691,CVE-2016-8691,patched,386,1,1,true,89259,36807,126066,0.2733,
+jasper,CVE-2016-9557,CVE-2016-9557,patched,527,1,1,true,88889,48244,137133,0.3301,
+jasper,CVE-2020-27828,REDTEAM-CVE-2020-27828,no_patch,135,NA,NA,false,0,0,0,0.0,LoopRepair internal bug: AssertionError on a missing compile_commands.json; localization succeeded but patch generation crashed before ever calling the LLM
+jasper,CVE-2021-3272,REDTEAM-CVE-2021-3272,no_patch,8,NA,NA,false,0,0,0,0.0,"Broken scenario packaging: ships bug.analysis.json/bug.repair.json instead of bug.json; after aliasing bug.repair.json->bug.json the build itself still fails because its prebuild command is a no-op (""exit 0"") that never runs the required cmake configure step -- unfixable without also patching the build config"
+libarchive,CVE-2016-5844,CVE-2016-5844,patched,830,1,1,true,36281,19400,55681,0.1333,
+libjpeg,CVE-2012-2806,CVE-2012-2806,patched,195,1,1,true,35435,15856,51291,0.1147,
+libjpeg,CVE-2017-15232,CVE-2017-15232,no_patch,15161,5,0,false,74889,27288,102177,0.2113,"LLM repair-quality: 5 candidates evaluated across iterations, all wrong"
+libming,CVE-2016-9264,CVE-2016-9264,patched,1151,20,1,true,301101,158129,459230,1.0917,
+libming,CVE-2018-8806,CVE-2018-8806,no_patch,3116,5,0,false,86579,44973,131552,0.3114,LLM repair-quality: added a malloc() NULL-check instead of the required constant-pool bounds-check; all 5 candidates failed identically
+libming,CVE-2018-8964,CVE-2018-8964,no_patch,1901,5,0,false,68953,29472,98425,0.2163,LLM repair-quality: same root cause as CVE-2018-8806 (same vulnerable code family in decompile.c)
+libtiff,CVE-2016-10092,CVE-2016-10092,patched,634,16,1,true,104675,37532,142207,0.2923,"Initially OOM-killed under 3-way concurrent execution; succeeded cleanly when re-run in isolation -- concurrency artifact, not a real capability failure"
+libtiff,CVE-2016-10272,CVE-2016-10272,no_patch,24832,20,0,false,170351,98224,268575,0.6615,"LLM repair-quality: 6.9-hour run, 20 candidates evaluated, all wrong"
+libtiff,CVE-2016-3186,CVE-2016-3186,patched,348,2,1,true,30188,7691,37879,0.0686,
+libtiff,CVE-2016-5314,CVE-2016-5314,patched,1695,1,1,true,236369,141842,378211,0.9456,Initially OOM-killed on the 15GB server -- confirmed via kernel log as a genuine ~30GB memory request (not contention); succeeded when re-run on a 32GB server
+libtiff,CVE-2016-5321,CVE-2016-5321,patched,549,1,1,true,70114,39553,109667,0.2679,"Initially OOM-killed on the 15GB server; succeeded cleanly on a 32GB server -- contention/memory-limited, not an LLM capability failure"
+libtiff,CVE-2016-9532,CVE-2016-9532,no_patch,22281,15,0,false,132417,59205,191622,0.4284,"LLM repair-quality, confirmed not OOM: re-run on a 32GB server ruled out memory as the cause -- 15 candidates evaluated over 6.2 hours, 0 repairs"
+libtiff,CVE-2017-5225,CVE-2017-5225,patched,436,1,1,true,20764,9909,30673,0.0703,
+libtiff,CVE-2017-7595,CVE-2017-7595,patched,1720,1,1,true,308329,217920,526249,1.3979,
+libtiff,CVE-2017-7599,CVE-2017-7599,patched,939,2,1,true,194214,139977,334191,0.8941,Initially OOM-killed on the 15GB server; succeeded on a 32GB server
+libtiff,CVE-2017-7600,CVE-2017-7600,patched,2039,2,1,true,177029,131871,308900,0.8364,Initially OOM-killed on the 15GB server; succeeded on a 32GB server
+libtiff,CVE-2017-7601,CVE-2017-7601,patched,1385,1,1,true,20881,14721,35602,0.0945,Initially OOM-killed on the 15GB server; succeeded on a 32GB server
+libtiff,CVE-2018-18557,REDTEAM-CVE-2018-18557,patched,943,6,1,true,29381,11365,40746,0.0862,
+libtiff,CVE-2022-4645,REDTEAM-CVE-2022-4645,patched,373,1,1,true,44096,23617,67713,0.1622,
+libtiff,CVE-2022-48281,REDTEAM-CVE-2022-48281,patched,2505,6,1,true,174760,100908,275668,0.6793,
+libtiff,bugzilla-2611,bugzilla-2611,patched,2484,5,1,true,22864,10966,33830,0.0777,"Manually corrected: LoopRepair found and logged a genuine successful patch (is-repair=true, compiles=true, tests 1/1 passed) but its own report.json generation lost the result (num-repairs-found ended at 0). Patch recovered verbatim from orchestrator.log; verified as a correct CWE-369 divide-by-zero fix. See verification.json's manual_override_note."
+libtiff,bugzilla-2633,bugzilla-2633,patched,514,1,1,true,101587,53830,155417,0.3707,"Initially OOM-killed under 3-way concurrent execution; succeeded cleanly when re-run in isolation -- concurrency artifact, not a real capability failure"
+libxml2,CVE-2012-5134,CVE-2012-5134,patched,1567,2,1,true,291973,209543,501516,1.3397,
+libxml2,CVE-2016-1833,REDTEAM-CVE-2016-1833,patched,1387,1,1,true,256460,157242,413702,1.0427,
+libxml2,CVE-2016-1838,CVE-2016-1838,patched,2371,1,1,true,100389,35365,135754,0.2772,
+libxml2,CVE-2016-1839,CVE-2016-1839,patched,1771,1,1,true,123766,60236,184002,0.4249,
+libxml2,CVE-2017-5969,CVE-2017-5969,patched,933,1,1,true,203608,90085,293693,0.6540,Initially OOM-killed on the 15GB server; succeeded on a 32GB server
+potrace,CVE-2013-7437,CVE-2013-7437,patched,366,1,1,true,79053,34524,113577,0.2517,
+zziplib,CVE-2017-5974,CVE-2017-5974,patched,90,1,1,true,14073,7110,21183,0.0496,"Required a scoped fix: base image was pre-built on a WSL2 host, so its Makefile's kernel-derived build directory name didn't match this container's kernel; symlinked the container's own uname-derived directory name to the existing pre-built one"
+zziplib,CVE-2017-5975,CVE-2017-5975,patched,422,2,1,true,140932,59020,199952,0.4360,Same WSL2 kernel-directory fix as CVE-2017-5974 (shared scenario packaging)
+zziplib,CVE-2017-5976,CVE-2017-5976,patched,240,1,1,true,80866,23349,104215,0.1976,Same WSL2 kernel-directory fix as CVE-2017-5974 (shared scenario packaging)

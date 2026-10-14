@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2022-48281",
+  "note": "processCropSelections() (tools/tiffcrop.c) has a \"Separated Images\" per-segment loop (`for (i = 0; i < crop->selections; i++)`) where `crop_buff = seg_buffs[i].buffer;` (line 7801) correctly indexes the current segment by the loop variable `i`, but the very next realloc-sizing read, `prev_cropsize = seg_buffs[0].size;` (line 7806), uses the hardcoded literal index 0 instead of `i`. When segment 0's allocated size happens to be >= cropsize but segment i's real buffer is smaller, `prev_cropsize < cropsize` is false, the realloc segment i actually needs is skipped, and the subsequent crop write overflows seg_buffs[i]'s undersized buffer. This only triggers once multiple crop selections are requested (`crop->selections` > 1) so the loop actually reaches `i` > 0; the sibling COMPOSITE_IMAGES branch a few lines above has the same `seg_buffs[0].size` read but is correct there since it only ever operates on a single buffer at index 0.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "crop_buff = seg_buffs[i].buffer -- correctly indexed by the loop variable i (the current segment)",
+            "uri": "tools/tiffcrop.c",
+            "line": 7801
+          },
+          {
+            "message": "prev_cropsize = seg_buffs[0].size -- hardcoded literal index 0 instead of i; skips the realloc segment i needs when segment 0's size differs from segment i's real size -- CWE-787 heap buffer overflow",
+            "uri": "tools/tiffcrop.c",
+            "line": 7806
+          }
+        ]
+      ]
+    }
+  ]
+}

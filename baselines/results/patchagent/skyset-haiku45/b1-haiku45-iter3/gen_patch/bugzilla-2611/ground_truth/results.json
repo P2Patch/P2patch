@@ -1,0 +1,42 @@
+{
+  "all_blocked": true,
+  "base_build": "ok",
+  "base_revision_matches_dataset": true,
+  "blocked": 2,
+  "conclusive": 2,
+  "cve_id": "bugzilla-2611",
+  "cwe_id": "CWE-369",
+  "dataset_revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+  "errored": 0,
+  "evaluation_mode": "reconstructed",
+  "evaluation_revision": "9a72a69e035ee70ff5c41541c8c61cd97990d018",
+  "patched_build": "ok",
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh",
+      "description": "tiffmedian (the tool from the original bug report, 'tiffmedia') reads the canonical 416-byte BigTIFF-mutated OJPEG reproducer from asarubbo/poc (00083-libtiff-fpe-OJPEGDecodeRaw). OJPEGPreDecode fails inside OJPEGReadHeaderInfo but OJPEGDecode is still invoked for the first scanline; with sp->bytes_per_line==0, OJPEGDecodeRaw's 'cc % bytes_per_line' (tif_ojpeg.c:816, cc=3) is a UBSan integer-divide-by-zero trap. With the official fix, OJPEGDecode early-exits ('Cannot decode: decoder not correctly initialized') and no division runs.",
+      "exit_code": 1,
+      "exploit_path": "crafted BigTIFF OJPEG TIFF (1x1 RGB, Compression=6) -> TIFFOpen/TIFFReadScanline -> OJPEGPreDecode (tif_ojpeg.c:666) fails in OJPEGReadHeaderInfo (tif_ojpeg.c:674) -> OJPEGDecode (tif_ojpeg.c:785) dispatch without prior-success check -> OJPEGDecodeRaw 'if (cc%sp->bytes_per_line!=0)' (tif_ojpeg.c:816) divides by the zero-initialized bytes_per_line",
+      "id": "ojpeg_decoderaw_divide_by_zero",
+      "outcome": "blocked",
+      "patched_tail": "did not reproduce (tiffmedian rc=0)\nTIFFReadDirectoryCheckOrder: Warning, Invalid TIFF directory; tags are not sorted in ascending order.\nTIFFReadDirectory: Warning, Unknown field with tag 33410 (0x8282) encountered.\nTIFFFetchNormalTag: Warning, ASCII value for tag \"DocumentName\" contains null byte in value; value incorrectly truncated during reading due to implementation limitations.\nOJPEGSetupDecode: Warning, Depreciated and troublesome old-style JPEG compression mode, please convert to new-style JPEG compression and notify vendor of writing software.\nOJPEGDecodeRaw: bytes_per_line is zero.\n",
+      "reproduces_on_base": true
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh libapi",
+      "description": "Drives the identical OJPEGDecodeRaw 'cc % bytes_per_line' divide-by-zero (tif_ojpeg.c:816) through the libtiff PUBLIC API instead of the tiffmedian tool. A ~20-line C driver (povs/ojpeg_scanline.c) compiled against the static libtiff.a does TIFFOpen -> TIFFReadScanline(t,buf,0,0) (fails in OJPEGReadHeaderInfo, returns -1) -> TIFFReadScanline(t,buf,0,0) AGAIN. On the second read of row 0, strip==tif->tif_curstrip (TIFFStartStrip set it before the first read's predecode failed), so TIFFSeek skips the refill/predecode and OJPEGDecode runs on the zero-initialized codec state (bytes_per_line==0) -> 3 % 0. With the official decoder_ok fix, OJPEGDecode early-exits ('Cannot decode: decoder not correctly initialized') on the second read and no division runs. Decouples the ground-truth coverage from the specific behaviour of any one CLI tool.",
+      "exit_code": 1,
+      "exploit_path": "crafted BigTIFF OJPEG TIFF (poc_00083, 1x1) -> TIFFOpen -> TIFFReadScanline(row 0) #1: TIFFSeek/TIFFStartStrip set tif_curstrip=0, OJPEGPreDecode fails in OJPEGReadHeaderInfo (tif_ojpeg.c:674), read returns -1 -> TIFFReadScanline(row 0) #2: strip==tif_curstrip so TIFFSeek skips predecode -> tif_decoderow=OJPEGDecode (tif_ojpeg.c:785) -> OJPEGDecodeRaw 'if (cc%sp->bytes_per_line!=0)' (tif_ojpeg.c:816) divides by the zero-initialized bytes_per_line",
+      "id": "ojpeg_decoderaw_divzero_libapi",
+      "outcome": "blocked",
+      "patched_tail": "ning, Invalid TIFF directory; tags are not sorted in ascending order.\nTIFFReadDirectory: Warning, Unknown field with tag 33410 (0x8282) encountered.\nTIFFFetchNormalTag: Warning, ASCII value for tag \"DocumentName\" contains null byte in value; value incorrectly truncated during reading due to implementation limitations.\nOJPEGSetupDecode: Warning, Depreciated and troublesome old-style JPEG compression mode, please convert to new-style JPEG compression and notify vendor of writing software.\nTIFFReadScanline #1 (row 0) -> -1\nOJPEGDecodeRaw: bytes_per_line is zero.\nTIFFReadScanline #2 (row 0) -> -1\n",
+      "reproduces_on_base": true
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2611_9a72a69e035e",
+  "reproduced": 0,
+  "score": 1.0,
+  "scored_by": "patchagent-runs/povscore15 (build-and-replay, no LLM calls)",
+  "total": 2,
+  "wall_clock_s": 81
+}

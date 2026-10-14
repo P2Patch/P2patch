@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://p2patch.local/schema/baseline_result.schema.json",
+  "title": "Normalized baseline run result",
+  "description": "One record per (baseline, case, attempt-budget) — the ONLY shape that comes back out of baselines/vendor/. Every baseline's native output is normalized into this so results/ is directly comparable to our own runs and to the paper_reported/ tables. Deliberately mirrors the fields our own run artifacts already carry (verdict, cost_usd, agent_duration_ms) so one join key works across both.",
+  "type": "object",
+  "required": ["baseline", "case_id", "project_slug", "batch", "outcome"],
+  "additionalProperties": false,
+  "properties": {
+    "baseline": {
+      "type": "string",
+      "description": "Key from pins.json, or \"p2patch\" for one of our own runs re-expressed in this schema.",
+      "enum": ["patchagent", "san2patch", "looprepair", "p2patch"]
+    },
+    "baseline_commit": {"type": "string", "description": "Commit actually run (must match pins.json unless explicitly overridden)."},
+    "case_id": {"type": "string", "description": "Canonical case id — our cve_id (e.g. CVE-2016-5321, gnubug-19784, bugzilla-2611). Join key across everything."},
+    "project_slug": {"type": "string", "description": "Our dataset slug, e.g. vadz__libtiff_CVE-2016-5321_0ba5d8814a17."},
+    "batch": {"type": "string", "description": "Free-form batch label, e.g. \"b1-gpt4o\", matching how our runs carry `label`."},
+    "model": {"type": "string", "description": "LLM actually used. Required for any published number — model era is a confound."},
+    "budget": {
+      "type": "object",
+      "description": "Attempt budget, so a matched-budget comparison is reconstructable.",
+      "properties": {
+        "iterations": {"type": "integer"},
+        "candidates_per_iteration": {"type": "integer"},
+        "wall_clock_limit_s": {"type": "number"}
+      },
+      "additionalProperties": false
+    },
+
+    "outcome": {
+      "type": "string",
+      "description": "The headline, in PatchAgent/San2Patch terms. `plausible` = compiled AND PoC blocked but functional tests not run or not available; `repaired` additionally passed functional tests. `errored` is infrastructure, NOT a failed repair — it must be excluded from denominators, not counted as a loss (same errored-vs-rejected split our own pipeline uses).",
+      "enum": ["repaired", "plausible", "failed", "errored", "inapplicable"]
+    },
+    "inapplicable_reason": {
+      "type": "string",
+      "description": "Required when outcome == inapplicable. E.g. \"no sanitizer-observable fault\" for a Java XSS case fed to a sanitizer-driven tool. Applicability is a result, not a gap in the data."
+    },
+
+    "gates": {
+      "type": "object",
+      "description": "The individual gates behind `outcome`. null = not run (distinct from false = ran and failed).",
+      "properties": {
+        "compiles": {"type": ["boolean", "null"]},
+        "poc_blocked": {"type": ["boolean", "null"]},
+        "functional_tests_pass": {"type": ["boolean", "null"]},
+        "functional_tests_available": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "our_scores": {
+      "type": "object",
+      "description": "OUR evaluation applied to THEIR patch — the part no baseline paper reports about itself. Scored by replaying fix_povs/ and residual_povs/ against the baseline's patch with the same harness our runs use.",
+      "properties": {
+        "fix_pov_score": {"type": ["number", "null"], "description": "blocked/(blocked+reproduced) over certified fixPOVs; null if none certified for this case."},
+        "fix_pov_all_blocked": {"type": ["boolean", "null"]},
+        "residual_score": {"type": ["number", "null"], "description": "Bonus metric: fraction of holes the official fix left open that this patch closed. 0 is a fine result."},
+        "judge_score": {"type": ["number", "null"], "description": "Blind LLM patch-quality score, 0-100, same rubric and arm-anonymisation as PIPELINE_ANALYSIS_v4."},
+        "correct_vs_developer": {"type": ["string", "null"], "description": "Manual label, San2Patch's taxonomy.", "enum": ["developer_matched", "alternative", "incorrect_some_tests", "incorrect_all_tests", null]}
+      },
+      "additionalProperties": false
+    },
+
+    "patch": {
+      "type": "object",
+      "description": "Pointer to the produced patch. The diff itself lives beside this record as patches/<case_id>.diff so results/ stays greppable.",
+      "properties": {
+        "path": {"type": "string"},
+        "lines_added": {"type": "integer"},
+        "lines_removed": {"type": "integer"},
+        "files_touched": {"type": "integer"},
+        "hunks": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+
+    "cost": {
+      "type": "object",
+      "properties": {
+        "usd": {"type": "number"},
+        "input_tokens": {"type": "integer"},
+        "output_tokens": {"type": "integer"},
+        "wall_clock_s": {"type": "number"},
+        "attempts_used": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+
+    "raw_log_path": {"type": "string", "description": "Path under baselines/work/ (gitignored). Kept for debugging; not published."},
+    "ran_at": {"type": "string", "format": "date-time"},
+    "notes": {"type": "string"}
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "cwe_id": "cwe-369",
+  "cve_id": "CVE-2016-8691",
+  "note": "jpc_dec_process_siz() stores siz->comps[compno].hsamp/vsamp (the SIZ marker's XRsiz/YRsiz subsampling factors, caller-supplied via the codestream) unchecked into cmpt->hstep/cmpt->vstep at jpc_dec.c:1192-1193, then uses them as the divisor of the JPC_CEILDIV macro at jpc_dec.c:1194-1197 to compute cmpt->width/height. A value of 0 for hsamp or vsamp reaches this division with no validation, causing a divide-by-zero. The SIZ marker parsing in jpc_cs.c:jpc_siz_getparms() never constrains these two per-component fields to a valid (non-zero) range before they are propagated into the decoder's component state, leaving jpc_dec.c's division as the unguarded sink for an attacker-chosen value of zero.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "cmpt->hstep = siz->comps[compno].hsamp -- caller-supplied SIZ marker XRsiz value, no range check",
+            "uri": "src/libjasper/jpc/jpc_dec.c",
+            "line": 1192
+          },
+          {
+            "message": "cmpt->vstep = siz->comps[compno].vsamp -- caller-supplied SIZ marker YRsiz value, no range check",
+            "uri": "src/libjasper/jpc/jpc_dec.c",
+            "line": 1193
+          },
+          {
+            "message": "cmpt->width = JPC_CEILDIV(dec->xend, cmpt->hstep) -- divides by unchecked hstep, 0 triggers CWE-369",
+            "uri": "src/libjasper/jpc/jpc_dec.c",
+            "line": 1194
+          },
+          {
+            "message": "cmpt->height = JPC_CEILDIV(dec->yend, cmpt->vstep) -- divides by unchecked vstep, 0 triggers CWE-369",
+            "uri": "src/libjasper/jpc/jpc_dec.c",
+            "line": 1196
+          }
+        ]
+      ]
+    }
+  ]
+}

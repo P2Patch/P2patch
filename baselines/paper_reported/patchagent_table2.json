@@ -1,0 +1,59 @@
+{
+  "source": {
+    "paper": "PatchAgent: A Practical Program Repair Agent Mimicking Human Expertise",
+    "venue": "USENIX Security '25",
+    "table": "Table 2 (p. 4391)",
+    "url": "https://www.usenix.org/system/files/usenixsecurity25-yu-zheng.pdf",
+    "transcribed": "2026-08-12"
+  },
+  "legend": {
+    "full": "● patch fixed the vulnerability AND passed the functional test",
+    "partial": "◐ fixed the bug but failed the functional test",
+    "failed": "○ failed to fix the bug",
+    "na": "/ result not available"
+  },
+  "systems": ["extractfix", "zeroshot", "patchagent"],
+  "notes": "PatchAgent's own column is ● on all 28. Their comparison to prior work is limited to these 28 ExtractFix cases: they could not run ExtractFix on the other 150 (OSS-Fuzz/Huntr) due to compatibility issues with the current codebase, confirmed with ExtractFix's authors.",
+  "cases": [
+    {"case_id": "CVE-2017-15025", "project": "binutils",  "bug_type": "Divide By Zero",    "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2018-10372", "project": "binutils",  "bug_type": "Heap Overflow",     "extractfix": "partial", "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "gnubug-19784",   "project": "coreutils", "bug_type": "Heap Overflow",     "extractfix": "failed",  "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "gnubug-25003",   "project": "coreutils", "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "bugzilla-26545", "project": "coreutils", "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "gnubug-25023",   "project": "coreutils", "bug_type": "Global Overflow",   "extractfix": "failed",  "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2016-8691",  "project": "jasper",    "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2016-9387",  "project": "jasper",    "bug_type": "Integer Overflow",  "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2018-19664", "project": "libjpeg",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2017-15232", "project": "libjpeg",   "bug_type": "Null Dereference",  "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2012-2806",  "project": "libjpeg",   "bug_type": "Stack Overflow",    "extractfix": "failed",  "zeroshot": "failed", "patchagent": "full"},
+    {"case_id": "CVE-2018-14498", "project": "libjpeg",   "bug_type": "Heap Overflow",     "extractfix": "partial", "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-5321",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2017-7595",  "project": "libtiff",   "bug_type": "Divide By Zero",    "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2017-7601",  "project": "libtiff",   "bug_type": "Integer Overflow",  "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-9273",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "failed",  "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-10094", "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "partial", "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2014-8128",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "failed", "patchagent": "full"},
+    {"case_id": "bugzilla-2611",  "project": "libtiff",   "bug_type": "Divide By Zero",    "extractfix": "full",    "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2016-5314",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "failed",  "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-3186",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-3623",  "project": "libtiff",   "bug_type": "Divide By Zero",    "extractfix": "failed",  "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "bugzilla-2633",  "project": "libtiff",   "bug_type": "Heap Overflow",     "extractfix": "partial", "zeroshot": "na",     "patchagent": "full"},
+    {"case_id": "CVE-2017-5969",  "project": "libxml2",   "bug_type": "Null Dereference",  "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2012-5134",  "project": "libxml2",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-1834",  "project": "libxml2",   "bug_type": "Heap Overflow",     "extractfix": "full",    "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-1838",  "project": "libxml2",   "bug_type": "Heap Overflow",     "extractfix": "partial", "zeroshot": "full",   "patchagent": "full"},
+    {"case_id": "CVE-2016-1839",  "project": "libxml2",   "bug_type": "Heap Overflow",     "extractfix": "failed",  "zeroshot": "na",     "patchagent": "full"}
+  ],
+  "aggregate_reported": {
+    "patchagent_dataset": {"cases": 178, "programs": 30},
+    "per_model": {
+      "claude-3-opus-20240229":   {"repaired": 151, "total": 178, "rate": 0.8483, "avg_cost_usd": 2.15},
+      "gpt-4o-2024-05-13":        {"repaired": 139, "total": 178, "rate": 0.7809, "avg_cost_usd": 1.75},
+      "claude-3-haiku-20240229":  {"repaired": 128, "total": 178, "rate": 0.7191, "avg_cost_usd": 0.10},
+      "gpt-4-0125-preview":       {"repaired": 126, "total": 178, "rate": 0.7079, "avg_cost_usd": 1.29},
+      "claude-3-sonnet-20240229": {"repaired": 108, "total": 178, "rate": 0.6067, "avg_cost_usd": 0.82}
+    },
+    "union_of_all_models": {"repaired": 164, "total": 178, "rate": 0.9213, "avg_cost_usd": 6.11},
+    "caveat": "The 92.13% headline is a UNION over five models, not a single-system result. The comparable single-system number is 84.83% (Claude-3 Opus)."
+  }
+}

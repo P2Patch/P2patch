@@ -1,0 +1,676 @@
+{
+  "note": "Human-authored residual-gap triage verdicts, merged into TRIAGE.json by residual_povs/triage/sweep_upstream.py. One entry per POV, keyed '<project_slug>::<pov_id>'. A POV with no entry here is 'untriaged': nobody has read its upstream history yet. Statuses: fixed-later | open-at-head | superseded-in-release | unsound | disputed | needs-manual.",
+  "verdicts": {
+    "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5::shared_prefix_zip": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f8f42335",
+      "official_fix_date": "2018-05-06",
+      "later_fix_commit": "8a37b7e4",
+      "later_fix_date": "2023-03-19",
+      "later_fix_release": "plexus-archiver-4.6.3 (tagged 2023-03-20 19:31 UTC); 4.6.2 (2023-03-01) still carries the String form",
+      "delta_days": 1778,
+      "releases_exposed": "3.6.0 .. 4.6.2",
+      "corroboration": "explicit — 'Fix path traversal vulnerability ... /opt/directory starts with /opt/dir although it is not inside it. This is a limited  path traversal vulnerability. Fixes: #260' [sic: double space in 'limited  path']. Third-party corroboration: issue #260, 'AbstractUnArchiver extractFile has Partial Path Traversal Vulnerability', opened 2023-03-17 by an outside reporter who wrote 'The patch file for CVE-2018-1002200 still has a vulnerability ... The impact is limited to sibling directories' — i.e. someone else independently found the same residual gap.",
+      "notes": "Independently audited and confirmed. Three labelling corrections: (1) 2023-03-19 is the AUTHOR date; the committer date is 2023-03-20 — label whichever you quote. (2) f8f42335 is a MERGE commit (PR #87), not the authoring commit of the guard. (3) This gap got NO CVE of its own — do not imply one; CVE-2023-37460 / GHSA-wh3p-fphp-9h2m on plexus-archiver is a different, symlink issue first patched in 4.8.0. Baseline premise re-checked: tag plexus-archiver-3.5 has no guard at all, 3.6.0 introduces the boundary-less String form. At HEAD (2026-08-19) the guard is Path-typed and element-wise.",
+      "evidence_urls": [
+        "https://github.com/codehaus-plexus/plexus-archiver/commit/8a37b7e4",
+        "https://github.com/codehaus-plexus/plexus-archiver/issues/260"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED; corrected date labelling and the no-CVE point)"
+    },
+    "codehaus-plexus__plexus-archiver_CVE-2018-1002200_3.5::shared_prefix_tar": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f8f42335",
+      "official_fix_date": "2018-05-06",
+      "later_fix_commit": "8a37b7e4",
+      "later_fix_date": "2023-03-19",
+      "later_fix_release": "plexus-archiver-4.6.3 (tagged 2023-03-20 19:31 UTC); 4.6.2 (2023-03-01) still carries the String form",
+      "delta_days": 1778,
+      "releases_exposed": "3.6.0 .. 4.6.2",
+      "corroboration": "explicit — 'Fix path traversal vulnerability ... /opt/directory starts with /opt/dir although it is not inside it. This is a limited  path traversal vulnerability. Fixes: #260' [sic: double space in 'limited  path']. Third-party corroboration: issue #260, 'AbstractUnArchiver extractFile has Partial Path Traversal Vulnerability', opened 2023-03-17 by an outside reporter who wrote 'The patch file for CVE-2018-1002200 still has a vulnerability ... The impact is limited to sibling directories' — i.e. someone else independently found the same residual gap.",
+      "notes": "Independently audited and confirmed. Three labelling corrections: (1) 2023-03-19 is the AUTHOR date; the committer date is 2023-03-20 — label whichever you quote. (2) f8f42335 is a MERGE commit (PR #87), not the authoring commit of the guard. (3) This gap got NO CVE of its own — do not imply one; CVE-2023-37460 / GHSA-wh3p-fphp-9h2m on plexus-archiver is a different, symlink issue first patched in 4.8.0. Baseline premise re-checked: tag plexus-archiver-3.5 has no guard at all, 3.6.0 introduces the boundary-less String form. At HEAD (2026-08-19) the guard is Path-typed and element-wise.",
+      "evidence_urls": [
+        "https://github.com/codehaus-plexus/plexus-archiver/commit/8a37b7e4",
+        "https://github.com/codehaus-plexus/plexus-archiver/issues/260"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED; corrected date labelling and the no-CVE point)"
+    },
+    "codehaus-plexus__plexus-utils_CVE-2022-4244_3.0.23::residual_1_shared_prefix_sibling": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "33a2853d",
+      "official_fix_date": "2016-05-07",
+      "later_fix_commit": "6d780b33",
+      "later_fix_date": "2025-11-09",
+      "later_fix_release": "plexus-utils-4.0.3 (2026-03-27); back-ported to 3.6.1 as cherry-pick 36ea3526 (2026-04-01)",
+      "delta_days": 3473,
+      "releases_exposed": "3.0.24 .. 4.0.2 and .. 3.6.0",
+      "corroboration": "STRONGEST IN THE CORPUS — this residual gap received its own CVE: CVE-2025-67030 / GHSA-6fmv-xxpf-w3cw, HIGH, published 2026-03-25, 'Directory Traversal vulnerability in the extractFile method of org.codehaus.plexus.util.Expand', first_patched 4.0.3 (>=4.0.0,<4.0.3) and 3.6.1 (<3.6.1). Third-party-reported as issue #294 (2025-09-02); fixed by PR #296. Commit message: 'Fix Zip Slip vulnerability in archive extraction (#296)'.",
+      "notes": "EXECUTED, CONTROLLED, AND CVE-CORROBORATED. Execution: reproduces on unpatched (exit 0), still reproduces after the official fix (exit 0), BLOCKED (exit 1) at 6d780b33 — falsifiability control passed (needed --control-image maven:3.9-eclipse-temurin-17, since the CVE's pinned builder image cannot build the 2025 tree). Clock discipline: 9y6m is COMMIT-to-commit (2016-05-07 UTC -> 2025-11-09); release-to-release is 9y 10m 20d (3.0.24 on 2016-05-07 -> 4.0.3 on 2026-03-27). Say which. Also note 33a2853d's local author date is 2016-05-08 +0200, i.e. 2016-05-07 UTC. 3.6.1 DOES carry the fix (as 36ea3526) — 'git tag --contains 6d780b33' misses that cherry-pick, the same trap that produced our antisamy error.",
+      "evidence_urls": [
+        "https://github.com/advisories/GHSA-6fmv-xxpf-w3cw",
+        "https://nvd.nist.gov/vuln/detail/CVE-2025-67030",
+        "https://github.com/codehaus-plexus/plexus-utils/pull/296"
+      ],
+      "verified_by": "human 2026-08-21 + EXECUTED control (blocked at 6d780b33) + independent agent audit (CONFIRMED; surfaced CVE-2025-67030) + CVE re-verified by hand"
+    },
+    "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2::residual_1_shared_prefix_file": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "59aeea59 (SYNTHETIC — see notes)",
+      "official_fix_date": "2019-05-17",
+      "later_fix_commit": "ff3d3b34",
+      "later_fix_date": "2020-01-24",
+      "later_fix_release": "v2.3.1 (2020-01-26); v2.3.0 (2020-01-06) still boundary-less",
+      "delta_days": 252,
+      "releases_exposed": "the 1.x line was NEVER fixed (last release 1.3.3, 2019-05-17); on the 2.x line, every release up to v2.3.0",
+      "corroboration": "explicit — '#133 Fix for zip slip when file name is similar to directory extracted to'; third-party issue #133 opened 2020-01-21. No CVE was assigned to it.",
+      "notes": "SCOPE CORRECTION — phrase this row carefully. ff3d3b34 fixes net.lingala.zip4j.tasks.AbstractExtractFileTask in the 2.x rewrite, NOT the net.lingala.zip4j.unzip.Unzip class our PoV executes. The 1.x line was never fixed; its last release is 1.3.3. Correct wording: 'upstream later closed the same logical sink in the successor codebase', not 'the same code path'. This is also why the executed control errors: the 1.x API the PoV drives does not exist at ff3d3b34. PROVENANCE, now fully explained: the recorded official-fix SHA 59aeea59 does not exist upstream (gh api -> 422; upstream history starts 2019-05-04 and contains ZERO commits touching Unzip.java). It exists in iris-sast/zip4j, which is NOT a mirror or fork (fork=false, parent=null, created 2025-06-30) but a synthetic benchmark repo built from decompiled sources JARs — 59aeea59 is a 2025-07-09 commit titled 'Add decompiled source for 1.3.3 (fixed) from zip4j-1.3.3-sources.jar', child of the 1.3.2 'vulnerable' commit. So our official_fix.patch content is genuine 1.3.3 code; only the SHA is synthetic, and the dataset's github_url for this row points at that reconstructed repo. RE-INTRODUCTION CLAIM CORRECTED: we credited c158768 (2019-09-05, '#55 ZipSlip fix') with re-introducing the boundary-less check in 2.x. Refuted — c158768 only canonicalized the LEFT operand. The real re-introduction is 4c50a6a5 (2019-05-18, 'Outputstreams refractor'), which added the 1.3.3-shaped guard verbatim ONE DAY after 1.3.3 shipped. That makes the recurrence thesis stronger, not weaker: the same defect was written into the rewrite the day after it was fixed in the old line.",
+      "evidence_urls": [
+        "https://github.com/srikanth-lingala/zip4j/commit/ff3d3b34",
+        "https://github.com/srikanth-lingala/zip4j/issues/133",
+        "https://github.com/srikanth-lingala/zip4j/commit/4c50a6a5"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (primary CONFIRMED; re-introduction attribution REFUTED and replaced; provenance of the synthetic SHA established)"
+    },
+    "srikanth-lingala__zip4j_CVE-2018-1002202_1.3.2::residual_2_shared_prefix_directory": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "59aeea59 (SYNTHETIC — see notes)",
+      "official_fix_date": "2019-05-17",
+      "later_fix_commit": "ff3d3b34",
+      "later_fix_date": "2020-01-24",
+      "later_fix_release": "v2.3.1 (2020-01-26); v2.3.0 (2020-01-06) still boundary-less",
+      "delta_days": 252,
+      "releases_exposed": "the 1.x line was NEVER fixed (last release 1.3.3, 2019-05-17); on the 2.x line, every release up to v2.3.0",
+      "corroboration": "explicit — '#133 Fix for zip slip when file name is similar to directory extracted to'; third-party issue #133 opened 2020-01-21. No CVE was assigned to it.",
+      "notes": "SCOPE CORRECTION — phrase this row carefully. ff3d3b34 fixes net.lingala.zip4j.tasks.AbstractExtractFileTask in the 2.x rewrite, NOT the net.lingala.zip4j.unzip.Unzip class our PoV executes. The 1.x line was never fixed; its last release is 1.3.3. Correct wording: 'upstream later closed the same logical sink in the successor codebase', not 'the same code path'. This is also why the executed control errors: the 1.x API the PoV drives does not exist at ff3d3b34. PROVENANCE, now fully explained: the recorded official-fix SHA 59aeea59 does not exist upstream (gh api -> 422; upstream history starts 2019-05-04 and contains ZERO commits touching Unzip.java). It exists in iris-sast/zip4j, which is NOT a mirror or fork (fork=false, parent=null, created 2025-06-30) but a synthetic benchmark repo built from decompiled sources JARs — 59aeea59 is a 2025-07-09 commit titled 'Add decompiled source for 1.3.3 (fixed) from zip4j-1.3.3-sources.jar', child of the 1.3.2 'vulnerable' commit. So our official_fix.patch content is genuine 1.3.3 code; only the SHA is synthetic, and the dataset's github_url for this row points at that reconstructed repo. RE-INTRODUCTION CLAIM CORRECTED: we credited c158768 (2019-09-05, '#55 ZipSlip fix') with re-introducing the boundary-less check in 2.x. Refuted — c158768 only canonicalized the LEFT operand. The real re-introduction is 4c50a6a5 (2019-05-18, 'Outputstreams refractor'), which added the 1.3.3-shaped guard verbatim ONE DAY after 1.3.3 shipped. That makes the recurrence thesis stronger, not weaker: the same defect was written into the rewrite the day after it was fixed in the old line.",
+      "evidence_urls": [
+        "https://github.com/srikanth-lingala/zip4j/commit/ff3d3b34",
+        "https://github.com/srikanth-lingala/zip4j/issues/133",
+        "https://github.com/srikanth-lingala/zip4j/commit/4c50a6a5"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (primary CONFIRMED; re-introduction attribution REFUTED and replaced; provenance of the synthetic SHA established)"
+    },
+    "nahsra__antisamy_CVE-2022-28367_1.6.5::residual_livelist_html_xmp_anchor_javascript": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "0199e7e1",
+      "official_fix_date": "2022-03-27",
+      "later_fix_commit": "32e27350",
+      "later_fix_date": "2022-04-09",
+      "later_fix_release": "v1.6.7 (tagged 2022-04-10, released 2022-04-13)",
+      "delta_days": 13,
+      "releases_exposed": "2 — v1.6.6 (2022-04-02) and v1.6.6.1 (2022-04-07); 11 days of release exposure",
+      "corroboration": "explicit — commit message: 'Fix child node removal on style tag processing'",
+      "notes": "TWICE-CORRECTED. (1) The first pass said the residual fix first shipped in v1.7.0, i.e. 3 releases exposed; reading the source at each tag shows v1.6.7 already has the reversed loop, so it is 2. (2) The SHA also needed fixing: the change dual-landed. 32e27350 (2022-04-09) is on the 1.6.x lineage and IS an ancestor of v1.6.7 (compare: 2 ahead, 0 behind); 21c4061da0fc (identical subject and author date) is the main-line twin and is NOT in v1.6.7 (compare: diverged) — it is first tagged v1.7.0. Cite 32e27350 for the release claim and 21c4061 for the main-line commit. ROOT CAUSE of the original error: 'git tag --contains 21c4061' answers v1.7.0, because --contains cannot see a cherry-pick onto a release branch. Content-at-tag is the only reliable oracle for 'which release shipped the fix'. NOTE this row is a live-NodeList removal bug, NOT the containment-boundary family. EXECUTED: both PoVs reproduce on unpatched and after the official fix, and are BLOCKED at 21c4061 (exit 1) — falsifiability control passed, independently on two machines.",
+      "evidence_urls": [
+        "https://github.com/nahsra/antisamy/commit/32e27350",
+        "https://github.com/nahsra/antisamy/commit/21c4061",
+        "https://github.com/nahsra/antisamy/releases/tag/v1.6.7"
+      ],
+      "verified_by": "human 2026-08-21 (per-tag source read) + independent agent audit (confirmed, corrected the SHA) + executed control"
+    },
+    "nahsra__antisamy_CVE-2022-28367_1.6.5::residual_livelist_xhtml_xmp_script": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "0199e7e1",
+      "official_fix_date": "2022-03-27",
+      "later_fix_commit": "32e27350",
+      "later_fix_date": "2022-04-09",
+      "later_fix_release": "v1.6.7 (tagged 2022-04-10, released 2022-04-13)",
+      "delta_days": 13,
+      "releases_exposed": "2 — v1.6.6 (2022-04-02) and v1.6.6.1 (2022-04-07); 11 days of release exposure",
+      "corroboration": "explicit — commit message: 'Fix child node removal on style tag processing'",
+      "notes": "TWICE-CORRECTED. (1) The first pass said the residual fix first shipped in v1.7.0, i.e. 3 releases exposed; reading the source at each tag shows v1.6.7 already has the reversed loop, so it is 2. (2) The SHA also needed fixing: the change dual-landed. 32e27350 (2022-04-09) is on the 1.6.x lineage and IS an ancestor of v1.6.7 (compare: 2 ahead, 0 behind); 21c4061da0fc (identical subject and author date) is the main-line twin and is NOT in v1.6.7 (compare: diverged) — it is first tagged v1.7.0. Cite 32e27350 for the release claim and 21c4061 for the main-line commit. ROOT CAUSE of the original error: 'git tag --contains 21c4061' answers v1.7.0, because --contains cannot see a cherry-pick onto a release branch. Content-at-tag is the only reliable oracle for 'which release shipped the fix'. NOTE this row is a live-NodeList removal bug, NOT the containment-boundary family. EXECUTED: both PoVs reproduce on unpatched and after the official fix, and are BLOCKED at 21c4061 (exit 1) — falsifiability control passed, independently on two machines.",
+      "evidence_urls": [
+        "https://github.com/nahsra/antisamy/commit/32e27350",
+        "https://github.com/nahsra/antisamy/commit/21c4061",
+        "https://github.com/nahsra/antisamy/releases/tag/v1.6.7"
+      ],
+      "verified_by": "human 2026-08-21 (per-tag source read) + independent agent audit (confirmed, corrected the SHA) + executed control"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::put_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::get_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::delete_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::find_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::put_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::delete_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::get_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::find_sibling_prefix_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "4d41784a",
+      "later_fix_date": "2024-07-30",
+      "later_fix_release": "yamcs-5.10.0 (2024-08-11); backported to the 5.9.x line as fec34d5e, first in yamcs-5.9.9 (2024-10-06)",
+      "delta_days": 297,
+      "releases_exposed": "5.8.8 .. 5.9.8 on the mainline — PLUS yamcs-5.9.8.1 (2025-03-13), a patch-branch release that still ships the boundary-less guard 7 months after 5.10.0 closed it",
+      "corroboration": "incidental — 4d41784a is Allow symlinks in fs buckets #919; its companion test adds only a symlink test, no sibling-prefix test, so upstream did not know it was closing a traversal gap",
+      "notes": "CORRECTED after an independent audit REFUTED one of our sub-claims. We said the 5.9.x maintenance line still shipped the gap at yamcs-5.9.12 (2024-12-10), four months after 5.10.0. That is FALSE: 5.9.x received a cherry-pick (fec34d5e, same title/author-date, compare fec34d5e...yamcs-5.9.9 = 46 ahead / 0 behind), so 5.9.9 onward are safe and the last vulnerable mainline 5.9.x is 5.9.8 (2024-07-09), BEFORE 5.10.0. The error came from inferring the guard from a tag date instead of reading the file at that tag. What survives is stronger: yamcs-5.9.8.1 (2025-03-13), a patch branch off 5.9.8, still contains getCanonicalPath().startsWith 7 months after the fix shipped. Guard semantics were also verified empirically on JDK 21: with root .../bkt and sibling .../bkt_evil, objectName ../bkt_evil/victim.txt is ALLOWED by the old guard and REJECTED by the new one, while ../../etc/passwd is rejected by both — i.e. 4d41784a closes exactly the shape these 8 PoVs use. Lag 9.8 months by author date (10.0 by merge-to-master, 9.3 release-to-release; say which).",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/4d41784a",
+        "https://github.com/yamcs/yamcs/commit/fec34d5e"
+      ],
+      "verified_by": "human 2026-08-21 (tag scan) + independent agent audit (confirmed the fix, REFUTED the 5.9.x sub-claim) + re-verified by hand at 5 tags"
+    },
+    "yamcs__yamcs_CVE-2023-45277_5.8.6::bucket_name_traversal_read": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "medium",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "92edb5f2",
+      "later_fix_date": "2024-10-14",
+      "later_fix_release": "yamcs-5.11.0 (2025-02-03)",
+      "delta_days": 373,
+      "releases_exposed": "5.8.8 .. 5.10.12 (2025-03-05) — every release in that window ships the unguarded sink",
+      "corroboration": "incidental, by removal — 92edb5f2 'Add bucket provider mechanism' deletes the class; no commit ever added a containment check to it",
+      "notes": "Different sink from this suite's sibling-prefix PoVs: FileSystemBucketDatabase.getBucket/createBucket did a bare root.resolve(bucketName). Audited history of that file (14 commits, 2018-2024): no containment check was ever added. The class was DELETED in 92edb5f2; at HEAD BucketManager.getBucket is a map lookup and no root.resolve(bucketName) remains anywhere. Classified fixed-later-by-removal rather than open. MEDIUM confidence because reachability over HTTP is unproven: at 5.8.6 BucketsApi.verifyAndGetBucket passes the raw name to getBucket without applying BUCKET_NAME_REGEXP (that regex guards only the create route), but nobody verified the Netty router preserves a literal '..' in the :bucketName path segment. The PoVs drive the Java API directly, so certification stands; the manifest's HTTP-layer wording does not.",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/92edb5f2"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (full file history + HEAD read)"
+    },
+    "yamcs__yamcs_CVE-2023-45278_5.8.6::bucket_name_traversal": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "medium",
+      "official_fix_commit": "b6db35e4",
+      "official_fix_date": "2023-10-07",
+      "later_fix_commit": "92edb5f2",
+      "later_fix_date": "2024-10-14",
+      "later_fix_release": "yamcs-5.11.0 (2025-02-03)",
+      "delta_days": 373,
+      "releases_exposed": "5.8.8 .. 5.10.12 (2025-03-05)",
+      "corroboration": "incidental, by removal — see the CVE-2023-45277 twin",
+      "notes": "Same sink and same disposition as bucket_name_traversal_read in the CVE-2023-45277 suite: FileSystemBucketDatabase deleted by 92edb5f2, never guarded. Medium confidence for the same reason — HTTP-layer reachability unproven.",
+      "evidence_urls": [
+        "https://github.com/yamcs/yamcs/commit/92edb5f2"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "dromara__hutool_CVE-2018-17297_4.1.11::residual_unzip_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "8d7d0b7f",
+      "official_fix_date": "2018-09-13",
+      "later_fix_commit": "d53ac716",
+      "later_fix_date": "2023-06-16",
+      "later_fix_release": "5.8.20 (published 2023-06-16); 5.8.19 (2023-05-26) still boundary-less",
+      "delta_days": 1737,
+      "releases_exposed": "4.1.12 .. 5.8.19 — 4 years 9 months of releases",
+      "corroboration": "silent at commit level, public in the tracker — both commit messages are only 'fix a defect in the FileUtil.checkSlip method', but the 5.8.20 CHANGELOG links issue #3140, titled 'the checkSlip function used to detect slip injection has a security defect', whose body describes EXACTLY our sibling-prefix bypass (/home/safe vs /home/safe_bak) and recommends Path.startsWith or appending File.separator. Someone independently found and reported this in June 2023 — know that before calling it a novel gap. No CVE assigned.",
+      "notes": "PINNED, replacing our earlier 5.8.11..5.8.20 bracket. TWO commits a week apart both ship in 5.8.20, and only the SECOND closes our PoVs: a4ade53d (2023-06-09) swapped the String test for file.toPath().startsWith(parentFile.toPath()), which is element-wise but NOT normalizing — and hutool's buildFile does not normalize either, so our '../out_evil/x' payload still arrives as '.../out/../out_evil/x', which does start with '.../out' and passes. d53ac716 (2023-06-16) routes through isSub -> PathUtil.isSub = toAbsNormal(sub).startsWith(toAbsNormal(parent)), and toAbsNormal = toAbsolutePath().normalize(), which collapses the traversal and rejects. So cite d53ac716. Lag 4y 9m. Repo now redirects dromara/hutool -> chinabugotech/hutool, default branch v5-master. Only v5-master was audited; v6/v7 branches unchecked.",
+      "evidence_urls": [
+        "https://github.com/chinabugotech/hutool/commit/d53ac716",
+        "https://github.com/dromara/hutool/issues/3140"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (commit-level pin + 5.8.19/5.8.20 diff + issue trail)"
+    },
+    "dromara__hutool_CVE-2018-17297_4.1.11::residual_fileapi_sibling_prefix": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "8d7d0b7f",
+      "official_fix_date": "2018-09-13",
+      "later_fix_commit": "d53ac716",
+      "later_fix_date": "2023-06-16",
+      "later_fix_release": "5.8.20 (published 2023-06-16); 5.8.19 (2023-05-26) still boundary-less",
+      "delta_days": 1737,
+      "releases_exposed": "4.1.12 .. 5.8.19 — 4 years 9 months of releases",
+      "corroboration": "silent at commit level, public in the tracker — both commit messages are only 'fix a defect in the FileUtil.checkSlip method', but the 5.8.20 CHANGELOG links issue #3140, titled 'the checkSlip function used to detect slip injection has a security defect', whose body describes EXACTLY our sibling-prefix bypass (/home/safe vs /home/safe_bak) and recommends Path.startsWith or appending File.separator. Someone independently found and reported this in June 2023 — know that before calling it a novel gap. No CVE assigned.",
+      "notes": "PINNED, replacing our earlier 5.8.11..5.8.20 bracket. TWO commits a week apart both ship in 5.8.20, and only the SECOND closes our PoVs: a4ade53d (2023-06-09) swapped the String test for file.toPath().startsWith(parentFile.toPath()), which is element-wise but NOT normalizing — and hutool's buildFile does not normalize either, so our '../out_evil/x' payload still arrives as '.../out/../out_evil/x', which does start with '.../out' and passes. d53ac716 (2023-06-16) routes through isSub -> PathUtil.isSub = toAbsNormal(sub).startsWith(toAbsNormal(parent)), and toAbsNormal = toAbsolutePath().normalize(), which collapses the traversal and rejects. So cite d53ac716. Lag 4y 9m. Repo now redirects dromara/hutool -> chinabugotech/hutool, default branch v5-master. Only v5-master was audited; v6/v7 branches unchecked.",
+      "evidence_urls": [
+        "https://github.com/chinabugotech/hutool/commit/d53ac716",
+        "https://github.com/dromara/hutool/issues/3140"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (commit-level pin + 5.8.19/5.8.20 diff + issue trail)"
+    },
+    "asf__cxf_CVE-2016-6812_3.0.11::stylesheet_pathinfo": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "1be97cb1",
+      "official_fix_date": "2016-10-18",
+      "later_fix_commit": "3c23fa3b",
+      "later_fix_date": "2020-09-23",
+      "later_fix_release": "2020-11-03 — cxf-3.3.8 (backport dc6229b0, tagged ~2h earlier) and cxf-3.4.1",
+      "delta_days": 1436,
+      "releases_exposed": "3.0.12 .. 3.4.0; no CXF release after 2020-11-03 ships it unescaped (3.1.x and 3.2.x were already EOL)",
+      "corroboration": "explicit — 'Escape the services listing stylesheet path (#694)'; the diff is exactly this.styleSheetPath = StringEscapeUtils.escapeHtml4(styleSheetPath)",
+      "notes": "Independently audited and confirmed. Neither official fix touches styleSheetPath: the 2016 patch only concatenates contextPath+servletPath+pathInfo, and the 2019 patch adds escapeHtml4 at 6 sites, none of them this one. git log --all -S'escapeHtml4(styleSheetPath)' returns exactly two commits, both 2020-09-23 — 3c23fa3b on main and dc6229b0 on 3.3.x-fixes — so there is no earlier partial closure. CORRECTION to our first statement: the first release is not cxf-3.4.1 alone; the 3.3.x line got the backport and cxf-3.3.8 was tagged the same day, about two hours earlier. Lag unaffected (same commit date): 3y 11m 5d. At HEAD ServiceListGeneratorServlet still builds styleSheetPath from pathInfo and the writer still emits it into a LINK href, so the constructor escape is the entire guard — which is exactly what makes the PoV flip to blocked.",
+      "evidence_urls": [
+        "https://github.com/apache/cxf/commit/3c23fa3b",
+        "https://github.com/apache/cxf/commit/dc6229b0"
+      ],
+      "verified_by": "human 2026-08-21 (HEAD read + tag bisect) + independent agent audit (CONFIRMED; corrected first-release to 3.3.8+3.4.1)"
+    },
+    "asf__cxf_CVE-2019-17573_3.2.11::stylesheet_pathinfo": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "a02e96ba",
+      "official_fix_date": "2019-12-18",
+      "later_fix_commit": "3c23fa3b",
+      "later_fix_date": "2020-09-23",
+      "later_fix_release": "2020-11-03 — cxf-3.3.8 and cxf-3.4.1",
+      "delta_days": 280,
+      "releases_exposed": "3.2.12 .. 3.4.0",
+      "corroboration": "explicit — same commit and message as the CVE-2016-6812 twin; the official fix a02e96ba ('Make sure to escape URLs returned in the services listing') escaped 6 other sites but not this one",
+      "notes": "One gap, two CVE suites, one closing commit. Shortest lag of the pair: 9m 5d commit-to-commit, ~10.5 months release-to-release (3.3.5 on 2020-01-10 -> 3.3.8 on 2020-11-03).",
+      "evidence_urls": [
+        "https://github.com/apache/cxf/commit/3c23fa3b"
+      ],
+      "verified_by": "human 2026-08-21 + independent agent audit (CONFIRMED)"
+    },
+    "vadz__libtiff_CVE-2016-5321_0ba5d8814a17::tile_9spp_readloop_oob": {
+      "status": "superseded-in-release",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "a1277756",
+      "later_fix_date": "2016-07-11",
+      "later_fix_release": "v4.0.7 (2016-11-19)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'tools/tiffcrop.c: Avoid access outside of stack allocated array on a tiled separate TIFF with more than 8 samples per pixel. Reported by Kaixiang Zhang of the Cloud Security Team, Qihoo 360 (CVE-2016-5321, bugzilla #2558)'",
+      "notes": "CONFIRMED and STRENGTHENED by an adversarial re-audit. a1277756 is not merely an ancestor of the commit our manifest treats as the official fix — it is its IMMEDIATE PARENT, 12 minutes 28 seconds earlier, and our base 0ba5d8814a17 is the direct parent of that. Decisively, official_fix.patch contains only the eight combineSeparate* hunks and NOT the :992 hunk, so the tree the PoV certifies against never existed upstream. Both commits first ship in v4.0.7 (the tag sets are identical). Note the corpus mixes SHA namespaces: our manifest names the vadz mirror's 2f798560 while the ancestry argument uses gitlab's e54eac22 — the same commit, different conversions of the same CVS history. PoV drives the tiffcrop CLI.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/a1277756ad8f02af72da16414de1b9aed341d9b5"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21"
+    },
+    "vadz__libtiff_CVE-2017-5225_393881da1a7f::contigtiles2separatestrips_oob": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "88d79a45",
+      "later_fix_date": "2022-03-10",
+      "later_fix_release": "v4.4.0 (released 2022-05-20)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "incidental by message ('fix heap buffer overflow in tiffcp (#278)'), but GitLab issue #278 is titled 'Heap buffer overflow in cpContigBufToSeparateBuf, tiffcp.c:1373' — i.e. an independent reporter hit exactly this sink five years later",
+      "notes": "CONFIRMED by an adversarial re-audit, with one date correction: v4.4.0's RELEASE-DATE is 2022-05-20, not 2022-05-27. The fix mechanically blocks the PoV — writeBufferToSeparateStrips now rejects BitsPerSample that is not a multiple of 8 (the PoV uses 1) and passes a computed bytes_per_sample instead of the hardcoded 1. git log -L over the function shows the only intervening commits are cosmetic, so 88d79a45 is the first substantive closer. Releases that shipped the official fix with the gap open: v4.0.8, v4.0.9, v4.0.10, v4.1.0, v4.2.0, v4.3.0 — a genuine ~5-year fixed-later. GitLab issue #278's title, fetched verbatim, is 'Heap buffer overflow in cpContigBufToSeparateBuf, tiffcp.c:1373' — an independent reporter hitting the same sink five years later. Executed control passed.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/issues/278"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 + executed control"
+    },
+    "vadz__libtiff_CVE-2017-7601_3144e57770c1::refblackwhite_default_bps64_shift": {
+      "status": "fixed-later",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "b04e935c",
+      "later_fix_date": "2026-06-12",
+      "later_fix_release": "v4.7.2 (released 2026-06-27)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "incidental — 'Harden integer size and offset calculations in libtiff, tools, and contrib', a 33-file/4526-insertion sweep merged as issue-846; nothing in it mentions CVE-2017-7601, ReferenceBlackWhite or shift UB",
+      "notes": "CONFIRMED by an adversarial re-audit, with one date correction: v4.7.2's RELEASE-DATE is 2026-06-27, not 2026-07-03. The claimed exposure range is exact — a per-release scan found the vulnerable '(float)((1L << td->td_bitspersample)-1L)' verbatim at v4.0.6 through v4.7.1 and guarded at v4.7.2. Reachability holds throughout: tif_dir.c's TIFFTAG_BITSPERSAMPLE case has no upper bound at v4.7.1 and explicitly handles 64. All intervening commits touching the function are cosmetic, so b04e935c is the first substantive closer, and its tif_aux.c hunk ('if (td->td_bitspersample < 64)' plus a UINT64_MAX branch) is exactly the PoV's sink. OPEN: the at:b04e935c control errored, so 'closes the sink' is an unambiguous source read rather than an executed result.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/b04e935cb6242f22cc8b63c99a372cf3ea825e4e"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (control not executed)"
+    },
+    "vadz__libtiff_bugzilla-2611_9a72a69e035e::ojpeg_readheaderinfo_zero_subsampling_fpe": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "43908ce1",
+      "later_fix_date": "2019-08-10",
+      "later_fix_release": "v4.1.0 (2019-11-03)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'OJPEG: fix integer division by zero on corrupted subsampling factors. Fixes oss-fuzz issue 15824. Credit to OSS Fuzz'",
+      "notes": "CONFIRMED by an adversarial re-audit. git log -L over OJPEGReadHeaderInfo from the official fix to 43908ce1 returns ZERO commits, so it is definitively the first closer, and the added subsampling whitelist sits immediately above the PoV's divide (0 is not in {1,2,4}, so it returns before dividing). Releases that shipped the official fix with the gap open: v4.0.8, v4.0.9, v4.0.10; closed in v4.1.0 (RELEASE-DATE 20191103). KEEP THE IN-SCOPE HESITATION — it is correct and now precise: bugzilla #2611 is CVE-2016-10267, titled 'divide-by-zero in OJPEGDecodeRaw', crashing at tif_ojpeg.c:816 via tiffmedian, whereas our PoV's sink is OJPEGReadHeaderInfo:1079 — same trigger tag, different divide. Executed control passed.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/43908ce15e8bf85f063443658d2a6da0d1cd4e74"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 + executed control"
+    },
+    "vadz__libtiff_CVE-2016-5314_c421b993abe1::pixarlog_encode_tbuf_oob": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "a71b62bc",
+      "later_fix_date": "2016-08-15",
+      "later_fix_release": "v4.0.7 (2016-11-19)",
+      "delta_days": null,
+      "releases_exposed": "NONE — no release ever carried the official fix with this gap open",
+      "corroboration": "verbatim — 'Fix write buffer overflow in PixarLogEncode if more input samples are provided than expected by PixarLogSetupEncode. Idea based on libtiff-CVE-2016-3990.patch ... (bugzilla #2544)'",
+      "notes": "RECLASSIFIED 2026-08-21 by an adversarial re-audit: was fixed-later, is superseded. The official fix bf5b6988 (= vadz 391e77fc, 2016-06-28) and the closing commit a71b62bc (2016-08-15) BOTH first ship in v4.0.7 (2016-11-19); there is no release in between, so no upstream tree ever carried the official fix with this gap open. By the same criterion the corpus applies to libtiff CVE-2016-5321 and zziplib CVE-2017-5975, this is a baseline artifact, not an upstream miss. The rest of the row is CONFIRMED: a71b62bc adds the 'Too many input bytes provided' guard immediately before the encode loop and is the first closer (git log -L over PixarLogEncode shows zero intervening commits); ADJACENT is right because NVD CVE-2016-3990 names horizontalDifference8 in tif_pixarlog.c, the PoV's exact crash function. MANIFEST BUG TO FIX (unchanged, still true): manifest.json credits the guard to 'ChangeLog 2016-12-03, bugzilla #2604' in both fix_summary and summary, but #2604 is cec2d959, whose tif_pixarlog.c diff touches only PixarLogClose and never PixarLogEncode. Correct attribution is bugzilla #2544 / CVE-2016-3990 / a71b62bc.",
+      "evidence_urls": [
+        "https://gitlab.com/libtiff/libtiff/-/commit/a71b62bcff784cb86a8f81878f760cb2bcba66e6"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second refuted the fixed-later status)"
+    },
+    "libming__libming_CVE-2016-9264_cc6a386::bitrate_table_oob_read": {
+      "status": "fixed-later",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "6032557a",
+      "later_fix_date": "2018-01-10",
+      "later_fix_release": "NONE — no release tag contains it; last tag is ming-0_4_8 (2017-04-07)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim, and it names its own CVE — 'Fix global buffer overflow in printMP3Headers ... bitrate_idx = 15 being used as index in mp2l23_bitrate_table while it has only 14 elements ... This commit fixes CVE-2017-16898 (fixes: #75)'",
+      "notes": "ADJACENT: the bitrate-index OOB got its own CVE-2017-16898; CVE-2016-9264's fix and message are about the SAMPLERATE table. FIXED IN GIT BUT NEVER RELEASED — anyone on the 0.4.8 tarball (our base) is still exposed, so 'fixed later' overstates user-facing remediation; say 'fixed in git 2018, never shipped'. master guards it with 'if (bitrate_idx == 15) error(...)' which exits before the table read. Project effectively dormant: master idle since 2020-07, 262 open issues, no release since 2017. PoV drives the util/listmp3 CLI.",
+      "evidence_urls": [
+        "https://github.com/libming/libming/commit/6032557a21e4dac8bb2606bb5b58e27d85a7ff98"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "solon_CVE-2025-1584_v3.0.8::symlink_follow_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f46e47fd",
+      "official_fix_date": "2025-02-21",
+      "later_fix_commit": "21f7b7c3",
+      "later_fix_date": "2026-08-17",
+      "later_fix_release": "v4.0.6 (2026-08-17); NOT in v4.0.5",
+      "delta_days": 542,
+      "releases_exposed": "the entire 3.x line is STILL EXPOSED — git branch -r --contains 21f7b7c3 returns only main and v4.0; branches v3.4 through v3.11 do not have it, including the whole range the CVE names",
+      "corroboration": "verbatim and deliberate — 'fix solon-web-staticfiles path security issue (GHSA-mmhm-jhrm-7xp9)'",
+      "notes": "FIXED FOUR DAYS AGO — live corpus drift, and the timing needs establishing before we claim anything. Our certification ran 2026-08-16; upstream's fix landed 2026-08-17. Either someone reported it independently in that window or it came from us; do not claim discovery credit until that is settled. The gap was real on our target version: at v3.0.8 FileStaticRepository.find does new File(location, relativePath) with no containment check and StaticMappings.find has no '..' guard at all, while official_fix.patch adds only 'path.contains(\"/../\") == false' — which stops neither PoV ('/static/..' contains no '/../'; the symlink path contains no '..'). At HEAD FileStaticRepository canonicalises and requires containment plus isFile(), closing both, and the same guard was applied to ExtendStaticRepository and ClassPathStaticRepository with new tests. Note an earlier tightening (4a6e8346, v3.1.0) added '../' and '..\\\\' rejection but closes NEITHER PoV. CAVEAT: GHSA-mmhm-jhrm-7xp9 is not publicly resolvable (404 from the advisories API and the repo page; the repo's only published advisory is GHSA-g6j2-2jq7-g753, a separate WebDAV traversal) — treat the id as unverified, likely a draft/private advisory.",
+      "evidence_urls": [
+        "https://github.com/opensolon/solon/commit/21f7b7c395d49cb3784d2eab979033eb4f617d71"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (v3.0.8 premise re-checked + HEAD + branch containment)"
+    },
+    "solon_CVE-2025-1584_v3.0.8::trailing_parent_dir_escape": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "f46e47fd",
+      "official_fix_date": "2025-02-21",
+      "later_fix_commit": "21f7b7c3",
+      "later_fix_date": "2026-08-17",
+      "later_fix_release": "v4.0.6 (2026-08-17); NOT in v4.0.5",
+      "delta_days": 542,
+      "releases_exposed": "the entire 3.x line is STILL EXPOSED — git branch -r --contains 21f7b7c3 returns only main and v4.0; branches v3.4 through v3.11 do not have it, including the whole range the CVE names",
+      "corroboration": "verbatim and deliberate — 'fix solon-web-staticfiles path security issue (GHSA-mmhm-jhrm-7xp9)'",
+      "notes": "FIXED FOUR DAYS AGO — live corpus drift, and the timing needs establishing before we claim anything. Our certification ran 2026-08-16; upstream's fix landed 2026-08-17. Either someone reported it independently in that window or it came from us; do not claim discovery credit until that is settled. The gap was real on our target version: at v3.0.8 FileStaticRepository.find does new File(location, relativePath) with no containment check and StaticMappings.find has no '..' guard at all, while official_fix.patch adds only 'path.contains(\"/../\") == false' — which stops neither PoV ('/static/..' contains no '/../'; the symlink path contains no '..'). At HEAD FileStaticRepository canonicalises and requires containment plus isFile(), closing both, and the same guard was applied to ExtendStaticRepository and ClassPathStaticRepository with new tests. Note an earlier tightening (4a6e8346, v3.1.0) added '../' and '..\\\\' rejection but closes NEITHER PoV. CAVEAT: GHSA-mmhm-jhrm-7xp9 is not publicly resolvable (404 from the advisories API and the repo page; the repo's only published advisory is GHSA-g6j2-2jq7-g753, a separate WebDAV traversal) — treat the id as unverified, likely a draft/private advisory.",
+      "evidence_urls": [
+        "https://github.com/opensolon/solon/commit/21f7b7c395d49cb3784d2eab979033eb4f617d71"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (v3.0.8 premise re-checked + HEAD + branch containment)"
+    },
+    "xwiki__xwiki-rendering_CVE-2023-37908_14.10.3::allowed_data_prefix_bypass_sax": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "0b8e9c45",
+      "later_fix_date": "2023-01-13",
+      "later_fix_release": "xwiki-commons 14.10.4 (2023-02-01)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'XCOMMONS-2606: Properly validate data attributes in SecureHTMLElementSanitizer'; deliberate, not incidental",
+      "notes": "SUPERSEDED, NOT AN UPSTREAM MISS — the residual gap never existed in any released, patched XWiki. The defect lives in xwiki-commons (SecureHTMLElementSanitizer's DATA_ATTR pattern, unanchored + .find()), a DEPENDENCY of the patched artifact, not in xwiki-rendering-xml itself. XRENDERING-697 (the rendering fix, 2023-01-13T16:28) and XCOMMONS-2606 (the commons fix, same day) are a coordinated pair, and GHSA-663w-2xp3-5739 names 14.10.4 as the first patched version — exactly the release where commons ships the anchored '^data-[...]+$' pattern matched with .matches(). Our gap exists only in the benchmark's synthetic tree: rendering-14.10.3 source + official_fix.patch, still resolving commons-14.10.3 jars. XHTMLWikiPrinter.cleanAttributes' ALLOWED branch is indeed still unvalidated at HEAD, but that is not where the flaw was closed. Valid instrument; no upstream-miss claim.",
+      "evidence_urls": [
+        "https://github.com/xwiki/xwiki-commons/commit/0b8e9c45b7e7457043938f35265b2aa5adc76a68"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "xwiki__xwiki-rendering_CVE-2023-37908_14.10.3::allowed_data_prefix_bypass_map": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "0b8e9c45",
+      "later_fix_date": "2023-01-13",
+      "later_fix_release": "xwiki-commons 14.10.4 (2023-02-01)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'XCOMMONS-2606: Properly validate data attributes in SecureHTMLElementSanitizer'; deliberate, not incidental",
+      "notes": "SUPERSEDED, NOT AN UPSTREAM MISS — the residual gap never existed in any released, patched XWiki. The defect lives in xwiki-commons (SecureHTMLElementSanitizer's DATA_ATTR pattern, unanchored + .find()), a DEPENDENCY of the patched artifact, not in xwiki-rendering-xml itself. XRENDERING-697 (the rendering fix, 2023-01-13T16:28) and XCOMMONS-2606 (the commons fix, same day) are a coordinated pair, and GHSA-663w-2xp3-5739 names 14.10.4 as the first patched version — exactly the release where commons ships the anchored '^data-[...]+$' pattern matched with .matches(). Our gap exists only in the benchmark's synthetic tree: rendering-14.10.3 source + official_fix.patch, still resolving commons-14.10.3 jars. XHTMLWikiPrinter.cleanAttributes' ALLOWED branch is indeed still unvalidated at HEAD, but that is not where the flaw was closed. Valid instrument; no upstream-miss claim.",
+      "evidence_urls": [
+        "https://github.com/xwiki/xwiki-commons/commit/0b8e9c45b7e7457043938f35265b2aa5adc76a68"
+      ],
+      "verified_by": "independent agent audit 2026-08-21"
+    },
+    "gdraheim__zziplib_CVE-2017-5975_3a4ffcdd7870::truncated_local_header_extras_oob_read": {
+      "status": "superseded-in-release",
+      "claim_class": "adjacent",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "03de3bea",
+      "later_fix_date": "2017-04-20",
+      "later_fix_release": "v0.13.63 (2017-04-21) — the SAME release as the residual_of commit",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'remember extra_block length / check min and max sizes / ... CVE-2017-5974 / CVE-2017-5976'; the added guard carries its own inline attribution 'errno = EBADMSG; /* format error CVE-2017-5978 */'. The gap belongs to 5974/5976/5978, not to 5975 — hence adjacent.",
+      "notes": "CONFIRMED independently, without relying on the earlier ASan pass. The four commits are strictly linear on 2017-04-20: base 19:13:50 -> 03de3be 21:44:22 -> 33d6e9c 23:07:10 -> 64e745f 23:20:23, so the closer precedes our residual_of commit by 1h22m48s and is its immediate predecessor. All three first appear in v0.13.63, tagged ~1h38m after the last of them; the tag-set difference is empty. Decisively, official_fix.patch carries only the 33d6e9c magic check and the 64e745f null check — 03de3be's hunks are absent, confirming the counterfactual tree. ADJACENT is supported by the fix's own inline attribution ('/* format error CVE-2017-5978 */') and its message naming CVE-2017-5974 / CVE-2017-5976.",
+      "evidence_urls": [
+        "https://github.com/gdraheim/zziplib/commit/03de3beabbf570474a9ac05d6dc6b42cdb184cd1"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (first executed with ASan, second structural)"
+    },
+    "gdraheim__zziplib_CVE-2017-5976_3a4ffcdd7870::zip64_truncated_extra_block_oob_read": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "9e8f867a",
+      "later_fix_date": "2017-05-23",
+      "later_fix_release": "v0.13.67 (2017-06-12)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "the commit message is the bare string 'CVE-2017-5974' — filed under a different CVE, but the diff is precisely this gap's guard: in-scope by content, mislabeled by message",
+      "notes": "VERIFIED BY EXECUTION with an ASan build+run bracket: 3a4ffcdd REPRODUCED (memdisk.c:221), 03de3be REPRODUCED (:228, matching the certification), 33d6e9c REPRODUCED (:228), 64e745f REPRODUCED (:233), 9033837 (the fix's PARENT) REPRODUCED (:254) -> 1e5b1ac blocked, v0.13.67 blocked, HEAD blocked. The fix swaps zzip_mem_entry_extra_block for zzip_mem_entry_find_extra_block, which checks 'blocksize <= datasize + headerlength'. Note 9e8f867a itself does not compile (it calls the new function before its prototype exists; the prototype arrives in the follow-up 1e5b1ac), which is why the bracket ends at 1e5b1ac. OPEN LEAD, untested, worth its own look: at HEAD the zip64 override was rewritten again by 06c24f6 (2024-03-01, v0.13.74) so zzip_mem_entry_new reads the 32-byte struct zzip_extra_zip64 DIRECTLY off the mmapped extras pointer, gated only on a csize sentinel and a 2-byte magic, with no check that the declared extras length covers 32 bytes — the bound runs later. Same class of unvalidated-size read, relocated. The certified PoV is blocked earlier so it does not reach it.",
+      "evidence_urls": [
+        "https://github.com/gdraheim/zziplib/commit/9e8f867a976311a3e5fb0184c947e22ec35f2fcb"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (ASan build + run at 8 revisions)"
+    },
+    "gnome__libxml2_CVE-2017-5969_362b3229::snprintf_element_content_null_deref": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "babe7503",
+      "later_fix_date": "2021-05-01",
+      "later_fix_release": "v2.9.11 (2021-05-13)",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim — 'Propagate error in xmlParseElementChildrenContentDeclPriv ... Otherwise, struct xmlElementContent could contain unexpected null pointers, leading to a null deref when post-validating documents which aren't well-formed and parsed in recovery mode. Fixes #243.'",
+      "notes": "THE MOST DURABLE STRUCTURAL FINDING IN THE CORPUS: upstream fixed the PRODUCER, not the sink. xmlSnprintfElementContent at HEAD (valid.c:1006, 1018, 1026, 1038) STILL dereferences content->c1->type / content->c2->type with no null check — our structural claim ('the fix guarded xmlDumpElementContent and left the identical sibling unguarded') remains literally true nine years on. What babe7503 closed is the recover-mode parser path that could build a NULL child, which is why the PoV is dead. VERIFIED BY EXECUTION: xmllint built with ASan from the CANONICAL gitlab.gnome.org clone, run on the suite's own 1.xml — at babe7503^ it produced the certified stack exactly (SEGV, #0 xmlSnprintfElementContent valid.c:1342, #1 same fn:1332, #2 xmlCtxtDumpElemDecl), and no crash at babe7503, v2.9.11, v2.10-2.14, v2.14.6 or HEAD. The sweep's fix_changed flag is explained: xmlDumpElementContent no longer exists in valid.c — it became iterative in 2019 and moved to xmlsave.c as xmlBufDumpElementContent, where it IS null-safe.",
+      "evidence_urls": [
+        "https://gitlab.gnome.org/GNOME/libxml2/-/commit/babe75030c7f64a37826bb3342317134568bef61"
+      ],
+      "verified_by": "independent agent audit 2026-08-21 (ASan build + run, canonical repo)"
+    },
+    "skyrpex__potrace_CVE-2013-7437_189777a2bd50::res_bmp_coltable_ncolors_oob": {
+      "status": "fixed-later",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "upstream release 1.13 (no public git)",
+      "later_fix_date": "2015-10-22",
+      "later_fix_release": "potrace 1.13",
+      "delta_days": null,
+      "releases_exposed": "",
+      "corroboration": "verbatim, potrace ChangeLog v1.13 — '(2015/07/18) PS1 - fixed heap overflows, null pointer dereference bugs and a memory leak. Reported by Agostino Sarubbo.'; NEWS — 'Some critical bugs in the processing of BMP files were fixed ... by feeding it specially crafted BMP files.'",
+      "notes": "CONFIRMED AND NOW EXECUTED — the 'not built/run' caveat is retired. An auditor built potrace 1.11, 1.12 and 1.13 from the sourceforge tarballs with clang+ASan and ran the suite's own run.sh: 1.11 reproduced (exit 0), 1.12 (the official fix) reproduced (exit 0) with ASan reporting 'heap-buffer-overflow READ of size 4 in bm_readbody_bmp bitmap_io.c:601' — exactly the coltable[b] line at that version — and 1.13 BLOCKED (exit 1). So the falsifiability control passes, out-of-harness (there is no git revision to point --at at, since upstream potrace has no public git). Re-host parity is now byte-proven: diff of src/bitmap_io.c and src/bitmap.h at each of the four skyrpex import commits against the corresponding tarball is identical in all eight comparisons. Genuine fixed-later: 1.12 (2015-03-24) -> 1.13 (2015-10-22), no intermediate release, lag ~7 months.",
+      "evidence_urls": [
+        "https://potrace.sourceforge.net"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second BUILT and RAN the PoV at three releases)"
+    },
+    "git__binutils-gdb_CVE-2017-15025_515f23e63c00::opcode_base_zero_line_loop": {
+      "status": "superseded-in-release",
+      "claim_class": "in-scope",
+      "confidence": "high",
+      "official_fix_commit": "",
+      "official_fix_date": "",
+      "later_fix_commit": "e338894d",
+      "later_fix_date": "2017-09-26",
+      "later_fix_release": "binutils 2.30 (tagged 2018-01-27)",
+      "delta_days": null,
+      "releases_exposed": "NONE — binutils-2_29_1's tag commit (90276f15, 2017-09-15) predates all three commits, and 2.30 is the first release carrying any of them",
+      "corroboration": "verbatim — 'PR22204, Lack of DW_LNE_end_sequence causes infinite loop / PR 22204 / * dwarf2.c (decode_line_info): Ensure line_ptr stays within bounds in inner loop.'",
+      "notes": "RECLASSIFIED 2026-08-21: was fixed-later, is superseded — and the dossier's own body already said so ('2.30 is the first release carrying all three') while its status line contradicted it. Verified by hand: binutils-2_29_1 is tagged 2017-09-15, BEFORE the official fix d8010d3e (2017-09-24) and the closer e338894d (2017-09-26), so the set of releases carrying the official fix without the bound is empty. WHY THE CONTROL PASSES, now settled mechanically: with opcode_base == 0, 'op_code >= lh.opcode_base' is true for every value including the 0 that read_1_byte returns past line_end, so control never reaches the branch where DW_LNE_end_sequence sets end_sequence; each iteration advances line_ptr by 1 and calls add_line_info -> bfd_alloc, unbounded. Adding '&& line_ptr < line_end' caps the iteration count, and the outer loop then exits. No opcode_base == 0 rejection exists at master and none is needed. TWO CORRECTIONS: '32 seconds' is the AUTHOR-date delta between our base and the official fix; the commit-date delta is 2m05s. And our 'dataset URL is dead' note was STALE — project_info.csv already records github_url = https://github.com/gnutools/binutils-gdb; only the slug prefix git__binutils-gdb_ is historical. That stale note came from a bug in our own sweep, which built owner/name from the github_username/github_repository_name columns instead of github_url; the sweep now prefers the URL and binutils no longer reports file_absent.",
+      "evidence_urls": [
+        "https://github.com/gnutools/binutils-gdb/commit/e338894dc2e603683bed2172e8e9f25b29051005"
+      ],
+      "verified_by": "two independent agent audits 2026-08-21 (second refuted the status) + tag dates re-verified by hand"
+    }
+  }
+}

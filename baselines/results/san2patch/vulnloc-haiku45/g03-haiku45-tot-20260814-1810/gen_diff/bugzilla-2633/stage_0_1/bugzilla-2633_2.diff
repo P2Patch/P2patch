@@ -1,0 +1,39 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..2f99ebb6 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2438,13 +2438,16 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	tsize_t cc;
+ 	unsigned char *tf_buf;
+ 	unsigned char *cp, c;
+-
++	unsigned char *tf_buf_end;
++// FIXME: Crash CWE-125: Out-of-bounds Read
++ 
+ 	(void) w;
+-	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow);
++	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow + es);
+ 	if (tf_buf == NULL) {
+ 		TIFFError(filename, "No space for scanline buffer");
+ 		return;
+ 	}
++	tf_buf_end = tf_buf + tf_bytesperrow + es;
+ 	for (row = 0; row < h; row++) {
+ 		if (TIFFReadScanline(tif, tf_buf, row, 0) < 0)
+ 			break;
+@@ -2460,6 +2463,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			int adjust;
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++				if (cp + nc > tf_buf_end) break;
+ 				DOBREAK(breaklen, nc, fd);
+ 				/*
+ 				 * For images with alpha, matte against
+@@ -2479,6 +2483,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 		} else {
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++				if (cp + nc > tf_buf_end) break;
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);

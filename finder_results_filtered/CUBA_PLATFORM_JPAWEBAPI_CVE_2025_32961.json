@@ -1,0 +1,59 @@
+{
+  "cwe_id": "cwe-079",
+  "cve_id": "CVE-2025-32961",
+  "note": "CVE-aligned file name and extension flows reaching the Content-Type and Content-Disposition response headers in RestFileDownloadController download handling, which lets a stored file be served back as inline HTML.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "getExtension(...) : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 216
+          },
+          {
+            "message": "toLowerCase(...) : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 216
+          },
+          {
+            "message": "... + ... : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 216
+          },
+          {
+            "message": "getMIMEType(...) : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 216
+          },
+          {
+            "message": "getContentType(...)",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 112
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getName(...) : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 107
+          },
+          {
+            "message": "encodeUtf8(...) : String",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 107
+          },
+          {
+            "message": "... + ...",
+            "uri": "modules/jpawebapi/src/com/haulmont/addon/jpawebapi/api/controller/RestFileDownloadController.java",
+            "line": 116
+          }
+        ]
+      ]
+    }
+  ]
+}

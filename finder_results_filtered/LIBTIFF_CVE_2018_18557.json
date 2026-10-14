@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2018-18557",
+  "note": "JBIGDecode(TIFF* tif, uint8* buffer, tmsize_t size, uint16 s) (libtiff/tif_jbig.c) explicitly discards its own `size` parameter -- the caller-supplied capacity of `buffer` -- via `(void) size, (void) s;` at function entry (line 54) and never reads it again. `_TIFFmemcpy(buffer, pImage, jbg_dec_getsize(&decoder))` (line 100) then copies however many bytes the JBIG codestream decoded to into `buffer`, with no comparison anywhere in the function against `size`. Since the decoded size is derived entirely from the attacker-supplied JBIG codestream inside the input TIFF, a codestream that decodes larger than the caller's buffer overflows it.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "JBIGDecode()'s `size` parameter (the caller-supplied capacity of `buffer`) is explicitly discarded via `(void) size, (void) s;` at function entry and never read again in the function",
+            "uri": "libtiff/tif_jbig.c",
+            "line": 54
+          },
+          {
+            "message": "_TIFFmemcpy(buffer, pImage, jbg_dec_getsize(&decoder)) -- copies the JBIG decoder's own reported output size into `buffer` with no comparison against `size`; CWE-787 out-of-bounds write",
+            "uri": "libtiff/tif_jbig.c",
+            "line": 100
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2017-15020",
+  "note": "parse_die() (bfd/dwarf1.c) walks `xptr` (initialized from `aDiePtr`, a pointer into the raw .debug_info section bytes read directly from an attacker-supplied object file) through DWARF1 DIE attributes. For FORM_STRING, it calls strlen((char *) xptr) -- the pointer cast is elided by the compiler since bfd_byte is unsigned char, so the call operates directly on xptr -- to measure the DIE's name attribute. An unterminated name value causes the scan to read past the section buffer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "bfd_byte *xptr = this_die; : aliases aDiePtr, a pointer into the raw untrusted .debug_info section bytes",
+            "uri": "bfd/dwarf1.c",
+            "line": 187
+          },
+          {
+            "message": "xptr += strlen((char *) xptr) + 1; : reads past the section buffer when the name attribute isn't NUL-terminated within it",
+            "uri": "bfd/dwarf1.c",
+            "line": 254
+          }
+        ]
+      ]
+    }
+  ]
+}

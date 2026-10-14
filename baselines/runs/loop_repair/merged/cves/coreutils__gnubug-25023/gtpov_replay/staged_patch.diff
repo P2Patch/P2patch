@@ -1,0 +1,20 @@
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -2234,6 +2234,8 @@
+     {
+       for (; separators_not_printed > 0; --separators_not_printed)
+         {
++          l = col_sep_length;
++          s = col_sep_string;
+           while (l-- > 0)
+             {
+               /* 3 types of sep_strings: spaces only, spaces and chars,
+@@ -2241,7 +2243,7 @@
+               if (*s == ' ')
+                 {
+                   /* We're tabifying output; consecutive spaces in
+-                  sep_string may have to be converted to tabs */
++              sep_string may have to be converted to tabs */
+                   s++;
+                   ++spaces_not_printed;
+                 }

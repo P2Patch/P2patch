@@ -1,0 +1,50 @@
+diff --git a/src/make-prime-list.c b/src/make-prime-list.c
+index 68c972a84..a8a3dcc77 100644
+--- a/src/make-prime-list.c
++++ b/src/make-prime-list.c
+@@ -158,9 +158,11 @@ output_primes (const struct prime *primes, unsigned nprimes)
+ }
+ 
+ static void *
+-xalloc (size_t s)
++// FIXME: Crash CWE-125: Out-of-bounds Read
++ xalloc (size_t s)
+ {
+-  void *p = malloc (s);
++  size_t alloc_size = (s == 0) ? 1 : (s + 1);
++  void *p = malloc (alloc_size);
+   if (p)
+     return p;
+ 
+@@ -193,7 +195,7 @@ main (int argc, char **argv)
+   if ( !(limit & 1))
+     limit--;
+ 
+-  size = (limit-1)/2;
++  size = ((limit-1)/2) + 1;
+   /* sieve[i] represents 3+2*i */
+   sieve = xalloc (size);
+   memset (sieve, 1, size);
+@@ -201,17 +203,18 @@ main (int argc, char **argv)
+   prime_list = xalloc (size * sizeof (*prime_list));
+   nprimes = 0;
+ 
+-  for (i = 0; i < size;)
++  for (i = 0; i < size - 1;)
+     {
+       unsigned p = 3+2*i;
+       unsigned j;
+ 
+       process_prime (&prime_list[nprimes++], p);
+ 
+-      for (j = (p*p - 3)/2; j < size; j+= p)
+-        sieve[j] = 0;
++      for (j = (p*p - 3)/2; j < size - 1; j+= p)
++// FIXME: Crash CWE-125: Out-of-bounds Read
++         sieve[j] = 0;
+ 
+-      while (i < size && sieve[++i] == 0)
++      while (i < size - 1 && sieve[++i] == 0)
+         ;
+     }
+ 

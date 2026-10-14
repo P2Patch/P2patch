@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-20",
+  "cve_id": "CVE-2017-7601",
+  "note": "JPEGSetupEncode() (libtiff/tif_jpeg.c) computes `long top = 1L << td->td_bitspersample;` for the YCbCr ReferenceBlackWhite default, shifting by td->td_bitspersample -- the attacker-controlled BitsPerSample directory tag -- with no upper-bound check anywhere in the function. A uint16 tag value greater than 16 (well within its declared range) makes the shift exponent exceed the bit width of `long`, which is undefined behavior (UBSan-detected: \"shift exponent too large for 64-bit type 'long'\").",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "td->td_bitspersample is read directly from the TIFF directory with no upper-bound check anywhere in JPEGSetupEncode() -- attacker-controlled via the BitsPerSample directory tag",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1646
+          },
+          {
+            "message": "1L << td->td_bitspersample -- shift exponent may exceed the bit width of `long`; UBSan-detected undefined behavior",
+            "uri": "libtiff/tif_jpeg.c",
+            "line": 1646
+          }
+        ]
+      ]
+    }
+  ]
+}

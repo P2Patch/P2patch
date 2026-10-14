@@ -1,0 +1,764 @@
+{
+  "cwe_id": "cwe-094",
+  "cve_id": "CVE-2022-44262",
+  "note": "CVE-aligned attacker-controlled property and flipping-strategy class names reaching reflective construction across properties/XML parsers, PropertyFactory, MappingUtil, and the web console. Expected base-type constraints must hold at every construction sink.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "getProperties(...) : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 142
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 161
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 164
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "getProperty(...) : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "mapProperties [post update] : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 167
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 173
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 185
+          },
+          {
+            "message": "mapConfigProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 213
+          },
+          {
+            "message": "mapConfigProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 226
+          },
+          {
+            "message": "get(...) : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 226
+          },
+          {
+            "message": "optionalType : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 230
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 93
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 95
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 98
+          },
+          {
+            "message": "mapPropertyType(...) : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 230
+          },
+          {
+            "message": "optionalType",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 233
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getProperties(...) : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 142
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 161
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 164
+          },
+          {
+            "message": "props : Properties",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "getProperty(...) : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "mapProperties [post update] : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 165
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 167
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 173
+          },
+          {
+            "message": "mapProperties : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 187
+          },
+          {
+            "message": "mapConf : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 276
+          },
+          {
+            "message": "mapConf : HashMap [<map.value>] : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 307
+          },
+          {
+            "message": "get(...) : String",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 307
+          },
+          {
+            "message": "flipStrategyClass",
+            "uri": "ff4j-config-properties/src/main/java/org/ff4j/parser/properties/PropertiesParser.java",
+            "line": 311
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getNodeValue(...) : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 380
+          },
+          {
+            "message": "optionalType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 383
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 93
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 95
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 98
+          },
+          {
+            "message": "mapPropertyType(...) : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 383
+          },
+          {
+            "message": "optionalType",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 387
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getNodeValue(...) : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 442
+          },
+          {
+            "message": "clazzName",
+            "uri": "ff4j-core/src/main/java/org/ff4j/conf/XmlParser.java",
+            "line": 443
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "type : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 98
+          },
+          {
+            "message": "type : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 99
+          },
+          {
+            "message": "this [post update] : BasePropertyBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 99
+          },
+          {
+            "message": "pf [post update] : PropertyJsonBean [type] : String",
+            "uri": "ff4j-store-mongodb/src/main/java/org/ff4j/mongo/mapper/MongoPropertyMapper.java",
+            "line": 65
+          },
+          {
+            "message": "pf : PropertyJsonBean [type] : String",
+            "uri": "ff4j-store-mongodb/src/main/java/org/ff4j/mongo/mapper/MongoPropertyMapper.java",
+            "line": 75
+          },
+          {
+            "message": "parameter this : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java",
+            "line": 83
+          },
+          {
+            "message": "this : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyJsonBean.java",
+            "line": 84
+          },
+          {
+            "message": "pgb : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 139
+          },
+          {
+            "message": "pgb : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 142
+          },
+          {
+            "message": "parameter this : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 89
+          },
+          {
+            "message": "this <.field> : PropertyJsonBean [type] : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 90
+          },
+          {
+            "message": "type : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/BasePropertyBean.java",
+            "line": 90
+          },
+          {
+            "message": "getType(...) : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 142
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 158
+          },
+          {
+            "message": "pType",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 163
+          }
+        ],
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 218
+          },
+          {
+            "message": "ll : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 227
+          },
+          {
+            "message": "fMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 83
+          },
+          {
+            "message": "fMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "(...)... : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "propertyMap : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 98
+          },
+          {
+            "message": "customPTag : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 113
+          },
+          {
+            "message": "customPTag : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 117
+          },
+          {
+            "message": "values(...) : Collection [<element>] : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 117
+          },
+          {
+            "message": "property : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 118
+          },
+          {
+            "message": "(...)... : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 118
+          },
+          {
+            "message": "propertyJson : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "(...)... : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "propertyType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 122
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 128
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 129
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 158
+          },
+          {
+            "message": "pType",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 163
+          }
+        ],
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 64
+          },
+          {
+            "message": "readValue(...) : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 66
+          },
+          {
+            "message": "fMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 83
+          },
+          {
+            "message": "fMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "(...)... : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 97
+          },
+          {
+            "message": "propertyMap : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 98
+          },
+          {
+            "message": "customPTag : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 113
+          },
+          {
+            "message": "customPTag : Map",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 117
+          },
+          {
+            "message": "values(...) : Collection [<element>] : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 117
+          },
+          {
+            "message": "property : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 118
+          },
+          {
+            "message": "(...)... : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 118
+          },
+          {
+            "message": "propertyJson : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "(...)... : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 121
+          },
+          {
+            "message": "propertyType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 122
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 128
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 129
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 158
+          },
+          {
+            "message": "pType",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 163
+          }
+        ],
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/PropertyJsonParser.java",
+            "line": 58
+          },
+          {
+            "message": "propertyJson : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/PropertyJsonParser.java",
+            "line": 70
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/PropertyJsonParser.java",
+            "line": 70
+          },
+          {
+            "message": "valueOf(...) : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/PropertyJsonParser.java",
+            "line": 70
+          },
+          {
+            "message": "propertyType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/PropertyJsonParser.java",
+            "line": 71
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 128
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 129
+          },
+          {
+            "message": "pType : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 158
+          },
+          {
+            "message": "pType",
+            "uri": "ff4j-core/src/main/java/org/ff4j/property/util/PropertyFactory.java",
+            "line": 163
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 218
+          },
+          {
+            "message": "ll : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 227
+          },
+          {
+            "message": "fMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 83
+          },
+          {
+            "message": "fMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "(...)... : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "flipMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 200
+          },
+          {
+            "message": "flipMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "(...)... : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "classType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 206
+          },
+          {
+            "message": "className : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 181
+          },
+          {
+            "message": "className",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 183
+          }
+        ],
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 179
+          },
+          {
+            "message": "(...)... : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 184
+          },
+          {
+            "message": "flipMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 200
+          },
+          {
+            "message": "flipMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "(...)... : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "classType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 206
+          },
+          {
+            "message": "className : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 181
+          },
+          {
+            "message": "className",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 183
+          }
+        ],
+        [
+          {
+            "message": "json : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 64
+          },
+          {
+            "message": "readValue(...) : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 66
+          },
+          {
+            "message": "fMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 83
+          },
+          {
+            "message": "fMap : HashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "(...)... : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 95
+          },
+          {
+            "message": "flipMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 200
+          },
+          {
+            "message": "flipMap : LinkedHashMap",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "get(...) : Object",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "(...)... : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 204
+          },
+          {
+            "message": "classType : String",
+            "uri": "ff4j-utils-json/src/main/java/org/ff4j/utils/json/FeatureJsonParser.java",
+            "line": 206
+          },
+          {
+            "message": "className : String",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 181
+          },
+          {
+            "message": "className",
+            "uri": "ff4j-core/src/main/java/org/ff4j/utils/MappingUtil.java",
+            "line": 183
+          }
+        ]
+      ]
+    },
+    {
+      "traces": [
+        [
+          {
+            "message": "getParameter(...) : String",
+            "uri": "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java",
+            "line": 104
+          },
+          {
+            "message": "strategy",
+            "uri": "ff4j-web/src/main/java/org/ff4j/web/embedded/ConsoleOperations.java",
+            "line": 107
+          }
+        ]
+      ]
+    }
+  ]
+}

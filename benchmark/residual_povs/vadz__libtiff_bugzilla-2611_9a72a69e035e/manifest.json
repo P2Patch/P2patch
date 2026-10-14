@@ -1,0 +1,57 @@
+{
+  "advisory": {
+    "ghsa": "",
+    "nvd": "CVE-2016-10267",
+    "urls": [
+      "http://bugzilla.maptools.org/show_bug.cgi?id=2611",
+      "https://nvd.nist.gov/vuln/detail/CVE-2016-10267",
+      "https://github.com/vadz/libtiff/commit/43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec",
+      "https://github.com/vadz/libtiff/commit/43908ce15e8bf85f063443658d2a6da0d1cd4e74"
+    ]
+  },
+  "cve_id": "bugzilla-2611",
+  "cwe_id": "CWE-369",
+  "fix_reference": {
+    "fix_commit_ids": [
+      "43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec"
+    ],
+    "fix_summary": "The 2016 decoder_ok fix guards only OJPEGDecode()'s dispatch into OJPEGDecodeRaw/OJPEGDecodeScanlines; it leaves every divide inside OJPEGPreDecode/OJPEGReadHeaderInfo untouched, so a zero YCbCrSubsampling factor still divides by zero at tif_ojpeg.c:1079. That divide was fixed upstream only in 4.1.0 (43908ce15e8b, 'OJPEG: fix integer division by zero on corrupted subsampling factors', which rejects subsampling factors outside {1,2,4}).",
+    "official_fix_patch": "official_fix.patch"
+  },
+  "povs": [
+    {
+      "command": "bash .security-pipeline/respov/run.sh r1_readheader",
+      "covers_alert_paths": [],
+      "description": "A crafted OJPEG TIFF (Compression=6, Photometric=10 ITULAB, SamplesPerPixel=3, PlanarConfig=1, BitsPerSample=8,8,8, ImageWidth=16, ImageLength=32, RowsPerStrip=8, YCbCrSubsampling=(2,0), strip payload = 64 bytes of 0xAA). Read via the libtiff public API: TIFFOpen -> TIFFReadScanline(row 0) -> OJPEGPreDecode -> OJPEGSubsamplingCorrect (ITULAB+SPP=3 path calls OJPEGReadHeaderInfoSec, which bails on the garbage JPEG before the SOF component parse, so the tag's subsampling_ver=0 survives) -> OJPEGReadHeaderInfo: strile_length(8) < image_length(32) is true, so 'sp->strile_length % (sp->subsampling_ver*8)' = 8 % (0*8) = 8 % 0 traps (tif_ojpeg.c:1079). Built with -fsanitize=integer-divide-by-zero so the trap is observed as 'runtime error: division by zero'.",
+      "exploit_path": "crafted OJPEG TIFF, YCbCrSubsampling=(2,0), Photometric=ITULAB -> TIFFOpen/TIFFReadScanline -> OJPEGPreDecode (tif_ojpeg.c:670) -> OJPEGReadHeaderInfo (tif_ojpeg.c:674) -> 'sp->strile_length%(sp->subsampling_ver*8)' (tif_ojpeg.c:1079) divides by subsampling_ver*8 == 0",
+      "gap_summary": "The 2016 decoder_ok fix guards OJPEGDecode() only; the earlier OJPEGReadHeaderInfo divide 'strile_length % (subsampling_ver*8)' (tif_ojpeg.c:1079) still divides by zero when YCbCrSubsampling vertical factor is 0. Upstream fixed it only in 4.1.0 (43908ce15e8b).",
+      "id": "ojpeg_readheaderinfo_zero_subsampling_fpe",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "a3310b62fdf20fe898ac0e97c46fb226cb04fe2ff97829d638085943b957cb23",
+        "ran_at": "2026-08-15T22:48:06+00:00"
+      }
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2611_9a72a69e035e",
+  "residual_of": "43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec",
+  "setup_commands": [
+    "test -x ./configure || (test -x ./autogen.sh && ./autogen.sh) || (test -f configure.ac -o -f configure.in && autoreconf -i) || true && ./configure --enable-static --disable-shared && make CFLAGS=\"-fsanitize=integer-divide-by-zero -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" CXXFLAGS=\"-fsanitize=integer-divide-by-zero -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" LDFLAGS=\"-fsanitize=integer-divide-by-zero\""
+  ],
+  "sink": "libtiff/tif_ojpeg.c:OJPEGReadHeaderInfo -- 'if (sp->strile_length%(sp->subsampling_ver*8)!=0)' (line 1079)",
+  "summary": "The official CVE-2016-10267 fix (43bc256d) only adds a decoder_ok guard on the OJPEGDecode() dispatch, so it closes the OJPEGDecodeRaw 'cc % bytes_per_line' divide (tif_ojpeg.c:816). It does NOT touch the OJPEG integer divisions that happen EARLIER, inside OJPEGPreDecode -> OJPEGReadHeaderInfo, when a crafted YCbCrSubsampling factor is zero: 'strile_length % (subsampling_ver*8)' at tif_ojpeg.c:1079 is still a divide-by-zero after the fix. Upstream closed it only in 4.1.0 (commit 43908ce15e8b).",
+  "trust_boundary": "the OJPEG TIFF directory's YCbCrSubsampling tag: a vertical subsampling factor of 0 combined with Photometric=ITULAB (which bypasses the tif_strip.c YCbCr subsampling validation) and a garbage embedded JPEG stream (so OJPEGReadHeaderInfoSec bails before the SOF component parse could overwrite the zero) reaches the modulo divisor sp->subsampling_ver*8 == 0"
+}

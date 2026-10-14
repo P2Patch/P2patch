@@ -1,0 +1,58 @@
+{
+  "advisory": {
+    "ghsa": "",
+    "nvd": "",
+    "urls": [
+      "http://bugzilla.maptools.org/show_bug.cgi?id=2633",
+      "https://blogs.gentoo.org/ago/2017/01/01/libtiff-multiple-heap-based-buffer-overflow/",
+      "https://github.com/vadz/libtiff/commit/5ed9fea523316c2f5cec4d393e4d5d671c2dbc33",
+      "https://libtiff.gitlab.io/libtiff/releases/v4.0.8.html"
+    ]
+  },
+  "cve_id": "bugzilla-2633",
+  "cwe_id": "CWE-125",
+  "fix_reference": {
+    "fix_commit_ids": [
+      "5ed9fea523316c2f5cec4d393e4d5d671c2dbc33"
+    ],
+    "fix_summary": "Adds an `if (es <= 0)` guard at the top of PSDataColorContig() (tools/tiff2ps.c): when samplesperpixel <= nc the extra-sample stride is zero or negative, which makes the alpha-matte read `adjust = 255 - cp[nc]` walk ahead of cp and past the row buffer; the function now prints TIFFError('Inconsistent value of es: %d') and returns without touching the scanline.",
+    "official_fix_patch": "official_fix.patch"
+  },
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh colorcontig_oob.tif",
+      "covers_alert_paths": [
+        "int breaklen = MAXLINE, es = samplesperpixel - nc; -- computed with no validation at tools/tiff2ps.c:2437; the fixture's malformed IFD (StripByteCounts(4) < real 16-byte scanline, unsorted tags) makes libtiff coerce the row geometry down (scanline buffer 4 bytes, es = spp - nc = -2), so the es <= 0 guard is exactly the condition that fires",
+        "adjust = 255 - cp[nc]; -- the alpha-matte read at tools/tiff2ps.c:2470, nc bytes AHEAD of cp; cp[nc] lands one byte past the end of the tf_bytesperrow-sized heap buffer tf_buf (address 0 bytes to the right of the 4-byte tf_buf allocation)"
+      ],
+      "description": "tiff2ps against the original asarubbo reproducer 00107: a 4-pixel-wide, 1-row RGB TIFF with ExtraSamples=1 (alpha) whose malformed IFD (StripByteCounts(4) < 16, unsorted tags, bogus YResolution/Software offsets) libtiff coerces instead of rejecting, so PSDataColorContig runs with a 4-byte scanline buffer tf_buf and es = samplesperpixel - nc = -2 (never validated at tools/tiff2ps.c:2437). The per-pixel alpha-matte read `adjust = 255 - cp[nc]` (line 2470) then reads one byte past tf_buf -- witnessed AddressSanitizer heap-buffer-overflow READ of size 1 at tools/tiff2ps.c:2470 (address 0x...1b4, 0 bytes to the right of the 4-byte region).",
+      "exploit_path": "tiff2ps <rgb+alpha.tif> -> PSpage RGB-branch (tools/tiff2ps.c:2347, nc=3) -> PSDataColorContig (tools/tiff2ps.c:2434) -> es = samplesperpixel - nc = -2 (line 2437, unvalidated) -> for cc < tf_bytesperrow (4): adjust = 255 - cp[nc] (line 2470) -> cp[nc] = tf_buf+4 = one byte past the 4-byte heap row buffer tf_buf",
+      "id": "colorcontig_es_zero_oob_read",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "6393d4eba77e214e316f7de07144289f26694563297f9e56f5773c7ebaf7f247",
+        "ran_at": "2026-08-10T22:35:29+00:00"
+      }
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2633_f3069a5adc65",
+  "setup_commands": [
+    "test -x ./configure || (test -x ./autogen.sh && ./autogen.sh) || (test -f configure.ac -o -f configure.in && autoreconf -i) || true && ./configure --enable-static --disable-shared && make CFLAGS=\"-fsanitize=address -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" CXXFLAGS=\"-fsanitize=address -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" LDFLAGS=\"-fsanitize=address\""
+  ],
+  "sink": "tools/tiff2ps.c:PSDataColorContig -- `es = samplesperpixel - nc` (line 2437) unvalidated, then `adjust = 255 - cp[nc]` (line 2470) reads nc bytes ahead of cp; with es <= 0 the row walk never advances past where cp[nc] overruns the tf_bytesperrow-sized heap buffer",
+  "summary": "tiff2ps's PSDataColorContig() computes the 'extra samples' stride `es = samplesperpixel - nc` with no validation. The asarubbo reproducer 00107 (byte-identical fixture here) is an RGB+alpha TIFF whose malformed IFD (StripByteCounts(4) < 16, unsorted tags) libtiff coerces into a 4-byte scanline buffer with es = -2; the alpha-matte adjustment `adjust = 255 - cp[nc]` (tiff2ps.c:2470) then reads one byte PAST the end of the heap buffer -- witnessed heap-buffer-overflow READ of size 1 (CWE-125), bugzilla 2633. The fix (5ed9fea523316c2f5cec4d393e4d5d671c2dbc33) rejects es <= 0 up front.",
+  "trust_boundary": "the TIFF's ImageWidth, SamplesPerPixel and ExtraSamples (alpha) IFD tags, driving the tiff2ps CLI's contig-color PostScript emission path"
+}

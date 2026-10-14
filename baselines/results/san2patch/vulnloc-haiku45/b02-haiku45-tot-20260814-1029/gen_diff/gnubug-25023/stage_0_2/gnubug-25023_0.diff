@@ -1,0 +1,19 @@
+diff --git a/src/pr.c b/src/pr.c
+index 20e863760..3c6868f86 100644
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -2234,9 +2234,13 @@ print_sep_string (void)
+     {
+       for (; separators_not_printed > 0; --separators_not_printed)
+         {
++          char *sep_string_end = s + l;
+           while (l-- > 0)
+             {
+-              /* 3 types of sep_strings: spaces only, spaces and chars,
++              if (s >= sep_string_end)
++                break;
++/* FIXME: Crash CWE-125: Out-of-bounds Read */
++               /* 3 types of sep_strings: spaces only, spaces and chars,
+               chars only */
+               if (*s == ' ')
+                 {

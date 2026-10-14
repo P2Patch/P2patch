@@ -1,0 +1,20 @@
+diff --git a/src/pr.c b/src/pr.c
+index 20e863760..f07ec1570 100644
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -2234,6 +2234,7 @@ print_sep_string (void)
+     {
+       for (; separators_not_printed > 0; --separators_not_printed)
+         {
++          const char *original_s = s;
+           while (l-- > 0)
+             {
+               /* 3 types of sep_strings: spaces only, spaces and chars,
+@@ -2256,6 +2257,7 @@ print_sep_string (void)
+           /* sep_string ends with some spaces */
+           if (spaces_not_printed > 0)
+             print_white_space ();
++          s = original_s;
+         }
+     }
+ }

@@ -1,0 +1,20 @@
+diff --git a/libtiff/tif_ojpeg.c b/libtiff/tif_ojpeg.c
+index 1ccc3f9b..0fbd9aa5 100644
+--- a/libtiff/tif_ojpeg.c
++++ b/libtiff/tif_ojpeg.c
+@@ -811,8 +811,14 @@ OJPEGDecodeRaw(TIFF* tif, uint8* buf, tmsize_t cc)
+ 	uint8* ocr;
+ 	uint8* p;
+ 	uint32 q;
+-	uint8* r;
++// FIXME: Crash CWE-369: Divide By Zero
++ 	uint8* r;
+ 	uint8 sx,sy;
++	if (sp->bytes_per_line <= 0)
++	{
++		TIFFErrorExt(tif->tif_clientdata,module,"Invalid bytes_per_line value");
++		return(0);
++	}
+ 	if (cc%sp->bytes_per_line!=0)
+ 	{
+ 		TIFFErrorExt(tif->tif_clientdata,module,"Fractional scanline not read");

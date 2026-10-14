@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "CVE-2021-3272",
+  "note": "jp2_decode() derives dec->numchans from the JP2 CMAP box when present (jp2_dec.c:334, dec->cmap->data.cmap.numchans) instead of the actual number of image components (jas_image_numcmpts(dec->image)). For a CMAP entry with JP2_CMAP_DIRECT mapping, the corresponding channel-to-component slot is filled with the raw, unvalidated channel number itself (jp2_dec.c:372, dec->chantocmptlut[channo] = channo) -- the surrounding CMAP sanity-check loop (jp2_dec.c:338-350) validates a *palette* entry's cmptno/pcol fields but never checks that a direct-mapped channo, or numchans as a whole, stays within jas_image_numcmpts(dec->image). When dec->cdef is absent, the decoder then walks every channel 0..numchans-1 and dereferences the image's component array at that index (jp2_dec.c:434, jas_image_setcmpttype(dec->image, dec->chantocmptlut[i], ...) -- the macro is '(image)->cmpts_[(cmptno)]->type_ = (type)', jas_image.h:431, no bounds check). If numchans exceeds the image's real component count, this reads/dereferences past the end of the cmpts_ array -- a heap-based buffer over-read. Nowhere between deriving numchans from the CMAP box (line 334) and using it as the bound of the channel-to-component walk (line 434) is dec->numchans cross-checked against jas_image_numcmpts(dec->image), so a crafted CMAP box whose declared channel count exceeds the image's real component count drives the walk past the end of the component array.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "dec->numchans = dec->cmap ? dec->cmap->data.cmap.numchans : jas_image_numcmpts(dec->image) -- from an untrusted CMAP box when present, not cross-checked against the image's real component count",
+            "uri": "src/libjasper/jp2/jp2_dec.c",
+            "line": 334
+          },
+          {
+            "message": "dec->chantocmptlut[channo] = channo -- JP2_CMAP_DIRECT case stores the raw, unvalidated channel number with no check against jas_image_numcmpts(dec->image)",
+            "uri": "src/libjasper/jp2/jp2_dec.c",
+            "line": 372
+          },
+          {
+            "message": "jas_image_setcmpttype(dec->image, dec->chantocmptlut[i], ...) -- dereferences (image)->cmpts_[cmptno] for cmptno up to numchans-1; heap-based buffer over-read (CWE-125) once numchans > the image's actual component count",
+            "uri": "src/libjasper/jp2/jp2_dec.c",
+            "line": 434
+          }
+        ]
+      ]
+    }
+  ]
+}

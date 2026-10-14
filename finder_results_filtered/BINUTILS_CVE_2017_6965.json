@@ -1,0 +1,59 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2017-6965",
+  "note": "target_specific_reloc_handling() (binutils/readelf.c) computes `start + reloc->r_offset` from an attacker-controlled relocation's r_offset field (from a crafted ELF/object file) and passes it to the byte_put function pointer (bound to byte_put_little_endian(), elfcomm.c), in 4 symbol-difference-relocation branches: MSP430 (line 11640), MN10300 (11677), RL78_ABS32 (11712), RL78_ABS16 (11717). byte_put_little_endian's field[N] = ... writes land past the allocated section buffer when start + reloc->r_offset exceeds it.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "byte_put(start + reloc->r_offset, value, reloc_size) : MSP430 sym-diff relocation",
+            "uri": "binutils/readelf.c",
+            "line": 11640
+          },
+          {
+            "message": "field[3] = (value >> 24) & 0xff; : byte_put_little_endian writes past the section buffer once start+r_offset exceeds its end",
+            "uri": "binutils/elfcomm.c",
+            "line": 75
+          }
+        ],
+        [
+          {
+            "message": "byte_put(start + reloc->r_offset, value, reloc_size) : MN10300 sym-diff relocation",
+            "uri": "binutils/readelf.c",
+            "line": 11677
+          },
+          {
+            "message": "field[3] = (value >> 24) & 0xff; : byte_put_little_endian writes past the section buffer once start+r_offset exceeds its end",
+            "uri": "binutils/elfcomm.c",
+            "line": 75
+          }
+        ],
+        [
+          {
+            "message": "byte_put(start + reloc->r_offset, value, 4) : RL78 R_RL78_ABS32 sym-diff relocation",
+            "uri": "binutils/readelf.c",
+            "line": 11712
+          },
+          {
+            "message": "field[3] = (value >> 24) & 0xff; : byte_put_little_endian writes past the section buffer once start+r_offset exceeds its end",
+            "uri": "binutils/elfcomm.c",
+            "line": 75
+          }
+        ],
+        [
+          {
+            "message": "byte_put(start + reloc->r_offset, value, 2) : RL78 R_RL78_ABS16 sym-diff relocation",
+            "uri": "binutils/readelf.c",
+            "line": 11717
+          },
+          {
+            "message": "field[3] = (value >> 24) & 0xff; : byte_put_little_endian writes past the section buffer once start+r_offset exceeds its end",
+            "uri": "binutils/elfcomm.c",
+            "line": 75
+          }
+        ]
+      ]
+    }
+  ]
+}

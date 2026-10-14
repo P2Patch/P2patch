@@ -1,0 +1,31 @@
+{
+  "project_slug": "REPLACE__with_dataset_slug",
+  "cve_id": "CVE-XXXX-XXXXX",
+  "cwe_id": "CWE-XXX",
+  "residual_of": "REPLACE_with_the_40_char_official_fix_commit_id",
+  "summary": "One sentence: what the official fix does, and what it still leaves open.",
+  "sink": "path/to/File.java:methodName",
+  "trust_boundary": "what attacker-controlled input reaches the sink",
+  "advisory": {
+    "ghsa": "GHSA-xxxx-xxxx-xxxx",
+    "nvd": "CVE-XXXX-XXXXX",
+    "urls": []
+  },
+  "fix_reference": {
+    "fix_commit_ids": [],
+    "official_fix_patch": "official_fix.patch",
+    "fix_summary": "What the official fix does — and the boundary it gets wrong."
+  },
+  "setup_commands": [],
+  "povs": [
+    {
+      "id": "residual_1_shared_prefix",
+      "description": "What this POV does and how it slips past the official fix.",
+      "gap_summary": "One line: what the official fix fails to close (shown in the dashboard).",
+      "exploit_path": "source -> ... -> sink (surviving the official fix's guard)",
+      "covers_alert_paths": [],
+      "command": "bash .security-pipeline/respov/run.sh",
+      "reproduces_exit_code": 0
+    }
+  ]
+}

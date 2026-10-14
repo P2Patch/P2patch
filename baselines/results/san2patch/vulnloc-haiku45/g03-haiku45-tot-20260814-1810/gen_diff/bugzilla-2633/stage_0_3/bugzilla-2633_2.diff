@@ -1,0 +1,37 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..15054b59 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2438,9 +2438,14 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	tsize_t cc;
+ 	unsigned char *tf_buf;
+ 	unsigned char *cp, c;
+-
++	tsize_t buffer_size;
++	
+ 	(void) w;
+-	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow);
++	buffer_size = tf_bytesperrow;
++	if (es > 0) {
++		buffer_size += es;
++	}
++	tf_buf = (unsigned char *) _TIFFmalloc(buffer_size);
+ 	if (tf_buf == NULL) {
+ 		TIFFError(filename, "No space for scanline buffer");
+ 		return;
+@@ -2460,6 +2465,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			int adjust;
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++				if ((cc + nc + es) > buffer_size) break;
+ 				DOBREAK(breaklen, nc, fd);
+ 				/*
+ 				 * For images with alpha, matte against
+@@ -2479,6 +2485,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 		} else {
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++				if ((cc + nc + es) > buffer_size) break;
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);

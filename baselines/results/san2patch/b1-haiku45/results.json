@@ -1,0 +1,47 @@
+[
+  {
+    "baseline": "san2patch",
+    "baseline_commit": "a8c5ace939cdf3de835fa50c617f4fe979f35e6d",
+    "case_id": "CVE-2017-5969",
+    "project_slug": "gnome__libxml2_CVE-2017-5969_362b3229",
+    "batch": "b1-haiku45",
+    "model": "claude-haiku-4-5-20251001",
+    "budget": {"iterations": 1, "candidates_per_iteration": 2},
+    "outcome": "repaired",
+    "gates": {
+      "compiles": true,
+      "poc_blocked": true,
+      "functional_tests_pass": true,
+      "functional_tests_available": true
+    },
+    "patch": {
+      "path": "patches/CVE-2017-5969.diff",
+      "lines_added": 37,
+      "lines_removed": 29,
+      "files_touched": 1,
+      "hunks": 1
+    },
+    "cost": {"wall_clock_s": 234, "attempts_used": 2},
+    "ran_at": "2026-08-14T08:19:16Z",
+    "notes": "First candidate failed to build; second passed all three gates. Fix adds NULL guards on content->c1 / content->c2 in xmlDumpElementContent (valid.c) — semantically the right fix. Diff is inflated by gratuitous reindentation of the surrounding switch/case block, which would count against it on any minimal-patch measure. Paper reports 'correct' (developer-matched) for this case on gpt-4o; we reproduce success on claude-haiku-4.5."
+  },
+  {
+    "baseline": "san2patch",
+    "baseline_commit": "a8c5ace939cdf3de835fa50c617f4fe979f35e6d",
+    "case_id": "CVE-2017-14745",
+    "project_slug": "git__binutils-gdb_CVE-2017-14745_7a31b38ef87d",
+    "batch": "b1-haiku45",
+    "model": "claude-haiku-4-5-20251001",
+    "outcome": "errored",
+    "inapplicable_reason": "Benchmark image ships no src/ tree for this case (the only one of 66 missing it), so no build, PoC replay or functional test could run. Harness/packaging defect, not a repair failure — must stay out of the denominator.",
+    "gates": {
+      "compiles": null,
+      "poc_blocked": null,
+      "functional_tests_pass": null,
+      "functional_tests_available": false
+    },
+    "cost": {"wall_clock_s": 152, "attempts_used": 4},
+    "ran_at": "2026-08-14T08:09:00Z",
+    "notes": "LLM path worked — 6 ToT candidates generated. Failure was `docker exec ... cd .../src && git reset --hard` against a nonexistent directory, retried 4x."
+  }
+]

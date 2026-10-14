@@ -1,0 +1,20 @@
+{
+ "arm": "skyset-haiku45",
+ "baseline": "patchagent",
+ "baseline_commit": "14cbd456fd7e2f6635ed46f56fb489218ce46ace",
+ "batch": "b1-haiku45-iter3",
+ "cases_attempted": 15,
+ "cost_basis": "measured_tokens",
+ "image": "patchagent-dev:nodbginfod (artifact devcontainer plus the fixes below)",
+ "max_iteration": 3,
+ "model": "claude-haiku-4-5-20251001",
+ "notes": [
+  "Run OUT OF BAND in PatchAgent's own artifact container, not through a baselines/ adapter. This directory is the normalized conversion of that native output (baselines/patchagent/normalize_run.py); nothing here was re-run or re-scored.",
+  "Environment fixes were required and are not upstream: guarded parse_other_error in nvwa/parser/address.py (an EMPTY report -- what a successful patch produces -- otherwise raises and the patch is silently discarded), tool error handlers, a syz-symbolize stub, two pull.sh remotes repointed to vadz/libtiff and gnutools/binutils-gdb, /etc/debuginfod/*.urls removed from the image, httpx==0.27.2 pinned, a libclang-16.so symlink.",
+  "extractfix-libtiff-c421b99-heap_buffer_overflow is ONE run whose single patch covers CVE-2016-3186 and CVE-2016-5314. Both appear as records because our POV sets score them separately and disagree (0/2 vs 2/2), but the cost and the effort belong to one run. Note San2Patch's own benchmark EXCLUDES both.",
+  "gnubug-19784 (coreutils 658529a) is recorded inapplicable, not failed."
+ ],
+ "purpose": "PatchAgent over the skyset cases overlapping our C corpus, at --max-iteration 3",
+ "ran_at": "2026-08-19",
+ "cost_note": "cost_usd is derived from token counts measured via Anthropic's count_tokens endpoint over the recorded traffic, including the tool schemas billed on every request. Raw traces are committed under traces/ for re-derivation."
+}

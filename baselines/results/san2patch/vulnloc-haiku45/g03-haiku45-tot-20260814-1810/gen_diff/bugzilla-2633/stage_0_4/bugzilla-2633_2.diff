@@ -1,0 +1,22 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..6538537a 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2459,7 +2459,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 		if (alpha) {
+ 			int adjust;
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + samplesperpixel <= tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				/*
+ 				 * For images with alpha, matte against
+@@ -2478,7 +2478,7 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			}
+ 		} else {
+ 			cc = 0;
+-			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
++			for (; cc + samplesperpixel <= tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);

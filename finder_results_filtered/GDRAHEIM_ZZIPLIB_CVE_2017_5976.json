@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-787",
+  "cve_id": "CVE-2017-5976",
+  "note": "zzip_mem_entry_extra_block() (zzip/memdisk.c) walks the heap-allocated copy of a zip central-directory entry's \"extra data\" field with while (*(short*)(ext->z_datatype)), advancing its cursor on every iteration by the block's own attacker-controlled datasize field (e += zzip_extra_block_get_datasize(ext)) with no comparison against any captured end-of-buffer pointer anywhere in the function. The extra data was copied into a malloc(ext1 + 2)-sized buffer whose last two bytes act as a zero sentinel meant to terminate the loop -- but a crafted datasize can skip the cursor straight past that sentinel, so the next iteration's ext->z_datatype read runs off the end of the heap allocation.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "while (*(short *) (ext->z_datatype)) : loop condition dereferences the cursor with no bound on how far it has advanced",
+            "uri": "zzip/memdisk.c",
+            "line": 248
+          },
+          {
+            "message": "e += zzip_extra_block_get_datasize(ext) : cursor advanced by the block's own untrusted datasize field, no comparison against any end-of-buffer pointer",
+            "uri": "zzip/memdisk.c",
+            "line": 256
+          },
+          {
+            "message": "ext = (void *) e : next iteration's z_datatype dereference can now be past the end of the malloc(ext1 + 2)/malloc(ext2 + 2) heap allocation",
+            "uri": "zzip/memdisk.c",
+            "line": 257
+          }
+        ]
+      ]
+    }
+  ]
+}

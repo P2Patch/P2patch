@@ -1,0 +1,59 @@
+{
+  "cwe_id": "cwe-476",
+  "cve_id": "CVE-2017-5969",
+  "note": "xmlDumpElementContent() (valid.c) dereferences content->c1->type and content->c2->type in both its SEQ and OR branches with no NULL check. content's children are built by xmlParseElementChildrenContentDeclPriv() (parser.c), which links a freshly-parsed sub-content node onto the tree only when that sub-parse succeeded (e.g. `if ((cur != NULL) && (last != NULL)) cur->c2 = last;`); when a nested content-model sub-parse fails while parsing a malformed DTD element-content declaration in recovery mode, the assignment is skipped and the child pointer is left unset, so a later dump of that DTD dereferences it.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "cur->c2 = last; guarded only by (cur != NULL) && (last != NULL) -- if a nested sub-parse fails (last stays NULL) in recovery mode, cur->c2 is left unset",
+            "uri": "parser.c",
+            "line": 6536
+          },
+          {
+            "message": "content->c2->type : dereferenced, XML_ELEMENT_CONTENT_SEQ branch",
+            "uri": "valid.c",
+            "line": 1181
+          }
+        ],
+        [
+          {
+            "message": "cur->c2 = last; guarded only by (cur != NULL) && (last != NULL) -- if a nested sub-parse fails (last stays NULL) in recovery mode, cur->c2 is left unset",
+            "uri": "parser.c",
+            "line": 6536
+          },
+          {
+            "message": "content->c2->type : dereferenced, XML_ELEMENT_CONTENT_OR branch",
+            "uri": "valid.c",
+            "line": 1195
+          }
+        ],
+        [
+          {
+            "message": "op->c1 = ret; / op->c1 = last; -- assigned unconditionally from a value that can itself be NULL when an earlier nested sub-parse failed",
+            "uri": "parser.c",
+            "line": 6432
+          },
+          {
+            "message": "content->c1->type : dereferenced, XML_ELEMENT_CONTENT_SEQ branch",
+            "uri": "valid.c",
+            "line": 1175
+          }
+        ],
+        [
+          {
+            "message": "op->c1 = ret; / op->c1 = last; -- assigned unconditionally from a value that can itself be NULL when an earlier nested sub-parse failed",
+            "uri": "parser.c",
+            "line": 6473
+          },
+          {
+            "message": "content->c1->type : dereferenced, XML_ELEMENT_CONTENT_OR branch",
+            "uri": "valid.c",
+            "line": 1189
+          }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+diff --git a/gnulib b/gnulib
+--- a/gnulib
++++ b/gnulib
+@@ -1 +1 @@
+-Subproject commit 405cd675384221b541b460c43de26d159914fe0a
++Subproject commit 405cd675384221b541b460c43de26d159914fe0a-dirty
+diff --git a/src/shred.c b/src/shred.c
+index a317c4439..ee24a27dc 100644
+--- a/src/shred.c
++++ b/src/shred.c
+@@ -288,7 +288,10 @@ fillpattern (int type, unsigned char *r, size_t size)
+   r[1] = (bits >> 8) & 255;
+   r[2] = bits & 255;
+   for (i = 3; i < size / 2; i *= 2)
+-    memcpy (r + i, r, i);
++    {
++      if (i <= size - i)
++        memcpy (r + i, r, i);
++    }
+   if (i < size)
+     memcpy (r + i, r, size - i);
+ 

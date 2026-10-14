@@ -1,0 +1,55 @@
+{
+  "cwe_id": "cwe-416",
+  "cve_id": "CVE-2018-8964",
+  "note": "AUTHORED, NOT YET CODEQL-VALIDATED. getName()'s PUSH_CONSTANT/PUSH_CONSTANT16 cases index pool[] (set by decompileCONSTANTPOOL from sact->ConstantPool, an attacker-controlled SWF ConstantPool action) using act->p.Constant8 / act->p.Constant16 -- operand fields parsed directly from the untrusted SWF ACTIONPUSH bytecode -- with no check against how many entries the current pool actually holds. pool is reassigned wholesale on every ConstantPool action without freeing/tracking the previous action's allocation lifetime, so an index beyond the current pool's populated range can read a stale pointer left over from an earlier, already-freed pool entry -- a use-after-free (CWE-416): pool[act->p.Constant8/Constant16] dereferences memory that may already have been freed and reused when a prior, smaller ConstantPool action's allocation was replaced. getName() is reached from decompileDELETE via getName(pop()) (decompile.c:3038) as well as from many other decompile*() callers that decompile a popped ActionScript value's name.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "decompileDELETE: push(newVar3(\"delete(\",getName(pop()),\")\")) -- decompiling an untrusted SWF ActionScript 'delete' opcode invokes getName() on the popped, attacker-controlled action-stack parameter",
+            "uri": "util/decompile.c",
+            "line": 3038
+          },
+          {
+            "message": "decompileCONSTANTPOOL: pool = sact->ConstantPool -- reassigned on every ConstantPool action from the untrusted SWF action record, no size bookkeeping kept alongside it pre-fix",
+            "uri": "util/decompile.c",
+            "line": 730
+          },
+          {
+            "message": "act->p.Constant8 -- PUSH_CONSTANT operand parsed directly from the untrusted SWF ACTIONPUSH bytecode",
+            "uri": "util/decompile.c",
+            "line": 397
+          },
+          {
+            "message": "pool[act->p.Constant8] read via strlenext()/strcpyext() with no bounds check against the pool's actual populated size -- reads past the live pool into a stale/freed prior entry",
+            "uri": "util/decompile.c",
+            "line": 398
+          }
+        ],
+        [
+          {
+            "message": "decompileDELETE: push(newVar3(\"delete(\",getName(pop()),\")\")) -- decompiling an untrusted SWF ActionScript 'delete' opcode invokes getName() on the popped, attacker-controlled action-stack parameter",
+            "uri": "util/decompile.c",
+            "line": 3038
+          },
+          {
+            "message": "decompileCONSTANTPOOL: pool = sact->ConstantPool -- reassigned on every ConstantPool action from the untrusted SWF action record, no size bookkeeping kept alongside it pre-fix",
+            "uri": "util/decompile.c",
+            "line": 730
+          },
+          {
+            "message": "act->p.Constant16 -- PUSH_CONSTANT16 operand parsed directly from the untrusted SWF ACTIONPUSH bytecode",
+            "uri": "util/decompile.c",
+            "line": 407
+          },
+          {
+            "message": "pool[act->p.Constant16] read via strlenext()/strcpyext() with no bounds check against the pool's actual populated size -- reads past the live pool into a stale/freed prior entry",
+            "uri": "util/decompile.c",
+            "line": 408
+          }
+        ]
+      ]
+    }
+  ]
+}

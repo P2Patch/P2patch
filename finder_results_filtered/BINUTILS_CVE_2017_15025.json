@@ -1,0 +1,35 @@
+{
+  "cwe_id": "cwe-369",
+  "cve_id": "CVE-2017-15025",
+  "note": "decode_line_info() (bfd/dwarf2.c) reads the DWARF line-number-program header field `lh.line_range` directly from an attacker-supplied object file. The DW_LNS_const_add_pc standard-opcode handler divides `(255 - lh.opcode_base) / lh.line_range` at both its taken branches (lh.maximum_ops_per_insn == 1 and its else). A zero line_range triggers SIGFPE.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "lh.line_range : unsigned char, read from the attacker-controlled DWARF line-number-program header",
+            "uri": "bfd/dwarf2.c",
+            "line": 2442
+          },
+          {
+            "message": "(255 - lh.opcode_base) / lh.line_range : integer divide-by-zero (DW_LNS_const_add_pc, maximum_ops_per_insn == 1 branch)",
+            "uri": "bfd/dwarf2.c",
+            "line": 2442
+          }
+        ],
+        [
+          {
+            "message": "lh.line_range : unsigned char, read from the attacker-controlled DWARF line-number-program header",
+            "uri": "bfd/dwarf2.c",
+            "line": 2445
+          },
+          {
+            "message": "(255 - lh.opcode_base) / lh.line_range : integer divide-by-zero (DW_LNS_const_add_pc, else branch)",
+            "uri": "bfd/dwarf2.c",
+            "line": 2445
+          }
+        ]
+      ]
+    }
+  ]
+}

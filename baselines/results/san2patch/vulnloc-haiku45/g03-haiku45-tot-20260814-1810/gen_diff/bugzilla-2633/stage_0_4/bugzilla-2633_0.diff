@@ -1,0 +1,34 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..769fac7d 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2469,10 +2469,10 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 				 */
+ 				adjust = 255 - cp[nc];
+ 				switch (nc) {
+-				case 4: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 3: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 2: c = *cp++ + adjust; PUTHEX(c,fd);
+-				case 1: c = *cp++ + adjust; PUTHEX(c,fd);
++				case 4: if (cc + 3 < tf_bytesperrow) { c = *cp++ + adjust; PUTHEX(c,fd); }
++				case 3: if (cc + 2 < tf_bytesperrow) { c = *cp++ + adjust; PUTHEX(c,fd); }
++				case 2: if (cc + 1 < tf_bytesperrow) { c = *cp++ + adjust; PUTHEX(c,fd); }
++				case 1: if (cc < tf_bytesperrow) { c = *cp++ + adjust; PUTHEX(c,fd); }
+ 				}
+ 				cp += es;
+ 			}
+@@ -2481,10 +2481,10 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
+ 				switch (nc) {
+-				case 4: c = *cp++; PUTHEX(c,fd);
+-				case 3: c = *cp++; PUTHEX(c,fd);
+-				case 2: c = *cp++; PUTHEX(c,fd);
+-				case 1: c = *cp++; PUTHEX(c,fd);
++				case 4: if (cc + 3 < tf_bytesperrow) { c = *cp++; PUTHEX(c,fd); }
++				case 3: if (cc + 2 < tf_bytesperrow) { c = *cp++; PUTHEX(c,fd); }
++				case 2: if (cc + 1 < tf_bytesperrow) { c = *cp++; PUTHEX(c,fd); }
++				case 1: if (cc < tf_bytesperrow) { c = *cp++; PUTHEX(c,fd); }
+ 				}
+ 				cp += es;
+ 			}

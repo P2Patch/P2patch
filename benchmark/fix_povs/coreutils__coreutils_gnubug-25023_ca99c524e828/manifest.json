@@ -1,0 +1,81 @@
+{
+  "advisory": {
+    "ghsa": "",
+    "nvd": "gnubug-25023",
+    "urls": [
+      "https://debbugs.gnu.org/cgi/bugreport.cgi?bug=25023",
+      "https://github.com/coreutils/coreutils/commit/d91aeef0527bf8ec0f83c3c3b69f3979c0b4c4a0"
+    ]
+  },
+  "build_command": "GNULIB_PIN=6b26660a01125acb394e39ac71635c8df4c110c4; if [ -d gnulib/lib ] && [ \"$(git -C gnulib rev-parse HEAD 2>/dev/null)\" = \"$GNULIB_PIN\" ]; then :; elif ls gnulib/lib/*.c >/dev/null 2>&1; then rm -rf gnulib && git clone https://git.savannah.gnu.org/git/gnulib.git gnulib && git -C gnulib checkout \"$GNULIB_PIN\"; else git config submodule.gnulib.url https://git.savannah.gnu.org/git/gnulib.git && git submodule update --init gnulib; fi && if [ \"$(git -C gnulib rev-parse HEAD 2>/dev/null)\" != \"$GNULIB_PIN\" ]; then git -C gnulib fetch origin \"$GNULIB_PIN\" && git -C gnulib checkout \"$GNULIB_PIN\"; fi && FORCE_UNSAFE_CONFIGURE=1 ./bootstrap --skip-po --no-git --gnulib-srcdir=$PWD/gnulib && sed -i 's/_IO_ftrylockfile/_IO_EOF_SEEN/g' lib/*.c && printf '#ifndef _IO_IN_BACKUP\\n# define _IO_IN_BACKUP 0x0100\\n#endif\\n#ifndef _IO_NO_READS\\n# define _IO_NO_READS 0x0004\\n#endif\\n#ifndef _IO_NO_WRITES\\n# define _IO_NO_WRITES 0x0008\\n#endif\\n#ifndef _IO_CURRENTLY_PUTTING\\n# define _IO_CURRENTLY_PUTTING 0x0800\\n#endif\\n' >> lib/stdio-impl.h && FORCE_UNSAFE_CONFIGURE=1 ./configure CFLAGS=\"-fsanitize=address -g -O0 -Wno-error -fcommon\" CXXFLAGS=\"-fsanitize=address -g -O0 -Wno-error -fcommon\" LDFLAGS=\"-fsanitize=address\" && make -j\"$(nproc)\"",
+  "cve_id": "gnubug-25023",
+  "cwe_id": "CWE-125",
+  "fix_reference": {
+    "fix_commit_ids": [
+      "d91aeef0527bf8ec0f83c3c3b69f3979c0b4c4a0"
+    ],
+    "fix_summary": "Guards the tab-separator override in init_parameters() with an additional `col_sep_length == 1` condition, so a multi-character separator starting with a tab is no longer repointed at the 1-byte column_separator global -- the (pointer,length) pair stays consistent.",
+    "official_fix_patch": "official_fix.patch"
+  },
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh tabs_only",
+      "covers_alert_paths": [
+        "col_sep_length = len; col_sep_string = optarg_S; (src/pr.c:852-853) -> col_sep_string = column_separator; without resetting col_sep_length (src/pr.c:1237) -> int l = col_sep_length; (src/pr.c:2225) -> if (*s == ' ') reads l bytes of the 1-byte global (src/pr.c:2241)"
+      ],
+      "description": "Run the real `pr` binary with a multi-tab -S separator (the exact repro from the fix commit: echo a > a; pr -S$'\\t\\t\\t' a -m a). -m merges the two input files into parallel columns, so init_parameters() enters the columns>1 branch, sees a separator starting with '\\t', repoints col_sep_string at the 1-byte column_separator while leaving col_sep_length=3, and print_sep_string() reads 2 bytes past the 1-byte global -- ASan global-buffer-overflow.",
+      "exploit_path": "-S$'\\t\\t\\t' (separator_string: col_sep_length=3, col_sep_string=optarg_S) -> init_parameters columns>1 branch (col_sep_string = column_separator, col_sep_length NOT reset, src/pr.c:1237) -> print_sep_string (s=col_sep_string, l=col_sep_length=3, reads 2 bytes past the 1-byte global, src/pr.c:2224-2241)",
+      "id": "tab_separator_merge_columns",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "cff1eedd6555fc63f0bcbf4727c6a24ecbd7e5dd793827854985d53d33090276",
+        "ran_at": "2026-08-20T07:40:36+00:00"
+      }
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh tab_mixed",
+      "covers_alert_paths": [
+        "col_sep_string = column_separator; without resetting col_sep_length (src/pr.c:1237) -> print_sep_string reads col_sep_length bytes of the 1-byte global (src/pr.c:2225,2241)"
+      ],
+      "description": "Same desynchronization with a separator that *starts with* a tab but contains non-tab chars (-S$'\\tXX', length 3): init_parameters() only inspects the first byte ('\\t'), so col_sep_string is repointed at the 1-byte column_separator while col_sep_length stays 3, and print_sep_string() reads 2 bytes past the global. Guards against a partial fix that special-cases only all-tab separators instead of the length==1 check the official fix uses.",
+      "exploit_path": "-S$'\\tXX' (col_sep_length=3) -> init_parameters (first byte '\\t' -> col_sep_string = column_separator, col_sep_length unchanged=3) -> print_sep_string (reads 3 bytes from the 1-byte global, src/pr.c:2225,2241)",
+      "id": "tab_prefix_mixed_separator",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "db84dda2d30cf9fbc89fab71753030ec0671b701c5d3136fab19663726d6ab55",
+        "ran_at": "2026-08-20T07:40:36+00:00"
+      }
+    }
+  ],
+  "project_slug": "coreutils__coreutils_gnubug-25023_ca99c524e828",
+  "setup_commands": [],
+  "sink": "src/pr.c:print_sep_string (l = col_sep_length bytes of s = col_sep_string, src/pr.c:2224-2241)",
+  "summary": "`pr` (src/pr.c) tracks its column separator as a (pointer, length) pair: col_sep_string / col_sep_length. -S<str> sets both together in separator_string() (src/pr.c:852-853). init_parameters() then special-cases a separator whose first byte is '\\t' (src/pr.c:1237) and repoints col_sep_string at the 1-byte global column_separator (' ') WITHOUT resetting col_sep_length, so for a multi-character separator such as -S$'\\t\\t\\t' the pair desynchronizes (length 3 names a 1-byte buffer) and print_sep_string() (src/pr.c:2224-2241) walks past the buffer -- a global-buffer-overflow (CWE-125), reachable with e.g. `pr -S$'\\t\\t\\t' a -m a`.",
+  "trust_boundary": "the -S separator string from the command line; init_parameters() desynchronizes its (pointer,length) pair when the separator starts with a tab and is longer than one byte and the output uses multiple columns"
+}

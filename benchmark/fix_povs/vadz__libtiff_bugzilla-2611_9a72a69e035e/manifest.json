@@ -1,0 +1,84 @@
+{
+  "advisory": {
+    "ghsa": "",
+    "nvd": "CVE-2016-10267",
+    "urls": [
+      "http://bugzilla.maptools.org/show_bug.cgi?id=2611",
+      "https://nvd.nist.gov/vuln/detail/CVE-2016-10267",
+      "https://github.com/vadz/libtiff/commit/43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec",
+      "https://github.com/asarubbo/poc/blob/master/00083-libtiff-fpe-OJPEGDecodeRaw"
+    ]
+  },
+  "cve_id": "bugzilla-2611",
+  "cwe_id": "CWE-369",
+  "fix_reference": {
+    "fix_commit_ids": [
+      "43bc256d8ae44b92d2734a3c5bc73957a4d7c1ec"
+    ],
+    "fix_summary": "Adds an int decoder_ok flag to OJPEGState: OJPEGPreDecode() sets it to 1 only when it reaches its (successful) end, and OJPEGDecode() early-exits with TIFFErrorExt('Cannot decode: decoder not correctly initialized') -- returning 0 -- whenever the flag is unset, so neither OJPEGDecodeRaw() nor OJPEGDecodeScanlines() can run when pre-decode failed and codec state (bytes_per_line) was never initialized.",
+    "official_fix_patch": "official_fix.patch"
+  },
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh",
+      "covers_alert_paths": [
+        "OJPEGDecode() unguarded dispatch into OJPEGDecodeRaw() after a failed OJPEGPreDecode (libtiff/tif_ojpeg.c:785) -> 'if (cc%sp->bytes_per_line!=0)' integer divide-by-zero (libtiff/tif_ojpeg.c:816)"
+      ],
+      "description": "tiffmedian (the tool from the original bug report, 'tiffmedia') reads the canonical 416-byte BigTIFF-mutated OJPEG reproducer from asarubbo/poc (00083-libtiff-fpe-OJPEGDecodeRaw). OJPEGPreDecode fails inside OJPEGReadHeaderInfo but OJPEGDecode is still invoked for the first scanline; with sp->bytes_per_line==0, OJPEGDecodeRaw's 'cc % bytes_per_line' (tif_ojpeg.c:816, cc=3) is a UBSan integer-divide-by-zero trap. With the official fix, OJPEGDecode early-exits ('Cannot decode: decoder not correctly initialized') and no division runs.",
+      "exploit_path": "crafted BigTIFF OJPEG TIFF (1x1 RGB, Compression=6) -> TIFFOpen/TIFFReadScanline -> OJPEGPreDecode (tif_ojpeg.c:666) fails in OJPEGReadHeaderInfo (tif_ojpeg.c:674) -> OJPEGDecode (tif_ojpeg.c:785) dispatch without prior-success check -> OJPEGDecodeRaw 'if (cc%sp->bytes_per_line!=0)' (tif_ojpeg.c:816) divides by the zero-initialized bytes_per_line",
+      "id": "ojpeg_decoderaw_divide_by_zero",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "b18b2c8697e3654141b3a8c5f0f09e20a3c028c96bfb4259c4936bff06fd96df",
+        "ran_at": "2026-08-15T22:47:05+00:00"
+      }
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh libapi",
+      "covers_alert_paths": [
+        "OJPEGDecode() unguarded dispatch into OJPEGDecodeRaw() after a failed OJPEGPreDecode (libtiff/tif_ojpeg.c:785) -> 'if (cc%sp->bytes_per_line!=0)' integer divide-by-zero (libtiff/tif_ojpeg.c:816)"
+      ],
+      "description": "Drives the identical OJPEGDecodeRaw 'cc % bytes_per_line' divide-by-zero (tif_ojpeg.c:816) through the libtiff PUBLIC API instead of the tiffmedian tool. A ~20-line C driver (povs/ojpeg_scanline.c) compiled against the static libtiff.a does TIFFOpen -> TIFFReadScanline(t,buf,0,0) (fails in OJPEGReadHeaderInfo, returns -1) -> TIFFReadScanline(t,buf,0,0) AGAIN. On the second read of row 0, strip==tif->tif_curstrip (TIFFStartStrip set it before the first read's predecode failed), so TIFFSeek skips the refill/predecode and OJPEGDecode runs on the zero-initialized codec state (bytes_per_line==0) -> 3 % 0. With the official decoder_ok fix, OJPEGDecode early-exits ('Cannot decode: decoder not correctly initialized') on the second read and no division runs. Decouples the ground-truth coverage from the specific behaviour of any one CLI tool.",
+      "exploit_path": "crafted BigTIFF OJPEG TIFF (poc_00083, 1x1) -> TIFFOpen -> TIFFReadScanline(row 0) #1: TIFFSeek/TIFFStartStrip set tif_curstrip=0, OJPEGPreDecode fails in OJPEGReadHeaderInfo (tif_ojpeg.c:674), read returns -1 -> TIFFReadScanline(row 0) #2: strip==tif_curstrip so TIFFSeek skips predecode -> tif_decoderow=OJPEGDecode (tif_ojpeg.c:785) -> OJPEGDecodeRaw 'if (cc%sp->bytes_per_line!=0)' (tif_ojpeg.c:816) divides by the zero-initialized bytes_per_line",
+      "id": "ojpeg_decoderaw_divzero_libapi",
+      "reproduces_exit_code": 0,
+      "validation": {
+        "after": {
+          "at": "official-fix (official_fix.patch)",
+          "exit_code": 1,
+          "outcome": "blocked",
+          "reproduced": false
+        },
+        "before": {
+          "at": "unpatched-source",
+          "exit_code": 0,
+          "outcome": "reproduced",
+          "reproduced": true
+        },
+        "certified": true,
+        "content_hash": "4bd30699c4d9c4e3da30dfdb3ac37cfe4ad702c7a8bcd3a5471cf23924721b9b",
+        "ran_at": "2026-08-15T22:47:05+00:00"
+      }
+    }
+  ],
+  "project_slug": "vadz__libtiff_bugzilla-2611_9a72a69e035e",
+  "setup_commands": [
+    "test -x ./configure || (test -x ./autogen.sh && ./autogen.sh) || (test -f configure.ac -o -f configure.in && autoreconf -i) || true && ./configure --enable-static --disable-shared && make CFLAGS=\"-fsanitize=integer-divide-by-zero -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" CXXFLAGS=\"-fsanitize=integer-divide-by-zero -fcommon -g -O0 -Wno-error -Wno-deprecated-declarations\" LDFLAGS=\"-fsanitize=integer-divide-by-zero\""
+  ],
+  "sink": "libtiff/tif_ojpeg.c:OJPEGDecodeRaw -- 'if (cc%sp->bytes_per_line!=0)' (line 816), reached via the unguarded OJPEGDecode() dispatch (line 785-793) after a failed OJPEGPreDecode()",
+  "summary": "OJPEGDecode() in libtiff/tif_ojpeg.c dispatches into OJPEGDecodeRaw() with no check that the preceding OJPEGPreDecode() succeeded; a pre-decode failure on a crafted OJPEG image leaves sp->bytes_per_line at its zero-initialized value and 'if (cc%sp->bytes_per_line!=0)' (tif_ojpeg.c:816) is an integer divide-by-zero (SIGFPE/UBSan trap).",
+  "trust_boundary": "the OJPEG-compressed strip/tile payload of a crafted TIFF (an embedded, malformed old-style JPEG stream): its parsing failures are what leave the OJPEG codec state (bytes_per_line) zero-initialized while TIFFReadScanline still invokes the decoder"
+}

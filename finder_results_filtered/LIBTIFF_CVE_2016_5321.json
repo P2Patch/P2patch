@@ -1,0 +1,38 @@
+{
+  "cwe_id": "cwe-119",
+  "cve_id": "CVE-2016-5321",
+  "note": "tools/tiffcrop.c's readSeparateTilesIntoBuffer() declares `unsigned char *srcbuffs[MAX_SAMPLES]` (MAX_SAMPLES == 8) and allocates it correctly, bounding the allocation loop by `(sample < spp) && (sample < MAX_SAMPLES)` (line 962). But the read loop a few lines later that actually uses the array -- `for (s = 0; s < spp; s++) { tbytes = TIFFReadTile(in, srcbuffs[s], col, row, 0, s); ... }` (lines 992-994) -- is bounded only by `spp`, dropping the MAX_SAMPLES bound. `spp` is TIFFTAG_SAMPLESPERPIXEL, read unbounded from the input file at `TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &spp)` (line 5755) -- only checked for `== 0` at line 5932, never for an upper bound -- and passed straight through to readSeparateTilesIntoBuffer at line 6079. A tiled, separate-planar TIFF with spp > 8 therefore reads srcbuffs[s] past the 8-slot stack array at line 994 and hands the resulting garbage pointer to TIFFReadTile() as a write destination. The same `spp`-vs-`MAX_SAMPLES` mismatch pattern (an allocation loop bounded by both `spp` and `MAX_SAMPLES`, paired with a use loop bounded only by `spp`) recurs across several sibling `combineSeparateSamples*bits()`/`combineSeparateTileSamples*bits()` functions later in this same file; `readSeparateTilesIntoBuffer`'s read loop is the same defect shape, one call site earlier in the data flow. TIFFReadTile() for the PLANARCONFIG_SEPARATE, COMPRESSION_NONE case dispatches into DumpModeDecode(), the compression-specific decoder that performs the actual out-of-bounds write once handed the garbage srcbuffs[s] pointer.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "TIFFGetFieldDefaulted(in, TIFFTAG_SAMPLESPERPIXEL, &spp) : untrusted SamplesPerPixel tag read from the input file, no upper-bound check",
+            "uri": "tools/tiffcrop.c",
+            "line": 5755
+          },
+          {
+            "message": "if ((bps == 0) || (spp == 0)) return (-1); : the only validation spp ever receives -- a zero check, never an upper bound",
+            "uri": "tools/tiffcrop.c",
+            "line": 5932
+          },
+          {
+            "message": "readSeparateTilesIntoBuffer(in, read_buff, length, width, tw, tl, spp, bps) : unbounded spp passed straight through",
+            "uri": "tools/tiffcrop.c",
+            "line": 6079
+          },
+          {
+            "message": "for (s = 0; s < spp; s++) : the read loop is bounded only by spp, dropping the `&& (s < MAX_SAMPLES)` bound the allocation loop above it (line 962) uses",
+            "uri": "tools/tiffcrop.c",
+            "line": 992
+          },
+          {
+            "message": "tbytes = TIFFReadTile(in, srcbuffs[s], col, row, 0, s) : srcbuffs[MAX_SAMPLES] read out of bounds once spp > 8, and the resulting garbage pointer is handed to TIFFReadTile() as the tile's write destination -- CWE-119",
+            "uri": "tools/tiffcrop.c",
+            "line": 994
+          }
+        ]
+      ]
+    }
+  ]
+}

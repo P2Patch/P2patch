@@ -1,0 +1,34 @@
+diff --git a/tools/tiff2ps.c b/tools/tiff2ps.c
+index ae296e91..507e08cb 100644
+--- a/tools/tiff2ps.c
++++ b/tools/tiff2ps.c
+@@ -2438,7 +2438,8 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 	tsize_t cc;
+ 	unsigned char *tf_buf;
+ 	unsigned char *cp, c;
+-
++// FIXME: Crash CWE-125: Out-of-bounds Read
++ 
+ 	(void) w;
+ 	tf_buf = (unsigned char *) _TIFFmalloc(tf_bytesperrow);
+ 	if (tf_buf == NULL) {
+@@ -2467,6 +2468,9 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 				 *    Cback * (1 - Aimage)
+ 				 * where Cback = 1.
+ 				 */
++				size_t max_offset = cc + nc;
++				if (max_offset > tf_bytesperrow)
++					break;
+ 				adjust = 255 - cp[nc];
+ 				switch (nc) {
+ 				case 4: c = *cp++ + adjust; PUTHEX(c,fd);
+@@ -2480,6 +2484,9 @@ PSDataColorContig(FILE* fd, TIFF* tif, uint32 w, uint32 h, int nc)
+ 			cc = 0;
+ 			for (; cc < tf_bytesperrow; cc += samplesperpixel) {
+ 				DOBREAK(breaklen, nc, fd);
++				size_t max_offset = cc + nc;
++				if (max_offset > tf_bytesperrow)
++					break;
+ 				switch (nc) {
+ 				case 4: c = *cp++; PUTHEX(c,fd);
+ 				case 3: c = *cp++; PUTHEX(c,fd);

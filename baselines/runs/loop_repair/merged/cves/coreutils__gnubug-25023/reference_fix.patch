@@ -1,0 +1,77 @@
+From d91aeef0527bf8ec0f83c3c3b69f3979c0b4c4a0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?P=C3=A1draig=20Brady?= <P@draigBrady.com>
+Date: Fri, 25 Nov 2016 13:46:23 +0000
+Subject: [PATCH] pr: fix read from invalid memory with tabs in separator
+
+This was detected with:
+  echo a > a; pr "-S$(printf "\t\t\t")" a -m a > /dev/null
+Resulting in ASAN triggering:
+  ====================================================
+  ERROR: AddressSanitizer: global-buffer-overflow
+  READ of size 1 at 0x00000041b622 thread T0
+    #0 0x40506a in print_sep_string ../src/pr.c:2241
+    #1 0x407ec4 in read_line ../src/pr.c:2493
+    #2 0x40985c in print_page ../src/pr.c:1802
+    #3 0x40985c in print_files ../src/pr.c:1618
+    #4 0x4036e0 in main ../src/pr.c:1136
+
+* src/pr.c (init_parameters): Ensure we only override the
+specified separator when it's a single tab, thus matching
+the calculated separator length.
+* tests/pr/pr-tests.pl: Add a test case.
+* NEWS: Mention the fix.
+---
+ NEWS                 | 4 ++++
+ src/pr.c             | 2 +-
+ tests/pr/pr-tests.pl | 7 +++++++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/NEWS b/NEWS
+index edfbdfa1d..ba7679ffd 100644
+--- a/NEWS
++++ b/NEWS
+@@ -35,6 +35,10 @@ GNU coreutils NEWS                                    -*- outline -*-
+   nl now resets numbering for each page section rather than just for each page.
+   [This bug was present in "the beginning".]
+ 
++  pr now handles specified separator strings containing tabs correctly.
++  Previously it would have output random data from memory.
++  [This bug was detected with ASAN and present in "the beginning".]
++
+   sort -h -k now works even in locales that use blank as thousands separator.
+ 
+   stty --help no longer outputs extraneous gettext header lines
+diff --git a/src/pr.c b/src/pr.c
+index 20e863760..26f221f99 100644
+--- a/src/pr.c
++++ b/src/pr.c
+@@ -1233,7 +1233,7 @@ init_parameters (int number_of_files)
+         }
+       /* It's rather pointless to define a TAB separator with column
+          alignment */
+-      else if (!join_lines && *col_sep_string == '\t')
++      else if (!join_lines && col_sep_length == 1 && *col_sep_string == '\t')
+         col_sep_string = column_separator;
+ 
+       truncate_lines = true;
+diff --git a/tests/pr/pr-tests.pl b/tests/pr/pr-tests.pl
+index 4d85dc989..ec3980af3 100755
+--- a/tests/pr/pr-tests.pl
++++ b/tests/pr/pr-tests.pl
+@@ -467,6 +467,13 @@ push @Tests,
+     {IN=>{3=>"x\ty\tz\n"}},
+      {OUT=>join("\t", qw(a b c m n o x y z)) . "\n"} ];
+ 
++# This resulted in reading invalid memory before coreutils-8.26
++push @Tests,
++   ['asan1', "-m -S'\t\t\t' -t",
++    {IN=>{1=>"a\n"}},
++    {IN=>{2=>"a\n"}},
++     {OUT=>"a\t\t\t\t  \t\t\ta\n"} ];
++
+ @Tests = triple_test \@Tests;
+ 
+ my $save_temps = $ENV{DEBUG};
+-- 
+2.17.1
+

@@ -1,0 +1,42 @@
+{
+  "all_blocked": true,
+  "base_build": "ok",
+  "base_revision_matches_dataset": true,
+  "blocked": 2,
+  "conclusive": 2,
+  "cve_id": "gnubug-25023",
+  "cwe_id": "CWE-125",
+  "dataset_revision": "ca99c524e828cc1a1cfeff3cdfc5349f87143829",
+  "errored": 0,
+  "evaluation_mode": "reconstructed",
+  "evaluation_revision": "ca99c524e828cc1a1cfeff3cdfc5349f87143829",
+  "patched_build": "ok",
+  "povs": [
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh tabs_only",
+      "description": "Run the real `pr` binary with a multi-tab -S separator (the exact repro from the fix commit: echo a > a; pr -S$'\\t\\t\\t' a -m a). -m merges the two input files into parallel columns, so init_parameters() enters the columns>1 branch, sees a separator starting with '\\t', repoints col_sep_string at the 1-byte column_separator while leaving col_sep_length=3, and print_sep_string() reads 2 bytes past the 1-byte global -- ASan global-buffer-overflow.",
+      "exit_code": 1,
+      "exploit_path": "-S$'\\t\\t\\t' (separator_string: col_sep_length=3, col_sep_string=optarg_S) -> init_parameters columns>1 branch (col_sep_string = column_separator, col_sep_length NOT reset, src/pr.c:1237) -> print_sep_string (s=col_sep_string, l=col_sep_length=3, reads 2 bytes past the 1-byte global, src/pr.c:2224-2241)",
+      "id": "tab_separator_merge_columns",
+      "outcome": "blocked",
+      "patched_tail": "[gtpov] did not reproduce (pr exit=0, mode=tabs_only)\n\n\n2026-08-20 13:47                                                  Page 1\n\n\naaa\t\t\t\t   xxx\nbbb\t\t\t\t   yyy\nccc\t\t\t\t   zzz\n",
+      "reproduces_on_base": true
+    },
+    {
+      "command": "bash .security-pipeline/gtpov/run.sh tab_mixed",
+      "description": "Same desynchronization with a separator that *starts with* a tab but contains non-tab chars (-S$'\\tXX', length 3): init_parameters() only inspects the first byte ('\\t'), so col_sep_string is repointed at the 1-byte column_separator while col_sep_length stays 3, and print_sep_string() reads 2 bytes past the global. Guards against a partial fix that special-cases only all-tab separators instead of the length==1 check the official fix uses.",
+      "exit_code": 1,
+      "exploit_path": "-S$'\\tXX' (col_sep_length=3) -> init_parameters (first byte '\\t' -> col_sep_string = column_separator, col_sep_length unchanged=3) -> print_sep_string (reads 3 bytes from the 1-byte global, src/pr.c:2225,2241)",
+      "id": "tab_prefix_mixed_separator",
+      "outcome": "blocked",
+      "patched_tail": "[gtpov] did not reproduce (pr exit=0, mode=tab_mixed)\n\n\n2026-08-20 13:47                                                  Page 1\n\n\naaa\t\t\t\t   xxx\nbbb\t\t\t\t   yyy\nccc\t\t\t\t   zzz\n",
+      "reproduces_on_base": true
+    }
+  ],
+  "project_slug": "coreutils__coreutils_gnubug-25023_ca99c524e828",
+  "reproduced": 0,
+  "score": 1.0,
+  "scored_by": "patchagent-runs/povscore15 (build-and-replay, no LLM calls)",
+  "total": 2,
+  "wall_clock_s": 1531
+}

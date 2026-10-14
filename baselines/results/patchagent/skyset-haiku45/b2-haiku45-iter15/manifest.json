@@ -1,0 +1,19 @@
+{
+ "arm": "skyset-haiku45",
+ "baseline": "patchagent",
+ "baseline_commit": "14cbd456fd7e2f6635ed46f56fb489218ce46ace",
+ "batch": "b2-haiku45-iter15",
+ "cases_attempted": 1,
+ "cost_basis": "measured_tokens",
+ "image": "patchagent-dev:nodbginfod (artifact devcontainer plus the fixes below)",
+ "max_iteration": 15,
+ "model": "claude-haiku-4-5-20251001",
+ "notes": [
+  "Run OUT OF BAND in PatchAgent's own artifact container, not through a baselines/ adapter. This directory is the normalized conversion of that native output (baselines/patchagent/normalize_run.py); nothing here was re-run or re-scored.",
+  "Environment fixes were required and are not upstream: guarded parse_other_error in nvwa/parser/address.py (an EMPTY report -- what a successful patch produces -- otherwise raises and the patch is silently discarded), tool error handlers, a syz-symbolize stub, two pull.sh remotes repointed to vadz/libtiff and gnutools/binutils-gdb, /etc/debuginfod/*.urls removed from the image, httpx==0.27.2 pinned, a libclang-16.so symlink.",
+  "This batch is ONE case. It ran at the full 15-agent DefaultPolicy ladder because it fails at 3, so it is not comparable on effort with b1: 53 candidates, 50 of them re-proposing the same wrong hypothesis, before agent 7 (temperature 0.5 WITH counterexamples) found a NUL-terminator guard."
+ ],
+ "purpose": "PatchAgent over the skyset cases overlapping our C corpus, at --max-iteration 15",
+ "ran_at": "2026-08-20",
+ "cost_note": "cost_usd is derived from token counts measured via Anthropic's count_tokens endpoint over the recorded traffic, including the tool schemas billed on every request. Raw traces are committed under traces/ for re-derivation."
+}

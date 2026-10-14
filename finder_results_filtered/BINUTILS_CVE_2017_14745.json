@@ -1,0 +1,28 @@
+{
+  "cwe_id": "cwe-190",
+  "cve_id": "CVE-2017-14745",
+  "note": "elf_x86_64_get_synthetic_symtab() (bfd/elf64-x86-64.c) assigns `dynrelcount` from bfd_canonicalize_dynamic_reloc() (a macro expanding to a BFD_SEND dispatch through the target vector's _bfd_canonicalize_dynamic_reloc function-pointer member, which returns -1 on error) and passes it as qsort's nmemb argument sorting dynrelbuf with comparator compare_relocs. When negative, the (size_t) cast wraps to a huge count, and compare_relocs dereferences pointers far outside dynrelbuf.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "dynrelcount = bfd_canonicalize_dynamic_reloc(abfd, dynrelbuf, dynsyms) : long",
+            "uri": "bfd/elf64-x86-64.c",
+            "line": 6718
+          },
+          {
+            "message": "qsort(dynrelbuf, dynrelcount, sizeof(arelent *), compare_relocs) : dynrelcount used as nmemb",
+            "uri": "bfd/elf64-x86-64.c",
+            "line": 6722
+          },
+          {
+            "message": "const arelent *a = *(const arelent **) ap; : out-of-bounds pointer dereference inside the qsort comparator, once nmemb wraps to a huge size_t",
+            "uri": "bfd/elf64-x86-64.c",
+            "line": 6632
+          }
+        ]
+      ]
+    }
+  ]
+}

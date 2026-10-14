@@ -1,0 +1,23 @@
+{
+  "cwe_id": "cwe-125",
+  "cve_id": "bugzilla-2633",
+  "note": "tools/tiff2ps.c's `PSDataColorContig()` computes an 'extra samples' stride from two TIFF-header-derived fields with no validation: `int breaklen = MAXLINE, es = samplesperpixel - nc;` (tiff2ps.c:2437). `cp` then walks the `tf_bytesperrow`-sized heap buffer `tf_buf` one scanline at a time; each loop iteration is supposed to consume exactly `samplesperpixel` bytes (`nc` color bytes read via a `switch`, then `es` more skipped via `cp += es`). Before any of that, though, the alpha-matte adjustment reads `nc` bytes AHEAD of the current position: `adjust = 255 - cp[nc];` (tiff2ps.c:2470). For a crafted image whose declared sample counts make `nc` (the color-channel count this function was called with) inconsistent with the image's real per-pixel byte budget (i.e. `es` negative or otherwise wrong), `cp[nc]` runs past the end of `tf_buf` on the row's later pixels -- a heap-buffer-overflow READ.",
+  "vulnerabilities": [
+    {
+      "traces": [
+        [
+          {
+            "message": "int breaklen = MAXLINE, es = samplesperpixel - nc; -- computed with no validation that es (the stride cp is later advanced by, cp += es) is non-negative",
+            "uri": "tools/tiff2ps.c",
+            "line": 2437
+          },
+          {
+            "message": "adjust = 255 - cp[nc]; -- reads nc bytes ahead of cp before cp has been advanced for the current pixel; for an image whose declared sample counts make nc inconsistent with the real per-pixel byte budget, this runs past the end of the tf_bytesperrow-sized scanline buffer tf_buf",
+            "uri": "tools/tiff2ps.c",
+            "line": 2470
+          }
+        ]
+      ]
+    }
+  ]
+}
